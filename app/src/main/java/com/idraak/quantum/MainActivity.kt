@@ -1,8 +1,12 @@
 package com.idraak.quantum
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -35,6 +39,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -45,11 +51,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.idraak.quantum.engine.AIEngine
 
 data class ChatMessage(
@@ -71,11 +79,16 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun IdraakHomeScreen() {
+    val context = LocalContext.current
+
     val backgroundColor = Color(0xFF050B18)
     val blue = Color(0xFF087DFF)
 
     var inputText by remember { mutableStateOf("") }
     var showSettings by remember { mutableStateOf(false) }
+    var voiceStatus by remember { mutableStateOf("VOICE SYSTEM READY") }
+    var isListening by remember { mutableStateOf(false) }
+    var recognizedSpeech by remember { mutableStateOf<String?>(null) }
 
     val messages = remember {
         mutableStateListOf(
@@ -86,7 +99,105 @@ fun IdraakHomeScreen() {
         )
     }
 
+    val voiceController = remember(context) {
+        VoiceController(
+            context = context,
+            onSpeechResult = { result ->
+                recognizedSpeech = result
+                isListening = false
+            },
+            onStatusChanged = { status ->
+                voiceStatus = status
+
+                if (
+                    status.contains("Listening", ignoreCase = true) ||
+                    status.contains("Recognizing", ignoreCase = true) ||
+                    status.contains("Processing", ignoreCase = true) ||
+                    status.contains("Ready.", ignoreCase = true)
+                ) {
+                    isListening = true
+                } else if (
+                    status.contains("recognized", ignoreCase = true) ||
+                    status.contains("error", ignoreCase = true) ||
+                    status.contains("failed", ignoreCase = true) ||
+                    status.contains("stopped", ignoreCase = true) ||
+                    status.contains("timeout", ignoreCase = true) ||
+                    status.contains("No speech", ignoreCase = true)
+                ) {
+                    isListening = false
+                }
+            }
+        )
+    }
+
+    DisposableEffect(voiceController) {
+        onDispose {
+            voiceController.shutdown()
+        }
+    }
+
+    fun sendMessage(messageText: String = inputText) {
+        val message = messageText.trim()
+
+        if (message.isNotEmpty()) {
+            messages.add(ChatMessage(message, true))
+
+            val response = AIEngine.getResponse(message)
+            messages.add(ChatMessage(response, false))
+
+            inputText = ""
+            voiceController.speak(response)
+        }
+    }
+
+    LaunchedEffect(recognizedSpeech) {
+        val spokenText = recognizedSpeech
+
+        if (!spokenText.isNullOrBlank()) {
+            inputText = spokenText
+            sendMessage(spokenText)
+            recognizedSpeech = null
+        }
+    }
+
+    val microphonePermissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission()
+        ) { granted ->
+            if (granted) {
+                val started = voiceController.startListening()
+
+                if (started) {
+                    isListening = true
+                }
+            } else {
+                voiceStatus = "Microphone permission denied"
+                isListening = false
+            }
+        }
+
+    fun startVoiceChat() {
+        val permissionGranted =
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+
+        if (permissionGranted) {
+            val started = voiceController.startListening()
+
+            if (started) {
+                isListening = true
+            }
+        } else {
+            microphonePermissionLauncher.launch(
+                Manifest.permission.RECORD_AUDIO
+            )
+        }
+    }
+
     val transition = rememberInfiniteTransition(label = "core")
+
     val pulse by transition.animateFloat(
         initialValue = 0.94f,
         targetValue = 1.06f,
@@ -96,18 +207,6 @@ fun IdraakHomeScreen() {
         ),
         label = "pulse"
     )
-
-    fun sendMessage() {
-        val message = inputText.trim()
-
-        if (message.isNotEmpty()) {
-            messages.add(ChatMessage(message, true))
-            messages.add(
-                ChatMessage(AIEngine.getResponse(message), false)
-            )
-            inputText = ""
-        }
-    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -204,6 +303,19 @@ fun IdraakHomeScreen() {
                     letterSpacing = 2.sp
                 )
 
+                Spacer(modifier = Modifier.height(5.dp))
+
+                Text(
+                    text = voiceStatus,
+                    color = if (isListening) {
+                        Color(0xFF43E8B2)
+                    } else {
+                        Color(0xFF8EA6C9)
+                    },
+                    fontSize = 11.sp,
+                    textAlign = TextAlign.Center
+                )
+
                 Spacer(modifier = Modifier.height(12.dp))
 
                 LazyColumn(
@@ -280,8 +392,51 @@ fun IdraakHomeScreen() {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            if (isListening) {
+                                voiceController.stopListening()
+                                isListening = false
+                            } else {
+                                startVoiceChat()
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isListening) {
+                                Color(0xFFB83250)
+                            } else {
+                                Color(0xFF087DFF)
+                            }
+                        )
+                    ) {
+                        Text(
+                            if (isListening) "STOP LISTENING" else "🎙 TALK TO IDRAAK"
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+                            voiceController.stopSpeaking()
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF263B59)
+                        )
+                    ) {
+                        Text("STOP VOICE")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Text(
-                    text = "LOCAL FOUNDATION • AI NOT CONNECTED",
+                    text = "LOCAL DEMO AI • VOICE CHAT FOUNDATION",
                     color = Color(0xFF7B91B5),
                     fontSize = 10.sp,
                     textAlign = TextAlign.Center
@@ -342,8 +497,8 @@ fun SettingsScreen(onBack: () -> Unit) {
 
         SettingsStatusCard(
             title = "VOICE SYSTEM",
-            status = "NOT CONFIGURED",
-            detail = "Voice input and voice output are not active yet."
+            status = "VOICE CHAT FOUNDATION",
+            detail = "Speech recognition and Android text-to-speech are connected to the chat screen."
         )
 
         SettingsStatusCard(
@@ -380,7 +535,7 @@ fun SettingsScreen(onBack: () -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Voice profiles are planned. No voice cloning or playback is active yet.",
+            text = "Custom voice profiles and voice cloning are not configured yet.",
             color = Color(0xFF7B91B5),
             fontSize = 11.sp
         )
