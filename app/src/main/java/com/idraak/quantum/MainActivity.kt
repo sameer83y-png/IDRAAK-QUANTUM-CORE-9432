@@ -21,16 +21,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -72,6 +75,7 @@ fun IdraakHomeScreen() {
     val blue = Color(0xFF087DFF)
 
     var inputText by remember { mutableStateOf("") }
+    var showSettings by remember { mutableStateOf(false) }
 
     val messages = remember {
         mutableStateListOf(
@@ -99,10 +103,7 @@ fun IdraakHomeScreen() {
         if (message.isNotEmpty()) {
             messages.add(ChatMessage(message, true))
             messages.add(
-                ChatMessage(
-                    AIEngine.getResponse(message),
-                    false
-                )
+                ChatMessage(AIEngine.getResponse(message), false)
             )
             inputText = ""
         }
@@ -112,153 +113,378 @@ fun IdraakHomeScreen() {
         modifier = Modifier.fillMaxSize(),
         color = backgroundColor
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF101D38),
-                            backgroundColor,
-                            Color(0xFF02050D)
+        if (showSettings) {
+            SettingsScreen(
+                onBack = { showSettings = false }
+            )
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFF101D38),
+                                backgroundColor,
+                                Color(0xFF02050D)
+                            )
                         )
                     )
-                )
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "IDRAAK",
-                color = Color.White,
-                fontSize = 27.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 5.sp
-            )
-
-            Text(
-                text = "QUANTUM CORE",
-                color = Color(0xFF00B7FF),
-                fontSize = 11.sp,
-                letterSpacing = 4.sp
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Box(
-                modifier = Modifier
-                    .size(105.dp)
-                    .scale(pulse)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                Color(0xFF8BEAFF),
-                                Color(0xFF087DFF),
-                                Color(0xFF06152D)
-                            )
-                        ),
-                        CircleShape
-                    ),
-                contentAlignment = Alignment.Center
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "IQ",
-                    color = Color.White,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+                Spacer(modifier = Modifier.height(8.dp))
 
-            Spacer(modifier = Modifier.height(14.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            text = "IDRAAK",
+                            color = Color.White,
+                            fontSize = 27.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 5.sp
+                        )
 
-            Text(
-                text = "SYSTEM ONLINE",
-                color = Color(0xFF43E8B2),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 2.sp
-            )
+                        Text(
+                            text = "QUANTUM CORE",
+                            color = Color(0xFF00B7FF),
+                            fontSize = 11.sp,
+                            letterSpacing = 4.sp
+                        )
+                    }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(messages) { message ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = if (message.isUser) {
-                            Arrangement.End
-                        } else {
-                            Arrangement.Start
-                        }
+                    TextButton(
+                        onClick = { showSettings = true }
                     ) {
-                        Surface(
-                            color = if (message.isUser) {
-                                Color(0xFF123B70)
+                        Text(
+                            "SETTINGS",
+                            color = Color(0xFF65C8FF),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Box(
+                    modifier = Modifier
+                        .size(105.dp)
+                        .scale(pulse)
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFF8BEAFF),
+                                    Color(0xFF087DFF),
+                                    Color(0xFF06152D)
+                                )
+                            ),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "IQ",
+                        color = Color.White,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = "SYSTEM ONLINE",
+                    color = Color(0xFF43E8B2),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 2.sp
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(messages) { message ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = if (message.isUser) {
+                                Arrangement.End
                             } else {
-                                Color(0xFF17243A)
-                            },
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth(0.88f)
+                                Arrangement.Start
+                            }
                         ) {
-                            Text(
-                                text = message.text,
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                modifier = Modifier.padding(13.dp)
-                            )
+                            Surface(
+                                color = if (message.isUser) {
+                                    Color(0xFF123B70)
+                                } else {
+                                    Color(0xFF17243A)
+                                },
+                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier.fillMaxWidth(0.88f)
+                            ) {
+                                Text(
+                                    text = message.text,
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.padding(13.dp)
+                                )
+                            }
                         }
                     }
                 }
-            }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = inputText,
-                    onValueChange = { inputText = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = {
-                        Text("Message Idraak...", color = Color.LightGray)
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
-                    keyboardOptions = KeyboardOptions(
-                        imeAction = ImeAction.Send
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onSend = { sendMessage() }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = inputText,
+                        onValueChange = { inputText = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = {
+                            Text(
+                                "Message Idraak...",
+                                color = Color.LightGray
+                            )
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Send
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onSend = { sendMessage() }
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.size(8.dp))
+
+                    Button(
+                        onClick = { sendMessage() },
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = blue
+                        )
+                    ) {
+                        Text("SEND")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "LOCAL FOUNDATION • AI NOT CONNECTED",
+                    color = Color(0xFF7B91B5),
+                    fontSize = 10.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsScreen(onBack: () -> Unit) {
+    val backgroundColor = Color(0xFF050B18)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF101D38),
+                        backgroundColor,
+                        Color(0xFF02050D)
                     )
                 )
+            )
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp)
+    ) {
+        TextButton(onClick = onBack) {
+            Text(
+                "← BACK TO IDRAAK",
+                color = Color(0xFF65C8FF)
+            )
+        }
 
-                Spacer(modifier = Modifier.size(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-                Button(
-                    onClick = { sendMessage() },
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = blue
-                    )
-                ) {
-                    Text("SEND")
-                }
-            }
+        Text(
+            text = "SYSTEM SETTINGS",
+            color = Color.White,
+            fontSize = 25.sp,
+            fontWeight = FontWeight.Bold
+        )
 
-            Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Configure your IDRAAK QUANTUM CORE",
+            color = Color(0xFF8EA6C9),
+            fontSize = 12.sp
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        SettingsStatusCard(
+            title = "AI CONNECTION",
+            status = "NOT CONNECTED",
+            detail = "Real AI engine will be configured in a later stage."
+        )
+
+        SettingsStatusCard(
+            title = "VOICE SYSTEM",
+            status = "NOT CONFIGURED",
+            detail = "Voice input and voice output are not active yet."
+        )
+
+        SettingsStatusCard(
+            title = "LOCAL MEMORY",
+            status = "DEMO SESSION ONLY",
+            detail = "Chat messages are currently stored only during this session."
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Text(
+            text = "DUAL VOICE CHARACTERS",
+            color = Color(0xFF00B7FF),
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        VoiceCharacterCard(
+            name = "SAMEER",
+            role = "MALE CHARACTER",
+            detail = "Your side of the partnership. Voice profile planned.",
+            accent = Color(0xFF58B9FF)
+        )
+
+        VoiceCharacterCard(
+            name = "IDRAAK",
+            role = "FEMALE AI CHARACTER",
+            detail = "AI companion voice. Female voice profile planned.",
+            accent = Color(0xFFE3A0FF)
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Voice profiles are planned. No voice cloning or playback is active yet.",
+            color = Color(0xFF7B91B5),
+            fontSize = 11.sp
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Text(
+            text = "IDRAAK QUANTUM CORE • SETTINGS",
+            color = Color(0xFF526987),
+            fontSize = 10.sp
+        )
+    }
+}
+
+@Composable
+fun SettingsStatusCard(
+    title: String,
+    status: String,
+    detail: String
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp),
+        color = Color(0xFF14243D),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = title,
+                color = Color(0xFF65C8FF),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "LOCAL DEMO ENGINE",
-                color = Color(0xFF7B91B5),
-                fontSize = 10.sp,
-                textAlign = TextAlign.Center
+                text = status,
+                color = Color.White,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
             )
+
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Text(
+                text = detail,
+                color = Color(0xFF9CB0CC),
+                fontSize = 12.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun VoiceCharacterCard(
+    name: String,
+    role: String,
+    detail: String,
+    accent: Color
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp),
+        color = Color(0xFF18243A),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .background(accent, CircleShape)
+            )
+
+            Spacer(modifier = Modifier.size(12.dp))
+
+            Column {
+                Text(
+                    text = name,
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = role,
+                    color = accent,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(5.dp))
+
+                Text(
+                    text = detail,
+                    color = Color(0xFF9CB0CC),
+                    fontSize = 12.sp
+                )
+            }
         }
     }
 }
