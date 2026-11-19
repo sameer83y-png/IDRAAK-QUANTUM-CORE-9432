@@ -3,7 +3,7 @@ name: IDRAAK QUANTUM APK Build
 on:
   push:
     branches:
-      - main
+      - firebase-ai-setup
   workflow_dispatch:
 
 permissions:
@@ -39,6 +39,17 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '8.7'
+
+      - name: Create Firebase configuration
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "GOOGLE_SERVICES_JSON secret is missing or empty."
+            exit 1
+          fi
+          mkdir -p app
+          printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
 
       - name: Build Debug APK
         run: gradle :app:assembleDebug
