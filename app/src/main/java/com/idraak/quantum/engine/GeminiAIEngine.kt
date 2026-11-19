@@ -1,11 +1,12 @@
 package com.idraak.quantum.engine
 
 import com.google.firebase.Firebase
-import com.google.firebase.ai.GenerativeBackend
+import com.google.firebase.ai.ai
+import com.google.firebase.ai.type.GenerativeBackend
 
 object GeminiAIEngine {
 
-    private const val MODEL_NAME = "gemini-3.5-flash"
+    private const val MODEL_NAME = "gemini-3.8-flash"
 
     private val model by lazy {
         Firebase.ai(backend = GenerativeBackend.googleAI())
@@ -33,7 +34,8 @@ object GeminiAIEngine {
 
             val response = model.generateContent(prompt)
 
-            response.text?.takeIf { it.isNotBlank() }
+            response.text
+                ?.takeIf { it.isNotBlank() }
                 ?: "Gemini returned an empty response."
 
         } catch (exception: Exception) {
