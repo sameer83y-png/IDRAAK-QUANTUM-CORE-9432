@@ -6,7 +6,7 @@ import com.google.firebase.ai.type.GenerativeBackend
 
 object GeminiAIEngine {
 
-    private const val MODEL_NAME = "gemini-3.5-flash"
+    private const val MODEL_NAME = "gemini-2.5-flash"
 
     private val model by lazy {
         Firebase.ai(backend = GenerativeBackend.googleAI())
