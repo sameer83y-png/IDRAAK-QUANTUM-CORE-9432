@@ -45,6 +45,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,11 +55,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.idraak.quantum.engine.AIEngine
+import com.idraak.quantum.engine.GeminiAIEngine
+import com.idraak.quantum.security.GeminiKeyStore
+import kotlinx.coroutines.launch
 
 data class ChatMessage(
     val text: String,
@@ -80,6 +85,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun IdraakHomeScreen() {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     val backgroundColor = Color(0xFF050B18)
     val blue = Color(0xFF087DFF)
@@ -89,6 +95,11 @@ fun IdraakHomeScreen() {
     var voiceStatus by remember { mutableStateOf("VOICE SYSTEM READY") }
     var isListening by remember { mutableStateOf(false) }
     var recognizedSpeech by remember { mutableStateOf<String?>(null) }
+    var isGenerating by remember { mutableStateOf(false) }
+
+    var hasGeminiKey by remember {
+        mutableStateOf(GeminiKeyStore.get(context) != null)
+    }
 
     val messages = remember {
         mutableStateListOf(
@@ -139,14 +150,49 @@ fun IdraakHomeScreen() {
     fun sendMessage(messageText: String = inputText) {
         val message = messageText.trim()
 
-        if (message.isNotEmpty()) {
-            messages.add(ChatMessage(message, true))
+        if (message.isEmpty() || isGenerating) return
 
-            val response = AIEngine.getResponse(message)
-            messages.add(ChatMessage(response, false))
+        messages.add(ChatMessage(message, true))
+        inputText = ""
 
-            inputText = ""
-            voiceController.speak(response)
+        if (!hasGeminiKey) {
+            val demoResponse = AIEngine.getResponse(message)
+            messages.add(ChatMessage(demoResponse, false))
+            voiceController.speak(demoResponse)
+            voiceStatus = "DEMO MODE ACTIVE"
+            return
+        }
+
+        isGenerating = true
+        voiceStatus = "GEMINI AI PROCESSING..."
+
+        scope.launch {
+            try {
+                val response = GeminiAIEngine.generateResponse(
+                    context = context.applicationContext,
+                    userMessage = message
+                )
+
+                messages.add(ChatMessage(response, false))
+                voiceController.speak(response)
+                voiceStatus = "GEMINI AI CONNECTED"
+
+            } catch (error: Exception) {
+                val errorMessage = error.message
+                    ?.takeIf { it.isNotBlank() }
+                    ?: "Unknown connection error"
+
+                val safeMessage =
+                    "Boss, Gemini se connection nahi ho paya.\n\n" +
+                    "Error: $errorMessage\n\n" +
+                    "Settings aur API Key check kijiye."
+
+                messages.add(ChatMessage(safeMessage, false))
+                voiceStatus = "GEMINI CONNECTION ERROR"
+
+            } finally {
+                isGenerating = false
+            }
         }
     }
 
@@ -214,7 +260,10 @@ fun IdraakHomeScreen() {
     ) {
         if (showSettings) {
             SettingsScreen(
-                onBack = { showSettings = false }
+                onBack = {
+                    hasGeminiKey = GeminiKeyStore.get(context) != null
+                    showSettings = false
+                }
             )
         } else {
             Column(
@@ -316,6 +365,15 @@ fun IdraakHomeScreen() {
                     textAlign = TextAlign.Center
                 )
 
+                if (isGenerating) {
+                    Spacer(modifier = Modifier.height(5.dp))
+                    Text(
+                        text = "Idraak is thinking...",
+                        color = Color(0xFF65C8FF),
+                        fontSize = 11.sp
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(12.dp))
 
                 LazyColumn(
@@ -381,12 +439,13 @@ fun IdraakHomeScreen() {
 
                     Button(
                         onClick = { sendMessage() },
+                        enabled = !isGenerating,
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = blue
                         )
                     ) {
-                        Text("SEND")
+                        Text(if (isGenerating) "WAIT" else "SEND")
                     }
                 }
 
@@ -416,7 +475,11 @@ fun IdraakHomeScreen() {
                         )
                     ) {
                         Text(
-                            if (isListening) "STOP LISTENING" else "🎙 TALK TO IDRAAK"
+                            if (isListening) {
+                                "STOP LISTENING"
+                            } else {
+                                "🎙 TALK TO IDRAAK"
+                            }
                         )
                     }
 
@@ -436,7 +499,11 @@ fun IdraakHomeScreen() {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "LOCAL DEMO AI • VOICE CHAT FOUNDATION",
+                    text = if (hasGeminiKey) {
+                        "GEMINI AI • DEMO FALLBACK READY"
+                    } else {
+                        "LOCAL DEMO AI • VOICE CHAT FOUNDATION"
+                    },
                     color = Color(0xFF7B91B5),
                     fontSize = 10.sp,
                     textAlign = TextAlign.Center
@@ -448,6 +515,14 @@ fun IdraakHomeScreen() {
 
 @Composable
 fun SettingsScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+
+    var apiKey by remember { mutableStateOf("") }
+    var hasSavedKey by remember {
+        mutableStateOf(GeminiKeyStore.get(context) != null)
+    }
+    var statusMessage by remember { mutableStateOf("") }
+
     val backgroundColor = Color(0xFF050B18)
 
     Column(
@@ -490,10 +565,94 @@ fun SettingsScreen(onBack: () -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
 
         SettingsStatusCard(
-            title = "AI CONNECTION",
-            status = "NOT CONNECTED",
-            detail = "Real AI engine will be configured in a later stage."
+            title = "GEMINI AI CONNECTION",
+            status = if (hasSavedKey) "API KEY SAVED" else "DEMO MODE ACTIVE",
+            detail = if (hasSavedKey) {
+                "Gemini API key is saved securely on this device."
+            } else {
+                "No API key saved. Idraak will continue using Demo Mode."
+            }
         )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Text(
+            text = "GEMINI API KEY",
+            color = Color(0xFF65C8FF),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = apiKey,
+            onValueChange = { apiKey = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Paste your Gemini API Key") },
+            placeholder = { Text("Enter API key") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Done
+            )
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Button(
+            onClick = {
+                if (apiKey.isBlank()) {
+                    statusMessage = "Please enter your API key first."
+                } else {
+                    val saved = GeminiKeyStore.save(context, apiKey)
+
+                    if (saved) {
+                        hasSavedKey = true
+                        apiKey = ""
+                        statusMessage = "Gemini API key saved securely."
+                    } else {
+                        statusMessage = "Could not save the API key. Please try again."
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF087DFF)
+            )
+        ) {
+            Text("SAVE GEMINI API KEY")
+        }
+
+        if (hasSavedKey) {
+            TextButton(
+                onClick = {
+                    val deleted = GeminiKeyStore.delete(context)
+
+                    if (deleted) {
+                        hasSavedKey = false
+                        statusMessage = "Saved API key removed."
+                    } else {
+                        statusMessage = "Could not remove the saved key."
+                    }
+                }
+            ) {
+                Text(
+                    "REMOVE SAVED API KEY",
+                    color = Color(0xFFFF8297)
+                )
+            }
+        }
+
+        if (statusMessage.isNotBlank()) {
+            Text(
+                text = statusMessage,
+                color = Color(0xFF43E8B2),
+                fontSize = 12.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
 
         SettingsStatusCard(
             title = "VOICE SYSTEM",
