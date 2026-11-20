@@ -1,4 +1,3 @@
-
 package com.idraak.quantum.engine
 
 import java.util.Locale
@@ -19,7 +18,11 @@ object OfflineScreenCommandHandler {
         val command = normalize(userCommand)
 
         if (command.isBlank()) {
-            return Result(false, "कृपया स्क्रीन कमांड बताइए।", "EMPTY")
+            return Result(
+                false,
+                "कृपया स्क्रीन कमांड बताइए।",
+                "EMPTY"
+            )
         }
 
         // Back navigation
@@ -46,7 +49,7 @@ object OfflineScreenCommandHandler {
             }
         }
 
-        // Actual finger swipe UP
+        // Swipe UP
         if (matches(
                 command,
                 "swipe up", "swipe upward",
@@ -59,7 +62,7 @@ object OfflineScreenCommandHandler {
             }
         }
 
-        // Actual finger swipe DOWN
+        // Swipe DOWN
         if (matches(
                 command,
                 "swipe down", "swipe downward",
@@ -72,7 +75,7 @@ object OfflineScreenCommandHandler {
             }
         }
 
-        // Actual finger swipe LEFT
+        // Swipe LEFT
         if (matches(
                 command,
                 "swipe left", "swipe to left",
@@ -86,7 +89,7 @@ object OfflineScreenCommandHandler {
             }
         }
 
-        // Actual finger swipe RIGHT
+        // Swipe RIGHT
         if (matches(
                 command,
                 "swipe right", "swipe to right",
@@ -100,11 +103,14 @@ object OfflineScreenCommandHandler {
             }
         }
 
-        // Accessibility scroll forward
+        // Scroll DOWN
         if (matches(
                 command,
-                "scroll down", "नीचे स्क्रॉल करो",
-                "स्क्रॉल नीचे करो"
+                "scroll down",
+                "नीचे स्क्रॉल करो",
+                "स्क्रॉल नीचे करो",
+                "नीचे जाओ",
+                "नीचे करो"
             )
         ) {
             return perform("SCROLL_DOWN") {
@@ -112,11 +118,14 @@ object OfflineScreenCommandHandler {
             }
         }
 
-        // Accessibility scroll backward
+        // Scroll UP
         if (matches(
                 command,
-                "scroll up", "ऊपर स्क्रॉल करो",
-                "स्क्रॉल ऊपर करो"
+                "scroll up",
+                "ऊपर स्क्रॉल करो",
+                "स्क्रॉल ऊपर करो",
+                "ऊपर जाओ",
+                "ऊपर करो"
             )
         ) {
             return perform("SCROLL_UP") {
@@ -151,7 +160,7 @@ object OfflineScreenCommandHandler {
                 )
             }
 
-            // Consequential actions require a separate confirmation flow.
+            // Sensitive actions are never clicked automatically.
             if (isSensitiveTarget(targetText)) {
                 return Result(
                     false,
@@ -176,6 +185,7 @@ object OfflineScreenCommandHandler {
         intent: String,
         action: () -> Boolean
     ): Result {
+
         if (!ScreenControlBridge.isServiceConnected()) {
             return Result(
                 false,
@@ -200,6 +210,7 @@ object OfflineScreenCommandHandler {
                     "ACTION_FAILED"
                 )
             }
+
         } catch (_: Exception) {
             Result(
                 false,
@@ -209,7 +220,10 @@ object OfflineScreenCommandHandler {
         }
     }
 
-    private fun extractClickTarget(command: String): String? {
+    private fun extractClickTarget(
+        command: String
+    ): String? {
+
         val prefixes = listOf(
             "click on ",
             "click ",
@@ -241,10 +255,14 @@ object OfflineScreenCommandHandler {
         return null
     }
 
-    private fun isSensitiveTarget(target: String): Boolean {
+    private fun isSensitiveTarget(
+        target: String
+    ): Boolean {
+
         val sensitiveWords = listOf(
             "send", "submit", "delete", "remove",
-            "purchase", "buy", "pay", "confirm", "transfer",
+            "purchase", "buy", "pay", "confirm",
+            "transfer", "send money", "place order",
             "भेजो", "भेजें", "डिलीट", "हटाओ",
             "खरीदो", "पेमेंट", "भुगतान",
             "पुष्टि", "ट्रांसफर"
@@ -261,12 +279,16 @@ object OfflineScreenCommandHandler {
         command: String,
         vararg phrases: String
     ): Boolean {
+
         return phrases.any { phrase ->
             command == normalize(phrase)
         }
     }
 
-    private fun normalize(value: String): String {
+    private fun normalize(
+        value: String
+    ): String {
+
         return value
             .trim()
             .lowercase(Locale.ROOT)
