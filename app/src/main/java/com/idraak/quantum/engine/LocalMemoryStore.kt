@@ -1,26 +1,38 @@
 package com.idraak.quantum.engine
 
 import android.content.Context
+import android.content.SharedPreferences
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Locale
+import java.util.UUID
 
 /**
  * IDRAAK QUANTUM CORE
- * Local Memory Store
  *
- * Offline-first local memory foundation.
- * Stores categorized memories, experience outcomes,
- * corrections and verified learning records.
+ * Offline-first local memory store.
  *
- * Does not store complete private conversations,
- * passwords, OTPs or message contents.
+ * Features:
+ * - Categorized memory records
+ * - Pending / verified / rejected states
+ * - Local backup and recovery
+ * - Confirmed SharedPreferences writes
+ * - Safe record parsing
+ *
+ * IMPORTANT:
+ * SharedPreferences is not encrypted.
+ * Do not store passwords, OTPs or private credentials.
  */
 object LocalMemoryStore {
 
     private const val PREFS_NAME = "idraak_local_memory"
+
     private const val MEMORY_KEY = "memory_records"
+    private const val BACKUP_KEY = "memory_records_backup"
+
     private const val MAX_RECORDS = 500
+
+    private val lock = Any()
 
     enum class Category {
         USER_PREFERENCE,
@@ -50,9 +62,8 @@ object LocalMemoryStore {
     )
 
     /**
-     * Save a memory.
-     *
-     * Sensitive information must not be passed here.
+     * Save a new memory.
+     * New records should normally remain PENDING.
      */
     fun save(
         context: Context,
@@ -61,45 +72,52 @@ object LocalMemoryStore {
         content: String,
         status: Status = Status.PENDING
     ): Boolean {
-        if (title.isBlank() || content.isBlank()) {
+
+        val safeTitle = title.trim()
+        val safeContent = content.trim()
+
+        if (safeTitle.isBlank() || safeContent.isBlank()) {
             return false
         }
 
-        if (containsSensitivePattern(title) ||
-            containsSensitivePattern(content)
+        if (
+            containsSensitivePattern(safeTitle) ||
+            containsSensitivePattern(safeContent)
         ) {
             return false
         }
 
-        return try {
-            val memories = readArray(context)
-            val now = System.currentTimeMillis()
+        return synchronized(lock) {
+            try {
+                val memories = readArray(context)
+                val now = System.currentTimeMillis()
 
-            val record = JSONObject().apply {
-                put("id", java.util.UUID.randomUUID().toString())
-                put("category", category.name)
-                put("title", title.trim())
-                put("content", content.trim())
-                put("status", status.name)
-                put("createdAt", now)
-                put("updatedAt", now)
+                val record = JSONObject().apply {
+                    put("id", UUID.randomUUID().toString())
+                    put("category", category.name)
+                    put("title", safeTitle)
+                    put("content", safeContent)
+                    put("status", status.name)
+                    put("createdAt", now)
+                    put("updatedAt", now)
+                }
+
+                memories.put(record)
+
+                while (memories.length() > MAX_RECORDS) {
+                    memories.remove(0)
+                }
+
+                writeArray(context, memories)
+
+            } catch (_: Exception) {
+                false
             }
-
-            memories.put(record)
-
-            while (memories.length() > MAX_RECORDS) {
-                memories.remove(0)
-            }
-
-            writeArray(context, memories)
-            true
-        } catch (_: Exception) {
-            false
         }
     }
 
     /**
-     * Save an experience without storing the full command text.
+     * Save an experience without storing the full command.
      */
     fun saveExperience(
         context: Context,
@@ -107,12 +125,20 @@ object LocalMemoryStore {
         outcome: Status,
         lesson: String = ""
     ): Boolean {
-        if (commandType.isBlank()) return false
 
+        val safeCommand = commandType.trim()
         val safeLesson = lesson.trim()
 
-        if (safeLesson.isNotEmpty() &&
-            containsSensitivePattern(safeLesson)
+        if (safeCommand.isBlank()) {
+            return false
+        }
+
+        if (
+            containsSensitivePattern(safeCommand) ||
+            (
+                safeLesson.isNotEmpty() &&
+                containsSensitivePattern(safeLesson)
+            )
         ) {
             return false
         }
@@ -120,8 +146,8 @@ object LocalMemoryStore {
         return save(
             context = context,
             category = Category.EXPERIENCE,
-            title = commandType,
-            content = if (safeLesson.isEmpty()) {
+            title = safeCommand,
+            content = if (safeLesson.isBlank()) {
                 "Outcome recorded: ${outcome.name}"
             } else {
                 safeLesson
@@ -131,14 +157,14 @@ object LocalMemoryStore {
     }
 
     /**
-     * Record a correction.
-     * Corrections remain unverified until explicitly reviewed.
+     * Corrections remain pending until reviewed.
      */
     fun saveCorrection(
         context: Context,
         topic: String,
         correctedInformation: String
     ): Boolean {
+
         return save(
             context = context,
             category = Category.CORRECTION,
@@ -149,57 +175,95 @@ object LocalMemoryStore {
     }
 
     /**
-     * Mark a memory as verified or rejected.
+     * Propose new learning.
+     * Proposed learning is never automatically trusted.
+     */
+    fun proposeLearning(
+        context: Context,
+        topic: String,
+        lesson: String
+    ): Boolean {
+
+        return save(
+            context = context,
+            category = Category.LEARNING,
+            title = topic,
+            content = lesson,
+            status = Status.PENDING
+        )
+    }
+
+    /**
+     * Update a memory status.
      */
     fun updateStatus(
         context: Context,
         memoryId: String,
         newStatus: Status
     ): Boolean {
-        return try {
-            val memories = readArray(context)
-            var found = false
 
-            for (index in 0 until memories.length()) {
-                val item = memories.optJSONObject(index) ?: continue
+        if (memoryId.isBlank()) return false
 
-                if (item.optString("id") == memoryId) {
-                    item.put("status", newStatus.name)
-                    item.put("updatedAt", System.currentTimeMillis())
-                    found = true
-                    break
+        return synchronized(lock) {
+            try {
+                val memories = readArray(context)
+                var found = false
+
+                for (index in 0 until memories.length()) {
+
+                    val item = memories.optJSONObject(index)
+                        ?: continue
+
+                    if (item.optString("id") == memoryId) {
+
+                        item.put("status", newStatus.name)
+                        item.put(
+                            "updatedAt",
+                            System.currentTimeMillis()
+                        )
+
+                        found = true
+                        break
+                    }
                 }
-            }
 
-            if (found) writeArray(context, memories)
-            found
-        } catch (_: Exception) {
-            false
+                if (!found) {
+                    false
+                } else {
+                    writeArray(context, memories)
+                }
+
+            } catch (_: Exception) {
+                false
+            }
         }
     }
 
     /**
-     * Search memories by title or content.
+     * Search by title, content or category.
      */
     fun search(
         context: Context,
         query: String,
         limit: Int = 30
     ): List<MemoryRecord> {
+
         if (query.isBlank() || limit <= 0) {
             return emptyList()
         }
 
         val keyword = normalize(query)
 
-        return readAll(context)
-            .filter {
-                normalize(it.title).contains(keyword) ||
-                normalize(it.content).contains(keyword) ||
-                normalize(it.category).contains(keyword)
-            }
-            .takeLast(limit)
-            .reversed()
+        return synchronized(lock) {
+            readAll(context)
+                .filter {
+                    normalize(it.title).contains(keyword) ||
+                    normalize(it.content).contains(keyword) ||
+                    normalize(it.category).contains(keyword) ||
+                    normalize(it.status).contains(keyword)
+                }
+                .take(limit)
+        }
     }
 
     /**
@@ -210,121 +274,157 @@ object LocalMemoryStore {
         category: Category,
         limit: Int = 50
     ): List<MemoryRecord> {
+
         if (limit <= 0) return emptyList()
 
-        return readAll(context)
-            .filter { it.category == category.name }
-            .takeLast(limit)
-            .reversed()
+        return synchronized(lock) {
+            readAll(context)
+                .filter { it.category == category.name }
+                .takeLast(limit)
+                .reversed()
+        }
     }
 
     /**
-     * Only verified learning records are returned.
-     * Pending guesses are never treated as confirmed knowledge.
+     * Only explicitly verified learning is returned.
      */
     fun getVerifiedLearning(
         context: Context,
         limit: Int = 50
     ): List<MemoryRecord> {
+
         if (limit <= 0) return emptyList()
 
-        return readAll(context)
-            .filter {
-                it.category == Category.LEARNING.name &&
-                it.status == Status.VERIFIED.name
-            }
-            .takeLast(limit)
-            .reversed()
+        return synchronized(lock) {
+            readAll(context)
+                .filter {
+                    it.category == Category.LEARNING.name &&
+                    it.status == Status.VERIFIED.name
+                }
+                .takeLast(limit)
+                .reversed()
+        }
     }
 
     /**
-     * Store a learning candidate.
-     * It is NOT trusted until verified.
+     * Get all memories, newest first.
      */
-    fun proposeLearning(
-        context: Context,
-        topic: String,
-        lesson: String
-    ): Boolean {
-        return save(
-            context = context,
-            category = Category.LEARNING,
-            title = topic,
-            content = lesson,
-            status = Status.PENDING
-        )
-    }
-
     fun getAll(
         context: Context,
         limit: Int = 100
     ): List<MemoryRecord> {
+
         if (limit <= 0) return emptyList()
 
-        return readAll(context)
-            .takeLast(limit)
-            .reversed()
-    }
-
-    fun getCount(context: Context): Int {
-        return readArray(context).length()
-    }
-
-    fun delete(
-        context: Context,
-        memoryId: String
-    ): Boolean {
-        return try {
-            val memories = readArray(context)
-            var found = false
-            val updated = JSONArray()
-
-            for (index in 0 until memories.length()) {
-                val item = memories.optJSONObject(index) ?: continue
-
-                if (item.optString("id") == memoryId) {
-                    found = true
-                } else {
-                    updated.put(item)
-                }
-            }
-
-            if (found) writeArray(context, updated)
-            found
-        } catch (_: Exception) {
-            false
+        return synchronized(lock) {
+            readAll(context)
+                .takeLast(limit)
+                .reversed()
         }
     }
 
     /**
-     * Clear all local memories.
-     * Call only after the user confirms this action.
+     * Count stored memories.
      */
-    fun clearAll(context: Context): Boolean {
-        return try {
-            writeArray(context, JSONArray())
-            true
-        } catch (_: Exception) {
-            false
+    fun getCount(context: Context): Int {
+        return synchronized(lock) {
+            readArray(context).length()
         }
     }
 
+    /**
+     * Delete one memory.
+     */
+    fun delete(
+        context: Context,
+        memoryId: String
+    ): Boolean {
+
+        if (memoryId.isBlank()) return false
+
+        return synchronized(lock) {
+            try {
+                val memories = readArray(context)
+                val updated = JSONArray()
+                var found = false
+
+                for (index in 0 until memories.length()) {
+
+                    val item = memories.optJSONObject(index)
+                        ?: continue
+
+                    if (item.optString("id") == memoryId) {
+                        found = true
+                    } else {
+                        updated.put(item)
+                    }
+                }
+
+                if (!found) {
+                    false
+                } else {
+                    writeArray(context, updated)
+                }
+
+            } catch (_: Exception) {
+                false
+            }
+        }
+    }
+
+    /**
+     * Clear all memories.
+     * The UI must ask for user confirmation first.
+     */
+    fun clearAll(context: Context): Boolean {
+
+        return synchronized(lock) {
+            try {
+                writeArray(context, JSONArray())
+            } catch (_: Exception) {
+                false
+            }
+        }
+    }
+
+    /**
+     * Read and validate stored records.
+     */
     private fun readAll(context: Context): List<MemoryRecord> {
+
         val memories = readArray(context)
         val result = mutableListOf<MemoryRecord>()
 
         for (index in 0 until memories.length()) {
-            val item = memories.optJSONObject(index) ?: continue
+
+            val item = memories.optJSONObject(index)
+                ?: continue
+
+            val id = item.optString("id").trim()
+            val category = item.optString("category").trim()
+            val title = item.optString("title").trim()
+            val content = item.optString("content").trim()
+            val status = item.optString("status").trim()
+
+            if (
+                id.isBlank() ||
+                category.isBlank() ||
+                title.isBlank() ||
+                content.isBlank() ||
+                status.isBlank()
+            ) {
+                continue
+            }
 
             result.add(
                 MemoryRecord(
-                    id = item.optString("id"),
-                    category = item.optString("category"),
-                    title = item.optString("title"),
-                    content = item.optString("content"),
-                    status = item.optString("status"),
-                    createdAt = item.optLong("createdAt"),
-                    updatedAt = item.optLong("updatedAt")
+                    id = id,
+                    category = category,
+                    title = title,
+                    content = content,
+                    status = status,
+                    createdAt = item.optLong("createdAt", 0L),
+                    updatedAt = item.optLong("updatedAt", 0L)
                 )
             )
         }
@@ -332,34 +432,94 @@ object LocalMemoryStore {
         return result
     }
 
+    /**
+     * Read primary memory.
+     * If primary JSON is damaged, try the backup.
+     */
     private fun readArray(context: Context): JSONArray {
-        return try {
-            val saved = context.applicationContext
-                .getSharedPreferences(
-                    PREFS_NAME,
-                    Context.MODE_PRIVATE
-                )
-                .getString(MEMORY_KEY, null)
 
-            if (saved.isNullOrBlank()) JSONArray()
-            else JSONArray(saved)
-        } catch (_: Exception) {
-            JSONArray()
+        val prefs = preferences(context)
+
+        val primary = prefs.getString(MEMORY_KEY, null)
+
+        if (!primary.isNullOrBlank()) {
+            try {
+                return JSONArray(primary)
+            } catch (_: Exception) {
+                // Try backup below.
+            }
         }
+
+        val backup = prefs.getString(BACKUP_KEY, null)
+
+        if (!backup.isNullOrBlank()) {
+            try {
+                return JSONArray(backup)
+            } catch (_: Exception) {
+                // Both copies are damaged.
+            }
+        }
+
+        return JSONArray()
     }
 
+    /**
+     * Write memory with backup protection.
+     *
+     * First save the previous valid primary as backup.
+     * Then write the new primary.
+     * Return true only if the primary write succeeds.
+     */
     private fun writeArray(
         context: Context,
         memories: JSONArray
-    ) {
-        context.applicationContext
-            .getSharedPreferences(
-                PREFS_NAME,
-                Context.MODE_PRIVATE
-            )
-            .edit()
-            .putString(MEMORY_KEY, memories.toString())
-            .commit()
+    ): Boolean {
+
+        return try {
+
+            if (memories.length() > MAX_RECORDS) {
+                return false
+            }
+
+            val prefs = preferences(context)
+            val newData = memories.toString()
+
+            // Validate the new JSON before saving.
+            JSONArray(newData)
+
+            val oldPrimary = prefs.getString(MEMORY_KEY, null)
+
+            if (!oldPrimary.isNullOrBlank()) {
+                try {
+                    JSONArray(oldPrimary)
+
+                    val backupSaved = prefs.edit()
+                        .putString(BACKUP_KEY, oldPrimary)
+                        .commit()
+
+                    if (!backupSaved) {
+                        return false
+                    }
+
+                } catch (_: Exception) {
+                    // Do not overwrite a valid backup with corrupt data.
+                }
+            }
+
+            prefs.edit()
+                .putString(MEMORY_KEY, newData)
+                .commit()
+
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun preferences(context: Context): SharedPreferences {
+        return context.applicationContext.getSharedPreferences(
+            PREFS_NAME,
+            Context.MODE_PRIVATE
+        )
     }
 
     private fun normalize(value: String): String {
@@ -371,6 +531,7 @@ object LocalMemoryStore {
      * This is not a complete privacy or security filter.
      */
     private fun containsSensitivePattern(value: String): Boolean {
+
         val text = value.lowercase(Locale.ROOT)
 
         val patterns = listOf(
