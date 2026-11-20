@@ -1,3 +1,4 @@
+
 package com.idraak.quantum
 
 import androidx.compose.foundation.layout.Arrangement
@@ -11,12 +12,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,6 +46,10 @@ fun MemoryDashboardScreen(
 
     var refreshKey by remember {
         mutableStateOf(0)
+    }
+
+    var memoryPendingDeletion by remember {
+        mutableStateOf<LocalMemoryStore.MemoryRecord?>(null)
     }
 
     val allMemories = remember(refreshKey) {
@@ -230,17 +235,59 @@ fun MemoryDashboardScreen(
                             if (updated) refreshKey++
                         },
                         onDelete = {
-                            val deleted = LocalMemoryStore.delete(
-                                context = context,
-                                memoryId = memory.id
-                            )
-
-                            if (deleted) refreshKey++
+                            memoryPendingDeletion = memory
                         }
                     )
                 }
             }
         }
+    }
+
+    memoryPendingDeletion?.let { memory ->
+        AlertDialog(
+            onDismissRequest = {
+                memoryPendingDeletion = null
+            },
+            title = {
+                Text("Delete this memory?")
+            },
+            text = {
+                Text(
+                    "Are you sure you want to permanently delete " +
+                    "\"${memory.title}\"? This action cannot be undone."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val deleted = LocalMemoryStore.delete(
+                            context = context,
+                            memoryId = memory.id
+                        )
+
+                        memoryPendingDeletion = null
+
+                        if (deleted) {
+                            refreshKey++
+                        }
+                    }
+                ) {
+                    Text(
+                        text = "DELETE",
+                        color = Color(0xFFFF7777)
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        memoryPendingDeletion = null
+                    }
+                ) {
+                    Text("CANCEL")
+                }
+            }
+        )
     }
 }
 
