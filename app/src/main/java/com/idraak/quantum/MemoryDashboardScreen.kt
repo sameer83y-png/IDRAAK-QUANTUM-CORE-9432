@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -45,6 +46,10 @@ fun MemoryDashboardScreen(
 
     var refreshKey by remember {
         mutableStateOf(0)
+    }
+
+    var memoryPendingDeletion by remember {
+        mutableStateOf<LocalMemoryStore.MemoryRecord?>(null)
     }
 
     val allMemories = remember(refreshKey) {
@@ -230,17 +235,88 @@ fun MemoryDashboardScreen(
                             if (updated) refreshKey++
                         },
                         onDelete = {
-                            val deleted = LocalMemoryStore.delete(
-                                context = context,
-                                memoryId = memory.id
-                            )
-
-                            if (deleted) refreshKey++
+                            memoryPendingDeletion = memory
                         }
                     )
                 }
             }
         }
+    }
+
+    // Delete confirmation dialog.
+    memoryPendingDeletion?.let { memory ->
+
+        AlertDialog(
+            onDismissRequest = {
+                memoryPendingDeletion = null
+            },
+            title = {
+                Text(
+                    text = "Delete Memory?",
+                    color = Color.White
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Kya aap sach mein is memory ko delete karna chahte hain?",
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = memory.title,
+                        color = Color(0xFF65C8FF),
+                        style = MaterialTheme.typography.titleSmall
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "Delete hone ke baad yeh record wapas nahi aayega.",
+                        color = Color(0xFFFF9999),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val deleted = LocalMemoryStore.delete(
+                            context = context,
+                            memoryId = memory.id
+                        )
+
+                        if (deleted) {
+                            refreshKey++
+                        }
+
+                        memoryPendingDeletion = null
+                    }
+                ) {
+                    Text(
+                        text = "DELETE",
+                        color = Color(0xFFFF7777)
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        memoryPendingDeletion = null
+                    }
+                ) {
+                    Text(
+                        text = "CANCEL",
+                        color = Color(0xFF65C8FF)
+                    )
+                }
+            },
+            containerColor = Color(0xFF14243D),
+            titleContentColor = Color.White,
+            textContentColor = Color.White
+        )
     }
 }
 
