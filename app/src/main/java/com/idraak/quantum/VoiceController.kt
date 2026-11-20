@@ -8,19 +8,23 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import java.util.Locale
 
 class VoiceController(
     context: Context,
     private val onSpeechResult: (String) -> Unit,
-    private val onStatusChanged: (String) -> Unit
+    private val onStatusChanged: (String) -> Unit,
+    private val onSpeechFinished: () -> Unit = {}
 ) : RecognitionListener {
 
     private val appContext = context.applicationContext
 
     private var speechRecognizer: SpeechRecognizer? = null
     private var textToSpeech: TextToSpeech? = null
+
     private var isTtsReady = false
+    private var isShutdown = false
 
     init {
         initializeSpeechRecognition()
@@ -33,17 +37,28 @@ class VoiceController(
             return
         }
 
-        speechRecognizer = SpeechRecognizer
-            .createSpeechRecognizer(appContext)
-            .also {
-                it.setRecognitionListener(this)
-            }
+        try {
+            speechRecognizer = SpeechRecognizer
+                .createSpeechRecognizer(appContext)
+                .also {
+                    it.setRecognitionListener(this)
+                }
+        } catch (exception: Exception) {
+            onStatusChanged(
+                "Speech initialization failed: ${exception.localizedMessage}"
+            )
+        }
     }
 
     private fun initializeTextToSpeech() {
         textToSpeech = TextToSpeech(appContext) { status ->
+
+            if (isShutdown) return@TextToSpeech
+
             if (status == TextToSpeech.SUCCESS) {
+
                 val defaultLocale = Locale.getDefault()
+
                 val languageResult =
                     textToSpeech?.setLanguage(defaultLocale)
 
@@ -56,15 +71,53 @@ class VoiceController(
 
                 isTtsReady = true
                 onStatusChanged("Voice output ready")
+
             } else {
                 isTtsReady = false
                 onStatusChanged("Voice output initialization failed")
             }
         }
+
+        textToSpeech?.setOnUtteranceProgressListener(
+            object : UtteranceProgressListener() {
+
+                override fun onStart(utteranceId: String?) {
+                    onStatusChanged("Speaking...")
+                }
+
+                override fun onDone(utteranceId: String?) {
+                    if (!isShutdown) {
+                        onStatusChanged("Speech finished")
+                        onSpeechFinished()
+                    }
+                }
+
+                @Deprecated("Deprecated in Java")
+                override fun onError(utteranceId: String?) {
+                    if (!isShutdown) {
+                        onStatusChanged("Voice output error")
+                    }
+                }
+
+                override fun onError(
+                    utteranceId: String?,
+                    errorCode: Int
+                ) {
+                    if (!isShutdown) {
+                        onStatusChanged(
+                            "Voice output error: $errorCode"
+                        )
+                    }
+                }
+            }
+        )
     }
 
     @SuppressLint("MissingPermission")
     fun startListening(): Boolean {
+
+        if (isShutdown) return false
+
         val recognizer = speechRecognizer
 
         if (recognizer == null) {
@@ -73,34 +126,44 @@ class VoiceController(
         }
 
         return try {
+
             val intent = Intent(
                 RecognizerIntent.ACTION_RECOGNIZE_SPEECH
             ).apply {
+
                 putExtra(
                     RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                     RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
                 )
+
                 putExtra(
                     RecognizerIntent.EXTRA_LANGUAGE,
                     Locale.getDefault().toLanguageTag()
                 )
+
                 putExtra(
                     RecognizerIntent.EXTRA_MAX_RESULTS,
                     1
                 )
+
                 putExtra(
                     RecognizerIntent.EXTRA_PARTIAL_RESULTS,
                     false
                 )
+
             }
 
             onStatusChanged("Listening...")
             recognizer.startListening(intent)
+
             true
+
         } catch (exception: Exception) {
+
             onStatusChanged(
                 "Could not start listening: ${exception.localizedMessage}"
             )
+
             false
         }
     }
@@ -116,6 +179,7 @@ class VoiceController(
     }
 
     fun speak(text: String) {
+
         if (text.isBlank()) return
 
         val tts = textToSpeech
@@ -134,8 +198,6 @@ class VoiceController(
 
         if (result == TextToSpeech.ERROR) {
             onStatusChanged("Could not speak the response")
-        } else {
-            onStatusChanged("Speaking...")
         }
     }
 
@@ -145,6 +207,9 @@ class VoiceController(
     }
 
     fun shutdown() {
+
+        isShutdown = true
+
         speechRecognizer?.destroy()
         speechRecognizer = null
 
@@ -172,7 +237,9 @@ class VoiceController(
     }
 
     override fun onError(error: Int) {
+
         val message = when (error) {
+
             SpeechRecognizer.ERROR_AUDIO ->
                 "Microphone audio error"
 
@@ -208,6 +275,7 @@ class VoiceController(
     }
 
     override fun onResults(results: Bundle?) {
+
         val matches = results?.getStringArrayList(
             SpeechRecognizer.RESULTS_RECOGNITION
         )
