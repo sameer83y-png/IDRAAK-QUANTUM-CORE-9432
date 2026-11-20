@@ -1,3 +1,4 @@
+
 package com.idraak.quantum.engine
 
 import android.content.Context
@@ -19,134 +20,105 @@ object OfflineBrain {
         val requiresConfirmation: Boolean = false
     )
 
-    /**
-     * Main command understanding engine.
-     * Action commands are checked before normal conversation.
-     */
+    // Main understanding engine
     fun understand(userMessage: String): Decision {
+
         val message = normalize(userMessage)
 
         if (message.isBlank()) {
-            return Decision(
-                intent = "EMPTY",
-                response = "कृपया मुझे कोई कमांड दीजिए।"
-            )
+            return Decision("EMPTY", "कृपया मुझे कोई कमांड दीजिए।")
         }
 
-        val wantsToSendMessage = containsAny(
+        // Cancellation and refusal must be checked first.
+        val isNegative = containsAny(
             message,
-            "send message",
-            "send a message",
-            "message bhejo",
-            "msg bhejo",
-            "मैसेज भेजो",
-            "संदेश भेजो",
-            "मैसेज भेजना"
+            "don't", "do not", "dont", "never",
+            "mat", "nahi", "nahin",
+            "मत", "नहीं", "ना", "मत करना",
+            "मत खोलो", "मत भेजो"
         )
 
-        val wantsFlashlight = containsAny(
+        val sendMessage = containsAny(
             message,
-            "flashlight",
-            "torch",
-            "turn on torch",
-            "turn off torch",
-            "टॉर्च",
-            "फ्लैशलाइट",
-            "टॉर्च जलाओ",
-            "टॉर्च बंद"
+            "send message", "send a message",
+            "message bhejo", "msg bhejo",
+            "मैसेज भेजो", "संदेश भेजो"
         )
 
-        val wantsToOpenApp = containsAny(
+        val flashlight = containsAny(
             message,
-            "open",
-            "launch",
-            "खोलो",
-            "खोल दो",
-            "खोलना",
-            "चालू करो",
-            "ऐप खोल"
+            "flashlight", "torch",
+            "टॉर्च", "फ्लैशलाइट",
+            "टॉर्च जलाओ", "टॉर्च बंद"
         )
 
-        // Do not execute a command if the user has denied it.
-        val hasActionRequest =
-            wantsToSendMessage || wantsFlashlight || wantsToOpenApp
+        val openApp = containsAny(
+            message,
+            "open", "launch",
+            "खोलो", "खोल दो", "ऐप खोल",
+            "चालू करो"
+        )
 
-        if (hasActionRequest && containsAny(
-                message,
-                "don't",
-                "do not",
-                "dont",
-                "never",
-                "mat",
-                "nahi",
-                "nahin",
-                "मत",
-                "नहीं",
-                "ना",
-                "मत करना",
-                "मत खोलो",
-                "मत भेजो",
-                "बंद मत करना"
-            )
-        ) {
-            return Decision(
-                intent = "CANCELLED",
-                response = "ठीक है। आपने इस कमांड को मना किया है। " +
-                    "मैं कोई कार्रवाई नहीं करूँगा।"
-            )
-        }
+        val screenControl = containsAny(
+            message,
+            "control screen", "screen control",
+            "tap screen", "click screen",
+            "स्क्रीन कंट्रोल", "स्क्रीन पर क्लिक",
+            "स्क्रीन दबाओ"
+        )
 
-        // Multiple actions are not executed automatically.
         val actionCount = listOf(
-            wantsToSendMessage,
-            wantsFlashlight,
-            wantsToOpenApp
+            sendMessage, flashlight, openApp, screenControl
         ).count { it }
+
+        if (isNegative && actionCount > 0) {
+            return Decision(
+                "CANCELLED",
+                "ठीक है। आपकी अनुमति के बिना कोई कार्रवाई नहीं होगी।"
+            )
+        }
 
         if (actionCount > 1) {
             return Decision(
-                intent = "MULTIPLE_ACTIONS",
-                response = "मैंने एक से अधिक कमांड पहचानी हैं। " +
-                    "कृपया एक समय में एक कमांड दीजिए।"
+                "MULTIPLE_ACTIONS",
+                "कृपया एक समय में एक कमांड दीजिए।"
             )
         }
 
-        if (wantsToSendMessage) {
+        if (sendMessage) {
             return Decision(
-                intent = "SEND_MESSAGE",
-                response = "मैं मैसेज भेजने की कमांड समझ गया हूँ। " +
-                    "मैसेज भेजने से पहले आपकी पुष्टि जरूरी होगी। " +
-                    "मैसेज भेजने वाला कंट्रोल अभी कनेक्ट नहीं है।",
-                requiresConfirmation = true
+                "SEND_MESSAGE",
+                "मैसेज भेजने की कमांड समझ गया हूँ। भेजने से पहले आपकी पुष्टि जरूरी होगी।",
+                true
             )
         }
 
-        if (wantsFlashlight) {
+        if (flashlight) {
             return Decision(
-                intent = "FLASHLIGHT",
-                response = "मैंने टॉर्च कंट्रोल की कमांड समझ ली है। " +
-                    "फोन का हार्डवेयर कंट्रोल अभी कनेक्ट नहीं हुआ है।"
+                "FLASHLIGHT",
+                "टॉर्च कंट्रोल की कमांड समझ गया हूँ। Hardware Controller अभी जोड़ना बाकी है।"
             )
         }
 
-        if (wantsToOpenApp) {
+        if (openApp) {
             return Decision(
-                intent = "OPEN_APP",
-                response = "मैंने ऐप खोलने की कमांड समझ ली है। " +
-                    "ऐप खोलने वाला Phone Control Engine अभी कनेक्ट नहीं है।"
+                "OPEN_APP",
+                "ऐप खोलने की कमांड समझ गया हूँ। Phone Control Engine अभी जोड़ना बाकी है।"
             )
         }
 
-        // Date and time
+        if (screenControl) {
+            return Decision(
+                "SCREEN_CONTROL",
+                "स्क्रीन कंट्रोल की कमांड समझ गया हूँ। Accessibility आधारित Screen Control Engine अगले चरण में जुड़ेगा।"
+            )
+        }
+
+        // Time
         if (containsAny(
                 message,
-                "time",
-                "what time",
-                "current time",
-                "समय",
-                "कितने बजे",
-                "वक्त",
-                "अभी टाइम"
+                "time", "current time", "what time",
+                "समय", "कितने बजे", "अभी टाइम", "वक्त"
             )
         ) {
             val time = SimpleDateFormat(
@@ -154,21 +126,14 @@ object OfflineBrain {
                 Locale.getDefault()
             ).format(Date())
 
-            return Decision(
-                intent = "TIME",
-                response = "अभी समय $time है।"
-            )
+            return Decision("TIME", "अभी समय $time है।")
         }
 
+        // Date
         if (containsAny(
                 message,
-                "date",
-                "today's date",
-                "today date",
-                "तारीख",
-                "आज कौन सा दिन",
-                "आज की डेट",
-                "आज की तारीख"
+                "date", "today date", "today's date",
+                "तारीख", "आज की तारीख", "आज की डेट"
             )
         ) {
             val date = SimpleDateFormat(
@@ -176,97 +141,77 @@ object OfflineBrain {
                 Locale.getDefault()
             ).format(Date())
 
-            return Decision(
-                intent = "DATE",
-                response = "आज की तारीख $date है।"
-            )
+            return Decision("DATE", "आज की तारीख $date है।")
         }
 
         // Identity
         if (containsAny(
                 message,
-                "who are you",
+                "who are you", "your name",
                 "what is your name",
-                "your name",
-                "tum kaun",
-                "aap kaun",
-                "तुम कौन",
-                "आप कौन",
-                "तुम्हारा नाम",
-                "आपका नाम"
+                "tum kaun", "aap kaun",
+                "तुम कौन", "आप कौन",
+                "तुम्हारा नाम", "आपका नाम"
             )
         ) {
             return Decision(
-                intent = "IDENTITY",
-                response = "मैं Idraak हूँ। आपका Offline AI Assistant। " +
-                    "मेरा Offline Brain अभी विकसित किया जा रहा है।"
+                "IDENTITY",
+                "मैं Idraak हूँ। आपका Offline AI Assistant। मेरा लक्ष्य बिना इंटरनेट के भी आपकी सहायता करना है।"
+            )
+        }
+
+        // Greeting
+        if (containsAny(
+                message,
+                "hello", "hi", "hey",
+                "नमस्ते", "सलाम", "आदाब", "राम राम"
+            )
+        ) {
+            return Decision(
+                "GREETING",
+                "नमस्ते! मैं Idraak हूँ। बताइए, आज क्या काम करना है?"
             )
         }
 
         // Help
         if (containsAny(
                 message,
-                "help",
-                "what can you do",
-                "your features",
-                "मदद",
-                "क्या कर सकते हो",
-                "क्या कर सकते हैं",
-                "तुम्हारे फीचर"
+                "help", "what can you do",
+                "your features", "मदद",
+                "क्या कर सकते हो", "तुम्हारे फीचर"
             )
         ) {
             return Decision(
-                intent = "HELP",
-                response = "मैं अभी सामान्य बातचीत, समय और तारीख " +
-                    "समझ सकता हूँ। ऐप खोलने, मैसेज भेजने और टॉर्च " +
-                    "कंट्रोल के लिए Phone Control Engine जोड़ना बाकी है।"
+                "HELP",
+                "मैं अभी स्थानीय नियमों के आधार पर बातचीत, समय, तारीख और कुछ कमांड पहचान सकता हूँ। Voice, Memory और Phone Control को अलग-अलग विकसित किया जा रहा है।"
             )
         }
 
-        // Greeting is checked after action commands.
-        if (containsAny(
-                message,
-                "hello",
-                "hi",
-                "hey",
-                "नमस्ते",
-                "सलाम",
-                "आदाब",
-                "राम राम"
-            )
-        ) {
-            return Decision(
-                intent = "GREETING",
-                response = "नमस्ते! मैं Idraak हूँ। बताइए, क्या काम करना है?"
-            )
-        }
-
+        // Verified local knowledge
         return Decision(
-            intent = "UNKNOWN",
-            response = "मैंने आपकी बात प्राप्त कर ली है, " +
-                "लेकिन अभी उसका सही अर्थ पहचान नहीं पाया। " +
-                "इस कमांड को समझने के लिए मुझे और नियमों की जरूरत है।"
+            "UNKNOWN",
+            "मैंने आपकी बात समझने की कोशिश की, लेकिन अभी इसका सही उत्तर मेरे Offline Brain में उपलब्ध नहीं है। मैं अनुमान लगाकर गलत जानकारी नहीं दूँगा।"
         )
     }
 
-    /**
-     * Existing MainActivity compatibility.
-     * Only actionable commands are automatically recorded.
-     */
+    // Existing MainActivity compatibility
     fun respond(
         context: Context,
         userMessage: String
     ): String {
+
         val decision = understand(userMessage)
 
         when (decision.intent) {
             "OPEN_APP",
             "SEND_MESSAGE",
-            "FLASHLIGHT" -> {
+            "FLASHLIGHT",
+            "SCREEN_CONTROL" -> {
+
                 recordExperience(
-                    context = context,
-                    intent = decision.intent,
-                    status = "UNDERSTOOD_NOT_EXECUTED"
+                    context,
+                    decision.intent,
+                    "UNDERSTOOD_NOT_EXECUTED"
                 )
             }
         }
@@ -274,10 +219,7 @@ object OfflineBrain {
         return decision.response
     }
 
-    /**
-     * Record an actual outcome when another component reports it.
-     * Never mark an action successful merely because it was understood.
-     */
+    // Record actual action outcomes
     fun recordExperience(
         context: Context,
         intent: String,
@@ -287,74 +229,41 @@ object OfflineBrain {
         if (intent.isBlank()) return
 
         saveLegacyExperience(
-            context = context,
-            intent = intent,
-            status = status,
-            steps = steps
+            context,
+            intent,
+            status,
+            steps
         )
 
-        saveToLocalMemory(
-            context = context,
-            intent = intent,
-            status = status
-        )
-    }
-
-    /**
-     * Conservative memory status mapping.
-     * Unverified or ambiguous outcomes remain PENDING.
-     */
-    private fun mapMemoryStatus(
-        status: String
-    ): LocalMemoryStore.Status {
-        val normalized = status
+        val normalizedStatus = status
             .trim()
             .uppercase(Locale.ROOT)
-            .replace(Regex("[^A-Z0-9]+"), "_")
-            .trim('_')
 
-        val tokens = normalized
-            .split("_")
-            .filter { it.isNotBlank() }
+        val memoryStatus = when {
+            normalizedStatus.contains("NOT_EXECUTED") ||
+            normalizedStatus.contains("PENDING") ||
+            normalizedStatus.contains("UNVERIFIED") ||
+            normalizedStatus == "UNKNOWN" ||
+            normalizedStatus == "UNDERSTOOD" ->
+                LocalMemoryStore.Status.PENDING
 
-        val negativeOrUnverified =
-            "NOT" in tokens ||
-            "UNVERIFIED" in tokens ||
-            "PENDING" in tokens ||
-            "UNKNOWN" in tokens ||
-            "UNDERSTOOD" in tokens ||
-            "EXECUTED" in tokens
-
-        if (negativeOrUnverified) {
-            return LocalMemoryStore.Status.PENDING
-        }
-
-        return when {
-            "REJECTED" in tokens ->
-                LocalMemoryStore.Status.REJECTED
-
-            "FAILED" in tokens || "FAILURE" in tokens ->
-                LocalMemoryStore.Status.FAILED
-
-            "VERIFIED" in tokens ->
+            normalizedStatus == "VERIFIED" ->
                 LocalMemoryStore.Status.VERIFIED
 
-            "SUCCESS" in tokens ->
+            normalizedStatus == "SUCCESS" ->
                 LocalMemoryStore.Status.SUCCESS
+
+            normalizedStatus == "FAILED" ->
+                LocalMemoryStore.Status.FAILED
+
+            normalizedStatus == "REJECTED" ->
+                LocalMemoryStore.Status.REJECTED
 
             else ->
                 LocalMemoryStore.Status.PENDING
         }
-    }
 
-    private fun saveToLocalMemory(
-        context: Context,
-        intent: String,
-        status: String
-    ) {
         try {
-            val memoryStatus = mapMemoryStatus(status)
-
             LocalMemoryStore.saveExperience(
                 context = context,
                 commandType = intent,
@@ -362,49 +271,16 @@ object OfflineBrain {
                 lesson = "Recorded outcome: ${status.take(60)}"
             )
         } catch (_: Exception) {
-            // Memory errors must not crash the assistant.
+            // Memory failure must not crash the app.
         }
     }
 
-    fun getExperienceCount(context: Context): Int {
-        return readMemories(context).length()
-    }
-
-    fun getRecentExperiences(
-        context: Context,
-        limit: Int = 20
-    ): List<String> {
-        val memories = readMemories(context)
-        val result = mutableListOf<String>()
-
-        val safeLimit = limit.coerceAtLeast(0)
-        val start = (memories.length() - safeLimit).coerceAtLeast(0)
-
-        for (index in start until memories.length()) {
-            val item = memories.optJSONObject(index) ?: continue
-
-            result.add(
-                "${item.optString("intent")}: " +
-                    item.optString("status")
-            )
-        }
-
-        return result
-    }
-
-    fun getLocalMemoryCount(context: Context): Int {
-        return try {
-            LocalMemoryStore.getCount(context)
-        } catch (_: Exception) {
-            0
-        }
-    }
-
+    // Save legacy experience records
     private fun saveLegacyExperience(
         context: Context,
         intent: String,
         status: String,
-        steps: List<String> = emptyList()
+        steps: List<String>
     ) {
         try {
             val memories = readMemories(context)
@@ -432,7 +308,7 @@ object OfflineBrain {
                 .apply()
 
         } catch (_: Exception) {
-            // Legacy memory failure must not crash the assistant.
+            // Keep the assistant running.
         }
     }
 
@@ -455,28 +331,61 @@ object OfflineBrain {
         }
     }
 
-    /**
-     * Normalize punctuation and spaces while preserving
-     * Hindi/Urdu and other Unicode letters.
-     */
+    fun getExperienceCount(context: Context): Int {
+        return readMemories(context).length()
+    }
+
+    fun getRecentExperiences(
+        context: Context,
+        limit: Int = 20
+    ): List<String> {
+
+        val memories = readMemories(context)
+        val result = mutableListOf<String>()
+        val safeLimit = limit.coerceAtLeast(0)
+        val start = (memories.length() - safeLimit).coerceAtLeast(0)
+
+        for (index in start until memories.length()) {
+            val item = memories.optJSONObject(index) ?: continue
+
+            result.add(
+                "${item.optString("intent")}: " +
+                    item.optString("status")
+            )
+        }
+
+        return result
+    }
+
+    fun getLocalMemoryCount(context: Context): Int {
+        return try {
+            LocalMemoryStore.getCount(context)
+        } catch (_: Exception) {
+            0
+        }
+    }
+
+    // Normalize Hindi, Urdu, English and Hinglish text
     private fun normalize(value: String): String {
         return value
             .trim()
             .lowercase(Locale.ROOT)
-            .replace(Regex("[^\\p{L}\\p{M}\\p{N}\\s]"), " ")
+            .replace(
+                Regex("[^\\p{L}\\p{M}\\p{N}\\s]"),
+                " "
+            )
             .replace(Regex("\\s+"), " ")
             .trim()
     }
 
-    /**
-     * Match complete words or phrases.
-     * Prevents "hi" from matching inside "this".
-     */
+    // Complete phrase matching
     private fun containsAny(
         message: String,
         vararg phrases: String
     ): Boolean {
+
         return phrases.any { rawPhrase ->
+
             val phrase = normalize(rawPhrase)
 
             if (phrase.isBlank()) {
