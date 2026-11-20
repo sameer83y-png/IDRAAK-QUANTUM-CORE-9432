@@ -1,4 +1,3 @@
-
 package com.idraak.quantum.engine
 
 import android.content.Context
@@ -20,7 +19,6 @@ object OfflineBrain {
         val requiresConfirmation: Boolean = false
     )
 
-    // Main understanding engine
     fun understand(userMessage: String): Decision {
 
         val message = normalize(userMessage)
@@ -29,7 +27,6 @@ object OfflineBrain {
             return Decision("EMPTY", "कृपया मुझे कोई कमांड दीजिए।")
         }
 
-        // Cancellation and refusal must be checked first.
         val isNegative = containsAny(
             message,
             "don't", "do not", "dont", "never",
@@ -59,13 +56,7 @@ object OfflineBrain {
             "चालू करो"
         )
 
-        val screenControl = containsAny(
-            message,
-            "control screen", "screen control",
-            "tap screen", "click screen",
-            "स्क्रीन कंट्रोल", "स्क्रीन पर क्लिक",
-            "स्क्रीन दबाओ"
-        )
+        val screenControl = isScreenCommand(message)
 
         val actionCount = listOf(
             sendMessage, flashlight, openApp, screenControl
@@ -110,7 +101,8 @@ object OfflineBrain {
         if (screenControl) {
             return Decision(
                 "SCREEN_CONTROL",
-                "स्क्रीन कंट्रोल की कमांड समझ गया हूँ। Accessibility आधारित Screen Control Engine अगले चरण में जुड़ेगा।"
+                "स्क्रीन कमांड पहचान ली गई है।",
+                false
             )
         }
 
@@ -183,18 +175,94 @@ object OfflineBrain {
         ) {
             return Decision(
                 "HELP",
-                "मैं अभी स्थानीय नियमों के आधार पर बातचीत, समय, तारीख और कुछ कमांड पहचान सकता हूँ। Voice, Memory और Phone Control को अलग-अलग विकसित किया जा रहा है।"
+                "मैं बातचीत, समय, तारीख और कुछ Offline Screen Commands पहचान सकता हूँ। Screen Control के लिए Accessibility अनुमति जरूरी है।"
             )
         }
 
-        // Verified local knowledge
         return Decision(
             "UNKNOWN",
             "मैंने आपकी बात समझने की कोशिश की, लेकिन अभी इसका सही उत्तर मेरे Offline Brain में उपलब्ध नहीं है। मैं अनुमान लगाकर गलत जानकारी नहीं दूँगा।"
         )
     }
 
-    // Existing MainActivity compatibility
+    // Detect commands supported by OfflineScreenCommandHandler
+    private fun isScreenCommand(message: String): Boolean {
+
+        val exactCommands = listOf(
+            "back",
+            "go back",
+            "press back",
+            "पीछे जाओ",
+            "वापस जाओ",
+            "बैक दबाओ",
+
+            "go home",
+            "open home",
+            "home screen",
+            "होम खोलो",
+            "होम पर जाओ",
+            "घर जाओ",
+
+            "scroll down",
+            "swipe down",
+            "नीचे स्क्रॉल करो",
+            "नीचे जाओ",
+            "नीचे करो",
+
+            "scroll up",
+            "swipe up",
+            "ऊपर स्क्रॉल करो",
+            "ऊपर जाओ",
+            "ऊपर करो",
+
+            "open notifications",
+            "show notifications",
+            "notification panel",
+            "नोटिफिकेशन खोलो",
+            "नोटिफिकेशन दिखाओ"
+        )
+
+        if (exactCommands.any { message == normalize(it) }) {
+            return true
+        }
+
+        val clickPrefixes = listOf(
+            "click ",
+            "click on ",
+            "tap ",
+            "tap on ",
+            "press ",
+            "क्लिक करो ",
+            "दबाओ "
+        )
+
+        if (clickPrefixes.any { message.startsWith(it) }) {
+            return true
+        }
+
+        val clickSuffixes = listOf(
+            " पर क्लिक करो",
+            " को क्लिक करो",
+            " दबाओ"
+        )
+
+        if (clickSuffixes.any { message.endsWith(it) }) {
+            return true
+        }
+
+        return containsAny(
+            message,
+            "control screen",
+            "screen control",
+            "tap screen",
+            "click screen",
+            "स्क्रीन कंट्रोल",
+            "स्क्रीन पर क्लिक",
+            "स्क्रीन दबाओ"
+        )
+    }
+
+    // MainActivity compatibility and screen execution
     fun respond(
         context: Context,
         userMessage: String
@@ -203,10 +271,33 @@ object OfflineBrain {
         val decision = understand(userMessage)
 
         when (decision.intent) {
+
+            "SCREEN_CONTROL" -> {
+
+                val result = OfflineScreenCommandHandler.execute(
+                    userMessage
+                )
+
+                val outcome = when {
+                    result.success -> "SUCCESS"
+                    result.intent == "CLICK_CONFIRMATION_REQUIRED" ->
+                        "PENDING_CONFIRMATION"
+                    else -> "FAILED"
+                }
+
+                recordExperience(
+                    context = context,
+                    intent = "SCREEN_${result.intent}",
+                    status = outcome,
+                    steps = listOf(userMessage, result.message)
+                )
+
+                return result.message
+            }
+
             "OPEN_APP",
             "SEND_MESSAGE",
-            "FLASHLIGHT",
-            "SCREEN_CONTROL" -> {
+            "FLASHLIGHT" -> {
 
                 recordExperience(
                     context,
@@ -275,7 +366,6 @@ object OfflineBrain {
         }
     }
 
-    // Save legacy experience records
     private fun saveLegacyExperience(
         context: Context,
         intent: String,
@@ -365,7 +455,6 @@ object OfflineBrain {
         }
     }
 
-    // Normalize Hindi, Urdu, English and Hinglish text
     private fun normalize(value: String): String {
         return value
             .trim()
@@ -378,7 +467,6 @@ object OfflineBrain {
             .trim()
     }
 
-    // Complete phrase matching
     private fun containsAny(
         message: String,
         vararg phrases: String
