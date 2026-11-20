@@ -1,3 +1,4 @@
+
 package com.idraak.quantum.engine
 
 import android.content.Context
@@ -7,17 +8,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/**
- * Idraak Offline Brain
- *
- * - Understands basic Hindi, Hinglish and English commands.
- * - Identifies common intents.
- * - Records experiences in the legacy store and LocalMemoryStore.
- * - Does not pretend that an action was executed.
- * - Keeps unverified outcomes as PENDING.
- *
- * Actual phone control will be connected in a later stage.
- */
 object OfflineBrain {
 
     private const val PREFS_NAME = "idraak_offline_brain"
@@ -41,57 +31,43 @@ object OfflineBrain {
         }
 
         return when {
-            containsAny(
-                message,
-                "hello", "hi", "hey", "नमस्ते", "सलाम"
-            ) -> Decision(
-                intent = "GREETING",
-                response = "नमस्ते! मैं Idraak हूँ। बताइए, क्या काम करना है?"
-            )
+            containsAny(message, "hello", "hi", "hey", "नमस्ते", "सलाम") ->
+                Decision(
+                    intent = "GREETING",
+                    response = "नमस्ते! मैं Idraak हूँ। बताइए, क्या काम करना है?"
+                )
 
             containsAny(
-                message,
-                "who are you", "tum kaun", "तुम कौन",
-                "आप कौन", "तुम्हारा नाम"
+                message, "who are you", "tum kaun",
+                "तुम कौन", "आप कौन", "तुम्हारा नाम"
             ) -> Decision(
                 intent = "IDENTITY",
                 response = "मैं Idraak हूँ। मैं अपना Offline Brain तैयार कर रहा हूँ।"
             )
 
-            containsAny(
-                message,
-                "time", "समय", "कितने बजे", "वक्त"
-            ) -> {
+            containsAny(message, "time", "समय", "कितने बजे", "वक्त") -> {
                 val time = SimpleDateFormat(
                     "hh:mm a",
                     Locale.getDefault()
                 ).format(Date())
 
-                Decision(
-                    intent = "TIME",
-                    response = "अभी समय $time है।"
-                )
+                Decision("TIME", "अभी समय $time है।")
             }
 
             containsAny(
-                message,
-                "date", "तारीख", "आज कौन सा दिन",
-                "आज की डेट"
+                message, "date", "तारीख",
+                "आज कौन सा दिन", "आज की डेट"
             ) -> {
                 val date = SimpleDateFormat(
                     "dd MMMM yyyy",
                     Locale.getDefault()
                 ).format(Date())
 
-                Decision(
-                    intent = "DATE",
-                    response = "आज की तारीख $date है।"
-                )
+                Decision("DATE", "आज की तारीख $date है।")
             }
 
             containsAny(
-                message,
-                "open ", "खोलो", "खोल दो",
+                message, "open ", "खोलो", "खोल दो",
                 "चालू करो", "launch "
             ) -> Decision(
                 intent = "OPEN_APP",
@@ -100,8 +76,7 @@ object OfflineBrain {
             )
 
             containsAny(
-                message,
-                "send message", "मैसेज भेजो",
+                message, "send message", "मैसेज भेजो",
                 "message bhejo", "संदेश भेजो"
             ) -> Decision(
                 intent = "SEND_MESSAGE",
@@ -111,24 +86,21 @@ object OfflineBrain {
             )
 
             containsAny(
-                message,
-                "flashlight", "torch", "टॉर्च",
-                "फ्लैशलाइट"
+                message, "flashlight", "torch",
+                "टॉर्च", "फ्लैशलाइट"
             ) -> Decision(
                 intent = "FLASHLIGHT",
                 response = "मैंने टॉर्च कंट्रोल की कमांड समझ ली है। " +
                     "हार्डवेयर कंट्रोल अभी कनेक्ट नहीं हुआ है।"
             )
 
-            containsAny(
-                message,
-                "help", "मदद", "क्या कर सकते हो"
-            ) -> Decision(
-                intent = "HELP",
-                response = "मेरा Offline Brain तैयार हो रहा है। " +
-                    "अभी मैं सामान्य कमांड पहचान सकता हूँ। " +
-                    "फोन कंट्रोल अगले चरणों में जोड़ा जाएगा।"
-            )
+            containsAny(message, "help", "मदद", "क्या कर सकते हो") ->
+                Decision(
+                    intent = "HELP",
+                    response = "मेरा Offline Brain तैयार हो रहा है। " +
+                        "अभी मैं सामान्य कमांड पहचान सकता हूँ। " +
+                        "फोन कंट्रोल अगले चरणों में जोड़ा जाएगा।"
+                )
 
             else -> Decision(
                 intent = "UNKNOWN",
@@ -139,10 +111,6 @@ object OfflineBrain {
         }
     }
 
-    /**
-     * Processes a message and records the recognized intent.
-     * Recognition does not mean that a phone action was executed.
-     */
     fun respond(
         context: Context,
         userMessage: String
@@ -158,12 +126,6 @@ object OfflineBrain {
         return decision.response
     }
 
-    /**
-     * Records an action result after an action engine is connected.
-     *
-     * Only the intent and outcome are stored in LocalMemoryStore.
-     * Private message contents and raw command text are not stored.
-     */
     fun recordExperience(
         context: Context,
         intent: String,
@@ -185,34 +147,50 @@ object OfflineBrain {
     }
 
     /**
-     * Maps action results to memory statuses.
-     * Unclear or unverified outcomes remain PENDING.
+     * Negative and unverified states are checked FIRST.
+     * Only explicit positive states can become SUCCESS or VERIFIED.
      */
-    private fun mapMemoryStatus(status: String): LocalMemoryStore.Status {
-        val normalizedStatus = status.uppercase(Locale.ROOT)
+    private fun mapMemoryStatus(
+        status: String
+    ): LocalMemoryStore.Status {
+        val normalized = status
+            .trim()
+            .uppercase(Locale.ROOT)
+            .replace(Regex("[^A-Z0-9]+"), "_")
+            .trim('_')
+
+        val tokens = normalized.split("_").filter { it.isNotBlank() }
+
+        val isNegativeOrUnverified =
+            "NOT" in tokens ||
+            "UNVERIFIED" in tokens ||
+            "PENDING" in tokens ||
+            "UNKNOWN" in tokens ||
+            "UNDERSTOOD" in tokens ||
+            "EXECUTED" in tokens
+
+        if (isNegativeOrUnverified) {
+            return LocalMemoryStore.Status.PENDING
+        }
 
         return when {
-            normalizedStatus.contains("SUCCESS") ->
-                LocalMemoryStore.Status.SUCCESS
+            "REJECTED" in tokens ->
+                LocalMemoryStore.Status.REJECTED
 
-            normalizedStatus.contains("FAILED") ||
-                normalizedStatus.contains("FAILURE") ->
+            "FAILED" in tokens || "FAILURE" in tokens ->
                 LocalMemoryStore.Status.FAILED
 
-            normalizedStatus.contains("VERIFIED") ->
+            "VERIFIED" in tokens ->
                 LocalMemoryStore.Status.VERIFIED
 
-            normalizedStatus.contains("REJECTED") ->
-                LocalMemoryStore.Status.REJECTED
+            "SUCCESS" in tokens ->
+                LocalMemoryStore.Status.SUCCESS
 
             else ->
                 LocalMemoryStore.Status.PENDING
         }
     }
 
-    /**
-     * Saves a safe experience summary in the new memory system.
-     */
     private fun saveToLocalMemory(
         context: Context,
         intent: String,
@@ -234,16 +212,10 @@ object OfflineBrain {
         }
     }
 
-    /**
-     * Keeps compatibility with the existing experience history.
-     */
     fun getExperienceCount(context: Context): Int {
         return readMemories(context).length()
     }
 
-    /**
-     * Returns recent legacy experience summaries.
-     */
     fun getRecentExperiences(
         context: Context,
         limit: Int = 20
@@ -266,9 +238,6 @@ object OfflineBrain {
         return result
     }
 
-    /**
-     * Returns the number of records in the new LocalMemoryStore.
-     */
     fun getLocalMemoryCount(context: Context): Int {
         return try {
             LocalMemoryStore.getCount(context)
@@ -277,9 +246,6 @@ object OfflineBrain {
         }
     }
 
-    /**
-     * Saves the old experience format for existing Settings compatibility.
-     */
     private fun saveLegacyExperience(
         context: Context,
         intent: String,
