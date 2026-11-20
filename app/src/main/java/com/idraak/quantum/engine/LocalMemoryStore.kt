@@ -10,14 +10,13 @@ import java.util.UUID
 /**
  * IDRAAK QUANTUM CORE
  *
- * Offline-first local memory store.
+ * Offline-first memory storage.
  *
- * Features:
- * - Categorized memory records
- * - Pending / verified / rejected states
- * - Local backup and recovery
- * - Confirmed SharedPreferences writes
- * - Safe record parsing
+ * Memory rules:
+ * - New information remains PENDING by default.
+ * - Only VERIFIED knowledge is returned as trusted knowledge.
+ * - Failed experiences are not treated as successful learning.
+ * - Existing records remain compatible with the current dashboard.
  *
  * IMPORTANT:
  * SharedPreferences is not encrypted.
@@ -26,10 +25,8 @@ import java.util.UUID
 object LocalMemoryStore {
 
     private const val PREFS_NAME = "idraak_local_memory"
-
     private const val MEMORY_KEY = "memory_records"
     private const val BACKUP_KEY = "memory_records_backup"
-
     private const val MAX_RECORDS = 500
 
     private val lock = Any()
@@ -63,7 +60,7 @@ object LocalMemoryStore {
 
     /**
      * Save a new memory.
-     * New records should normally remain PENDING.
+     * New information should normally remain PENDING.
      */
     fun save(
         context: Context,
@@ -157,14 +154,14 @@ object LocalMemoryStore {
     }
 
     /**
-     * Corrections remain pending until reviewed.
+     * Save a correction.
+     * A correction is not trusted until explicitly verified.
      */
     fun saveCorrection(
         context: Context,
         topic: String,
         correctedInformation: String
     ): Boolean {
-
         return save(
             context = context,
             category = Category.CORRECTION,
@@ -176,14 +173,13 @@ object LocalMemoryStore {
 
     /**
      * Propose new learning.
-     * Proposed learning is never automatically trusted.
+     * Proposed learning always starts as PENDING.
      */
     fun proposeLearning(
         context: Context,
         topic: String,
         lesson: String
     ): Boolean {
-
         return save(
             context = context,
             category = Category.LEARNING,
@@ -194,7 +190,8 @@ object LocalMemoryStore {
     }
 
     /**
-     * Update a memory status.
+     * Update the review status of a memory.
+     * The caller must obtain user approval before verification.
      */
     fun updateStatus(
         context: Context,
@@ -210,18 +207,15 @@ object LocalMemoryStore {
                 var found = false
 
                 for (index in 0 until memories.length()) {
-
                     val item = memories.optJSONObject(index)
                         ?: continue
 
                     if (item.optString("id") == memoryId) {
-
                         item.put("status", newStatus.name)
                         item.put(
                             "updatedAt",
                             System.currentTimeMillis()
                         )
-
                         found = true
                         break
                     }
@@ -240,7 +234,118 @@ object LocalMemoryStore {
     }
 
     /**
-     * Search by title, content or category.
+     * Find one memory by its unique ID.
+     */
+    fun findById(
+        context: Context,
+        memoryId: String
+    ): MemoryRecord? {
+
+        if (memoryId.isBlank()) return null
+
+        return synchronized(lock) {
+            readAll(context).firstOrNull {
+                it.id == memoryId
+            }
+        }
+    }
+
+    /**
+     * Return memories waiting for review.
+     */
+    fun getPendingReview(
+        context: Context,
+        limit: Int = 100
+    ): List<MemoryRecord> {
+
+        if (limit <= 0) return emptyList()
+
+        return synchronized(lock) {
+            readAll(context)
+                .filter {
+                    it.status == Status.PENDING.name
+                }
+                .takeLast(limit)
+                .reversed()
+        }
+    }
+
+    /**
+     * Return only explicitly VERIFIED knowledge.
+     *
+     * PENDING, SUCCESS, FAILED and REJECTED records
+     * are never returned as trusted knowledge.
+     */
+    fun getTrustedKnowledge(
+        context: Context,
+        limit: Int = 100
+    ): List<MemoryRecord> {
+
+        if (limit <= 0) return emptyList()
+
+        val trustedCategories = setOf(
+            Category.USER_PREFERENCE.name,
+            Category.GENERAL_FACT.name,
+            Category.CORRECTION.name,
+            Category.LEARNING.name
+        )
+
+        return synchronized(lock) {
+            readAll(context)
+                .filter {
+                    it.status == Status.VERIFIED.name &&
+                    it.category in trustedCategories
+                }
+                .takeLast(limit)
+                .reversed()
+        }
+    }
+
+    /**
+     * Return verified learning only.
+     */
+    fun getVerifiedLearning(
+        context: Context,
+        limit: Int = 50
+    ): List<MemoryRecord> {
+
+        if (limit <= 0) return emptyList()
+
+        return synchronized(lock) {
+            readAll(context)
+                .filter {
+                    it.category == Category.LEARNING.name &&
+                    it.status == Status.VERIFIED.name
+                }
+                .takeLast(limit)
+                .reversed()
+        }
+    }
+
+    /**
+     * Get memories by category.
+     */
+    fun getByCategory(
+        context: Context,
+        category: Category,
+        limit: Int = 50
+    ): List<MemoryRecord> {
+
+        if (limit <= 0) return emptyList()
+
+        return synchronized(lock) {
+            readAll(context)
+                .filter {
+                    it.category == category.name
+                }
+                .takeLast(limit)
+                .reversed()
+        }
+    }
+
+    /**
+     * Search title, content, category or status.
+     * Newest matching records appear first.
      */
     fun search(
         context: Context,
@@ -261,45 +366,6 @@ object LocalMemoryStore {
                     normalize(it.content).contains(keyword) ||
                     normalize(it.category).contains(keyword) ||
                     normalize(it.status).contains(keyword)
-                }
-                .take(limit)
-        }
-    }
-
-    /**
-     * Get memories by category.
-     */
-    fun getByCategory(
-        context: Context,
-        category: Category,
-        limit: Int = 50
-    ): List<MemoryRecord> {
-
-        if (limit <= 0) return emptyList()
-
-        return synchronized(lock) {
-            readAll(context)
-                .filter { it.category == category.name }
-                .takeLast(limit)
-                .reversed()
-        }
-    }
-
-    /**
-     * Only explicitly verified learning is returned.
-     */
-    fun getVerifiedLearning(
-        context: Context,
-        limit: Int = 50
-    ): List<MemoryRecord> {
-
-        if (limit <= 0) return emptyList()
-
-        return synchronized(lock) {
-            readAll(context)
-                .filter {
-                    it.category == Category.LEARNING.name &&
-                    it.status == Status.VERIFIED.name
                 }
                 .takeLast(limit)
                 .reversed()
@@ -333,6 +399,16 @@ object LocalMemoryStore {
     }
 
     /**
+     * Count trusted knowledge only.
+     */
+    fun getTrustedKnowledgeCount(context: Context): Int {
+        return getTrustedKnowledge(
+            context = context,
+            limit = MAX_RECORDS
+        ).size
+    }
+
+    /**
      * Delete one memory.
      */
     fun delete(
@@ -349,7 +425,6 @@ object LocalMemoryStore {
                 var found = false
 
                 for (index in 0 until memories.length()) {
-
                     val item = memories.optJSONObject(index)
                         ?: continue
 
@@ -374,10 +449,9 @@ object LocalMemoryStore {
 
     /**
      * Clear all memories.
-     * The UI must ask for user confirmation first.
+     * UI must ask for confirmation first.
      */
     fun clearAll(context: Context): Boolean {
-
         return synchronized(lock) {
             try {
                 writeArray(context, JSONArray())
@@ -390,13 +464,14 @@ object LocalMemoryStore {
     /**
      * Read and validate stored records.
      */
-    private fun readAll(context: Context): List<MemoryRecord> {
+    private fun readAll(
+        context: Context
+    ): List<MemoryRecord> {
 
         val memories = readArray(context)
         val result = mutableListOf<MemoryRecord>()
 
         for (index in 0 until memories.length()) {
-
             val item = memories.optJSONObject(index)
                 ?: continue
 
@@ -434,19 +509,18 @@ object LocalMemoryStore {
 
     /**
      * Read primary memory.
-     * If primary JSON is damaged, try the backup.
+     * If primary JSON is damaged, try backup.
      */
     private fun readArray(context: Context): JSONArray {
 
         val prefs = preferences(context)
-
         val primary = prefs.getString(MEMORY_KEY, null)
 
         if (!primary.isNullOrBlank()) {
             try {
                 return JSONArray(primary)
             } catch (_: Exception) {
-                // Try backup below.
+                // Try backup.
             }
         }
 
@@ -465,10 +539,6 @@ object LocalMemoryStore {
 
     /**
      * Write memory with backup protection.
-     *
-     * First save the previous valid primary as backup.
-     * Then write the new primary.
-     * Return true only if the primary write succeeds.
      */
     private fun writeArray(
         context: Context,
@@ -476,7 +546,6 @@ object LocalMemoryStore {
     ): Boolean {
 
         return try {
-
             if (memories.length() > MAX_RECORDS) {
                 return false
             }
@@ -484,7 +553,7 @@ object LocalMemoryStore {
             val prefs = preferences(context)
             val newData = memories.toString()
 
-            // Validate the new JSON before saving.
+            // Validate new JSON before saving.
             JSONArray(newData)
 
             val oldPrimary = prefs.getString(MEMORY_KEY, null)
@@ -502,7 +571,7 @@ object LocalMemoryStore {
                     }
 
                 } catch (_: Exception) {
-                    // Do not overwrite a valid backup with corrupt data.
+                    // Preserve the previous backup if primary is damaged.
                 }
             }
 
@@ -515,7 +584,9 @@ object LocalMemoryStore {
         }
     }
 
-    private fun preferences(context: Context): SharedPreferences {
+    private fun preferences(
+        context: Context
+    ): SharedPreferences {
         return context.applicationContext.getSharedPreferences(
             PREFS_NAME,
             Context.MODE_PRIVATE
@@ -530,7 +601,9 @@ object LocalMemoryStore {
      * Basic accidental-secret protection.
      * This is not a complete privacy or security filter.
      */
-    private fun containsSensitivePattern(value: String): Boolean {
+    private fun containsSensitivePattern(
+        value: String
+    ): Boolean {
 
         val text = value.lowercase(Locale.ROOT)
 
@@ -543,6 +616,8 @@ object LocalMemoryStore {
             Regex("""\bsecret key\b""")
         )
 
-        return patterns.any { it.containsMatchIn(text) }
+        return patterns.any {
+            it.containsMatchIn(text)
+        }
     }
 }
