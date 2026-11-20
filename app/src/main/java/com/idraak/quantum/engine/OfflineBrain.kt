@@ -10,11 +10,11 @@ import java.util.Locale
 /**
  * Idraak Offline Brain
  *
- * Initial foundation:
  * - Understands basic Hindi, Hinglish and English commands.
  * - Identifies common intents.
- * - Saves learning experiences locally.
+ * - Records experiences in the legacy store and LocalMemoryStore.
  * - Does not pretend that an action was executed.
+ * - Keeps unverified outcomes as PENDING.
  *
  * Actual phone control will be connected in a later stage.
  */
@@ -140,8 +140,8 @@ object OfflineBrain {
     }
 
     /**
-     * Processes a message and records that it was understood.
-     * This does not claim that a phone action was completed.
+     * Processes a message and records the recognized intent.
+     * Recognition does not mean that a phone action was executed.
      */
     fun respond(
         context: Context,
@@ -149,7 +149,7 @@ object OfflineBrain {
     ): String {
         val decision = understand(userMessage)
 
-        saveExperience(
+        recordExperience(
             context = context,
             intent = decision.intent,
             status = "UNDERSTOOD_NOT_EXECUTED"
@@ -159,8 +159,10 @@ object OfflineBrain {
     }
 
     /**
-     * Records the result after a real action engine is connected.
-     * Store action categories and outcomes, not private message contents.
+     * Records an action result after an action engine is connected.
+     *
+     * Only the intent and outcome are stored in LocalMemoryStore.
+     * Private message contents and raw command text are not stored.
      */
     fun recordExperience(
         context: Context,
@@ -168,18 +170,80 @@ object OfflineBrain {
         status: String,
         steps: List<String> = emptyList()
     ) {
-        saveExperience(
+        saveLegacyExperience(
             context = context,
             intent = intent,
             status = status,
             steps = steps
         )
+
+        saveToLocalMemory(
+            context = context,
+            intent = intent,
+            status = status
+        )
     }
 
+    /**
+     * Maps action results to memory statuses.
+     * Unclear or unverified outcomes remain PENDING.
+     */
+    private fun mapMemoryStatus(status: String): LocalMemoryStore.Status {
+        val normalizedStatus = status.uppercase(Locale.ROOT)
+
+        return when {
+            normalizedStatus.contains("SUCCESS") ->
+                LocalMemoryStore.Status.SUCCESS
+
+            normalizedStatus.contains("FAILED") ||
+                normalizedStatus.contains("FAILURE") ->
+                LocalMemoryStore.Status.FAILED
+
+            normalizedStatus.contains("VERIFIED") ->
+                LocalMemoryStore.Status.VERIFIED
+
+            normalizedStatus.contains("REJECTED") ->
+                LocalMemoryStore.Status.REJECTED
+
+            else ->
+                LocalMemoryStore.Status.PENDING
+        }
+    }
+
+    /**
+     * Saves a safe experience summary in the new memory system.
+     */
+    private fun saveToLocalMemory(
+        context: Context,
+        intent: String,
+        status: String
+    ) {
+        try {
+            if (intent.isBlank()) return
+
+            val memoryStatus = mapMemoryStatus(status)
+
+            LocalMemoryStore.saveExperience(
+                context = context,
+                commandType = intent,
+                outcome = memoryStatus,
+                lesson = "Recorded outcome: ${status.take(60)}"
+            )
+        } catch (_: Exception) {
+            // Memory errors must not crash the assistant.
+        }
+    }
+
+    /**
+     * Keeps compatibility with the existing experience history.
+     */
     fun getExperienceCount(context: Context): Int {
         return readMemories(context).length()
     }
 
+    /**
+     * Returns recent legacy experience summaries.
+     */
     fun getRecentExperiences(
         context: Context,
         limit: Int = 20
@@ -187,8 +251,8 @@ object OfflineBrain {
         val memories = readMemories(context)
         val result = mutableListOf<String>()
 
-        val start = (memories.length() - limit.coerceAtLeast(0))
-            .coerceAtLeast(0)
+        val safeLimit = limit.coerceAtLeast(0)
+        val start = (memories.length() - safeLimit).coerceAtLeast(0)
 
         for (index in start until memories.length()) {
             val item = memories.optJSONObject(index) ?: continue
@@ -202,7 +266,21 @@ object OfflineBrain {
         return result
     }
 
-    private fun saveExperience(
+    /**
+     * Returns the number of records in the new LocalMemoryStore.
+     */
+    fun getLocalMemoryCount(context: Context): Int {
+        return try {
+            LocalMemoryStore.getCount(context)
+        } catch (_: Exception) {
+            0
+        }
+    }
+
+    /**
+     * Saves the old experience format for existing Settings compatibility.
+     */
+    private fun saveLegacyExperience(
         context: Context,
         intent: String,
         status: String,
@@ -234,7 +312,7 @@ object OfflineBrain {
                 .apply()
 
         } catch (_: Exception) {
-            // Memory failure must not crash the assistant.
+            // Legacy memory failure must not crash the assistant.
         }
     }
 
