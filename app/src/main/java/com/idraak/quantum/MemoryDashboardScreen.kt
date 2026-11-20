@@ -1,447 +1,549 @@
-package com.idraak.quantum
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import com.idraak.quantum.engine.LocalMemoryStore
-import java.text.SimpleDateFormat
-import java.util.Date
+package com.idraak.quantum.engine
+
+import android.content.Context
+import android.content.SharedPreferences
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.Locale
+import java.util.UUID
 
-@Composable
-fun MemoryDashboardScreen(
-    onBack: () -> Unit
-) {
-    val context = LocalContext.current
+/**
+ * IDRAAK QUANTUM CORE
+ *
+ * Offline-first local memory store.
+ *
+ * Features:
+ * - Categorized memory records
+ * - Pending / verified / rejected states
+ * - Local backup and recovery
+ * - Confirmed SharedPreferences writes
+ * - Safe record parsing
+ *
+ * IMPORTANT:
+ * SharedPreferences is not encrypted.
+ * Do not store passwords, OTPs or private credentials.
+ */
+object LocalMemoryStore {
 
-    var searchQuery by remember {
-        mutableStateOf("")
+    private const val PREFS_NAME = "idraak_local_memory"
+
+    private const val MEMORY_KEY = "memory_records"
+    private const val BACKUP_KEY = "memory_records_backup"
+
+    private const val MAX_RECORDS = 500
+
+    private val lock = Any()
+
+    enum class Category {
+        USER_PREFERENCE,
+        GENERAL_FACT,
+        COMMAND,
+        EXPERIENCE,
+        CORRECTION,
+        LEARNING
     }
 
-    var refreshKey by remember {
-        mutableStateOf(0)
+    enum class Status {
+        PENDING,
+        SUCCESS,
+        FAILED,
+        VERIFIED,
+        REJECTED
     }
 
-    var memoryPendingDeletion by remember {
-        mutableStateOf<LocalMemoryStore.MemoryRecord?>(null)
+    data class MemoryRecord(
+        val id: String,
+        val category: String,
+        val title: String,
+        val content: String,
+        val status: String,
+        val createdAt: Long,
+        val updatedAt: Long
+    )
+
+    /**
+     * Save a new memory.
+     * New records should normally remain PENDING.
+     */
+    fun save(
+        context: Context,
+        category: Category,
+        title: String,
+        content: String,
+        status: Status = Status.PENDING
+    ): Boolean {
+
+        val safeTitle = title.trim()
+        val safeContent = content.trim()
+
+        if (safeTitle.isBlank() || safeContent.isBlank()) {
+            return false
+        }
+
+        if (
+            containsSensitivePattern(safeTitle) ||
+            containsSensitivePattern(safeContent)
+        ) {
+            return false
+        }
+
+        return synchronized(lock) {
+            try {
+                val memories = readArray(context)
+                val now = System.currentTimeMillis()
+
+                val record = JSONObject().apply {
+                    put("id", UUID.randomUUID().toString())
+                    put("category", category.name)
+                    put("title", safeTitle)
+                    put("content", safeContent)
+                    put("status", status.name)
+                    put("createdAt", now)
+                    put("updatedAt", now)
+                }
+
+                memories.put(record)
+
+                while (memories.length() > MAX_RECORDS) {
+                    memories.remove(0)
+                }
+
+                writeArray(context, memories)
+
+            } catch (_: Exception) {
+                false
+            }
+        }
     }
 
-    val allMemories = remember(refreshKey) {
-        LocalMemoryStore.getAll(
+    /**
+     * Save an experience without storing the full command.
+     */
+    fun saveExperience(
+        context: Context,
+        commandType: String,
+        outcome: Status,
+        lesson: String = ""
+    ): Boolean {
+
+        val safeCommand = commandType.trim()
+        val safeLesson = lesson.trim()
+
+        if (safeCommand.isBlank()) {
+            return false
+        }
+
+        if (
+            containsSensitivePattern(safeCommand) ||
+            (
+                safeLesson.isNotEmpty() &&
+                containsSensitivePattern(safeLesson)
+            )
+        ) {
+            return false
+        }
+
+        return save(
             context = context,
-            limit = 500
+            category = Category.EXPERIENCE,
+            title = safeCommand,
+            content = if (safeLesson.isBlank()) {
+                "Outcome recorded: ${outcome.name}"
+            } else {
+                safeLesson
+            },
+            status = outcome
         )
     }
 
-    val filteredMemories = remember(
-        allMemories,
-        searchQuery
-    ) {
-        if (searchQuery.isBlank()) {
-            allMemories
-        } else {
-            val query = searchQuery.trim().lowercase(Locale.ROOT)
+    /**
+     * Corrections remain pending until reviewed.
+     */
+    fun saveCorrection(
+        context: Context,
+        topic: String,
+        correctedInformation: String
+    ): Boolean {
 
-            allMemories.filter { memory ->
-                memory.title.lowercase(Locale.ROOT).contains(query) ||
-                memory.content.lowercase(Locale.ROOT).contains(query) ||
-                memory.category.lowercase(Locale.ROOT).contains(query) ||
-                memory.status.lowercase(Locale.ROOT).contains(query)
-            }
-        }
-    }
-
-    val pendingCount = allMemories.count {
-        it.status == LocalMemoryStore.Status.PENDING.name
-    }
-
-    val verifiedCount = allMemories.count {
-        it.status == LocalMemoryStore.Status.VERIFIED.name
-    }
-
-    val failedCount = allMemories.count {
-        it.status == LocalMemoryStore.Status.FAILED.name
-    }
-
-    val rejectedCount = allMemories.count {
-        it.status == LocalMemoryStore.Status.REJECTED.name
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        TextButton(onClick = onBack) {
-            Text("← BACK TO SETTINGS")
-        }
-
-        Text(
-            text = "IDRAAK MEMORY",
-            style = MaterialTheme.typography.headlineMedium,
-            color = Color(0xFF087DFF)
+        return save(
+            context = context,
+            category = Category.CORRECTION,
+            title = topic,
+            content = correctedInformation,
+            status = Status.PENDING
         )
-
-        Text(
-            text = "LOCAL MEMORY DASHBOARD",
-            style = MaterialTheme.typography.labelMedium
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            MemoryCountCard(
-                title = "TOTAL",
-                count = allMemories.size,
-                modifier = Modifier.weight(1f)
-            )
-
-            MemoryCountCard(
-                title = "PENDING",
-                count = pendingCount,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            MemoryCountCard(
-                title = "VERIFIED",
-                count = verifiedCount,
-                modifier = Modifier.weight(1f)
-            )
-
-            MemoryCountCard(
-                title = "FAILED",
-                count = failedCount,
-                modifier = Modifier.weight(1f)
-            )
-
-            MemoryCountCard(
-                title = "REJECTED",
-                count = rejectedCount,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = {
-                searchQuery = it
-            },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            label = {
-                Text("Search local memories")
-            },
-            placeholder = {
-                Text("Title, content, category or status")
-            }
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "SAVED RECORDS (${filteredMemories.size})",
-                style = MaterialTheme.typography.titleSmall
-            )
-
-            TextButton(
-                onClick = {
-                    refreshKey++
-                }
-            ) {
-                Text("REFRESH")
-            }
-        }
-
-        if (filteredMemories.isEmpty()) {
-            Text(
-                text = if (allMemories.isEmpty()) {
-                    "Abhi koi local memory saved nahi hai."
-                } else {
-                    "Is search se koi memory nahi mili."
-                },
-                modifier = Modifier.padding(12.dp),
-                color = Color.Gray
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(
-                    items = filteredMemories,
-                    key = { it.id }
-                ) { memory ->
-
-                    MemoryRecordCard(
-                        memory = memory,
-                        onVerify = {
-                            val updated = LocalMemoryStore.updateStatus(
-                                context = context,
-                                memoryId = memory.id,
-                                newStatus = LocalMemoryStore.Status.VERIFIED
-                            )
-
-                            if (updated) refreshKey++
-                        },
-                        onReject = {
-                            val updated = LocalMemoryStore.updateStatus(
-                                context = context,
-                                memoryId = memory.id,
-                                newStatus = LocalMemoryStore.Status.REJECTED
-                            )
-
-                            if (updated) refreshKey++
-                        },
-                        onDelete = {
-                            memoryPendingDeletion = memory
-                        }
-                    )
-                }
-            }
-        }
     }
 
-    // Delete confirmation dialog.
-    memoryPendingDeletion?.let { memory ->
+    /**
+     * Propose new learning.
+     * Proposed learning is never automatically trusted.
+     */
+    fun proposeLearning(
+        context: Context,
+        topic: String,
+        lesson: String
+    ): Boolean {
 
-        AlertDialog(
-            onDismissRequest = {
-                memoryPendingDeletion = null
-            },
-            title = {
-                Text(
-                    text = "Delete Memory?",
-                    color = Color.White
-                )
-            },
-            text = {
-                Column {
-                    Text(
-                        text = "Kya aap sach mein is memory ko delete karna chahte hain?",
-                        color = Color.White
-                    )
+        return save(
+            context = context,
+            category = Category.LEARNING,
+            title = topic,
+            content = lesson,
+            status = Status.PENDING
+        )
+    }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+    /**
+     * Update a memory status.
+     */
+    fun updateStatus(
+        context: Context,
+        memoryId: String,
+        newStatus: Status
+    ): Boolean {
 
-                    Text(
-                        text = memory.title,
-                        color = Color(0xFF65C8FF),
-                        style = MaterialTheme.typography.titleSmall
-                    )
+        if (memoryId.isBlank()) return false
 
-                    Spacer(modifier = Modifier.height(6.dp))
+        return synchronized(lock) {
+            try {
+                val memories = readArray(context)
+                var found = false
 
-                    Text(
-                        text = "Delete hone ke baad yeh record wapas nahi aayega.",
-                        color = Color(0xFFFF9999),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val deleted = LocalMemoryStore.delete(
-                            context = context,
-                            memoryId = memory.id
+                for (index in 0 until memories.length()) {
+
+                    val item = memories.optJSONObject(index)
+                        ?: continue
+
+                    if (item.optString("id") == memoryId) {
+
+                        item.put("status", newStatus.name)
+                        item.put(
+                            "updatedAt",
+                            System.currentTimeMillis()
                         )
 
-                        if (deleted) {
-                            refreshKey++
-                        }
-
-                        memoryPendingDeletion = null
+                        found = true
+                        break
                     }
-                ) {
-                    Text(
-                        text = "DELETE",
-                        color = Color(0xFFFF7777)
-                    )
                 }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        memoryPendingDeletion = null
-                    }
-                ) {
-                    Text(
-                        text = "CANCEL",
-                        color = Color(0xFF65C8FF)
-                    )
+
+                if (!found) {
+                    false
+                } else {
+                    writeArray(context, memories)
                 }
-            },
-            containerColor = Color(0xFF14243D),
-            titleContentColor = Color.White,
-            textContentColor = Color.White
-        )
-    }
-}
 
-@Composable
-private fun MemoryCountCard(
-    title: String,
-    count: Int,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF14243D)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(10.dp)
-        ) {
-            Text(
-                text = title,
-                color = Color(0xFF65C8FF),
-                style = MaterialTheme.typography.labelSmall
-            )
-
-            Text(
-                text = count.toString(),
-                color = Color.White,
-                style = MaterialTheme.typography.titleLarge
-            )
+            } catch (_: Exception) {
+                false
+            }
         }
     }
-}
 
-@Composable
-private fun MemoryRecordCard(
-    memory: LocalMemoryStore.MemoryRecord,
-    onVerify: () -> Unit,
-    onReject: () -> Unit,
-    onDelete: () -> Unit
-) {
-    val statusColor = when (memory.status) {
-        "VERIFIED" -> Color(0xFF43CFA0)
-        "PENDING" -> Color(0xFFFFC857)
-        "FAILED" -> Color(0xFFFF7777)
-        "REJECTED" -> Color(0xFFFF7777)
-        "SUCCESS" -> Color(0xFF65C8FF)
-        else -> Color.LightGray
+    /**
+     * Search by title, content or category.
+     */
+    fun search(
+        context: Context,
+        query: String,
+        limit: Int = 30
+    ): List<MemoryRecord> {
+
+        if (query.isBlank() || limit <= 0) {
+            return emptyList()
+        }
+
+        val keyword = normalize(query)
+
+        return synchronized(lock) {
+            readAll(context)
+                .filter {
+                    normalize(it.title).contains(keyword) ||
+                    normalize(it.content).contains(keyword) ||
+                    normalize(it.category).contains(keyword) ||
+                    normalize(it.status).contains(keyword)
+                }
+                .take(limit)
+        }
     }
 
-    val dateText = remember(memory.createdAt) {
-        SimpleDateFormat(
-            "dd MMM yyyy, hh:mm a",
-            Locale.getDefault()
-        ).format(Date(memory.createdAt))
+    /**
+     * Get memories by category.
+     */
+    fun getByCategory(
+        context: Context,
+        category: Category,
+        limit: Int = 50
+    ): List<MemoryRecord> {
+
+        if (limit <= 0) return emptyList()
+
+        return synchronized(lock) {
+            readAll(context)
+                .filter { it.category == category.name }
+                .takeLast(limit)
+                .reversed()
+        }
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF14243D)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(14.dp)
-        ) {
-            Text(
-                text = memory.title,
-                color = Color.White,
-                style = MaterialTheme.typography.titleMedium
-            )
+    /**
+     * Only explicitly verified learning is returned.
+     */
+    fun getVerifiedLearning(
+        context: Context,
+        limit: Int = 50
+    ): List<MemoryRecord> {
 
-            Spacer(modifier = Modifier.height(5.dp))
+        if (limit <= 0) return emptyList()
 
-            Text(
-                text = "CATEGORY: ${memory.category}",
-                color = Color(0xFF65C8FF),
-                style = MaterialTheme.typography.labelSmall
-            )
+        return synchronized(lock) {
+            readAll(context)
+                .filter {
+                    it.category == Category.LEARNING.name &&
+                    it.status == Status.VERIFIED.name
+                }
+                .takeLast(limit)
+                .reversed()
+        }
+    }
 
-            Text(
-                text = "STATUS: ${memory.status}",
-                color = statusColor,
-                style = MaterialTheme.typography.labelMedium
-            )
+    /**
+     * Get all memories, newest first.
+     */
+    fun getAll(
+        context: Context,
+        limit: Int = 100
+    ): List<MemoryRecord> {
 
-            Spacer(modifier = Modifier.height(8.dp))
+        if (limit <= 0) return emptyList()
 
-            Text(
-                text = memory.content,
-                color = Color(0xFFD5E1F2),
-                style = MaterialTheme.typography.bodyMedium
-            )
+        return synchronized(lock) {
+            readAll(context)
+                .takeLast(limit)
+                .reversed()
+        }
+    }
 
-            Spacer(modifier = Modifier.height(6.dp))
+    /**
+     * Count stored memories.
+     */
+    fun getCount(context: Context): Int {
+        return synchronized(lock) {
+            readArray(context).length()
+        }
+    }
 
-            Text(
-                text = dateText,
-                color = Color.Gray,
-                style = MaterialTheme.typography.labelSmall
-            )
+    /**
+     * Delete one memory.
+     */
+    fun delete(
+        context: Context,
+        memoryId: String
+    ): Boolean {
 
-            Spacer(modifier = Modifier.height(8.dp))
+        if (memoryId.isBlank()) return false
 
-            if (memory.status == "PENDING") {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(onClick = onVerify) {
-                        Text("VERIFY")
-                    }
+        return synchronized(lock) {
+            try {
+                val memories = readArray(context)
+                val updated = JSONArray()
+                var found = false
 
-                    Button(onClick = onReject) {
-                        Text("REJECT")
+                for (index in 0 until memories.length()) {
+
+                    val item = memories.optJSONObject(index)
+                        ?: continue
+
+                    if (item.optString("id") == memoryId) {
+                        found = true
+                    } else {
+                        updated.put(item)
                     }
                 }
+
+                if (!found) {
+                    false
+                } else {
+                    writeArray(context, updated)
+                }
+
+            } catch (_: Exception) {
+                false
+            }
+        }
+    }
+
+    /**
+     * Clear all memories.
+     * The UI must ask for user confirmation first.
+     */
+    fun clearAll(context: Context): Boolean {
+
+        return synchronized(lock) {
+            try {
+                writeArray(context, JSONArray())
+            } catch (_: Exception) {
+                false
+            }
+        }
+    }
+
+    /**
+     * Read and validate stored records.
+     */
+    private fun readAll(context: Context): List<MemoryRecord> {
+
+        val memories = readArray(context)
+        val result = mutableListOf<MemoryRecord>()
+
+        for (index in 0 until memories.length()) {
+
+            val item = memories.optJSONObject(index)
+                ?: continue
+
+            val id = item.optString("id").trim()
+            val category = item.optString("category").trim()
+            val title = item.optString("title").trim()
+            val content = item.optString("content").trim()
+            val status = item.optString("status").trim()
+
+            if (
+                id.isBlank() ||
+                category.isBlank() ||
+                title.isBlank() ||
+                content.isBlank() ||
+                status.isBlank()
+            ) {
+                continue
             }
 
-            TextButton(onClick = onDelete) {
-                Text(
-                    text = "DELETE MEMORY",
-                    color = Color(0xFFFF7777)
+            result.add(
+                MemoryRecord(
+                    id = id,
+                    category = category,
+                    title = title,
+                    content = content,
+                    status = status,
+                    createdAt = item.optLong("createdAt", 0L),
+                    updatedAt = item.optLong("updatedAt", 0L)
                 )
+            )
+        }
+
+        return result
+    }
+
+    /**
+     * Read primary memory.
+     * If primary JSON is damaged, try the backup.
+     */
+    private fun readArray(context: Context): JSONArray {
+
+        val prefs = preferences(context)
+
+        val primary = prefs.getString(MEMORY_KEY, null)
+
+        if (!primary.isNullOrBlank()) {
+            try {
+                return JSONArray(primary)
+            } catch (_: Exception) {
+                // Try backup below.
             }
         }
+
+        val backup = prefs.getString(BACKUP_KEY, null)
+
+        if (!backup.isNullOrBlank()) {
+            try {
+                return JSONArray(backup)
+            } catch (_: Exception) {
+                // Both copies are damaged.
+            }
+        }
+
+        return JSONArray()
+    }
+
+    /**
+     * Write memory with backup protection.
+     *
+     * First save the previous valid primary as backup.
+     * Then write the new primary.
+     * Return true only if the primary write succeeds.
+     */
+    private fun writeArray(
+        context: Context,
+        memories: JSONArray
+    ): Boolean {
+
+        return try {
+
+            if (memories.length() > MAX_RECORDS) {
+                return false
+            }
+
+            val prefs = preferences(context)
+            val newData = memories.toString()
+
+            // Validate the new JSON before saving.
+            JSONArray(newData)
+
+            val oldPrimary = prefs.getString(MEMORY_KEY, null)
+
+            if (!oldPrimary.isNullOrBlank()) {
+                try {
+                    JSONArray(oldPrimary)
+
+                    val backupSaved = prefs.edit()
+                        .putString(BACKUP_KEY, oldPrimary)
+                        .commit()
+
+                    if (!backupSaved) {
+                        return false
+                    }
+
+                } catch (_: Exception) {
+                    // Do not overwrite a valid backup with corrupt data.
+                }
+            }
+
+            prefs.edit()
+                .putString(MEMORY_KEY, newData)
+                .commit()
+
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun preferences(context: Context): SharedPreferences {
+        return context.applicationContext.getSharedPreferences(
+            PREFS_NAME,
+            Context.MODE_PRIVATE
+        )
+    }
+
+    private fun normalize(value: String): String {
+        return value.trim().lowercase(Locale.ROOT)
+    }
+
+    /**
+     * Basic accidental-secret protection.
+     * This is not a complete privacy or security filter.
+     */
+    private fun containsSensitivePattern(value: String): Boolean {
+
+        val text = value.lowercase(Locale.ROOT)
+
+        val patterns = listOf(
+            Regex("""\b\d{4,8}\b"""),
+            Regex("""\bpassword\b"""),
+            Regex("""\bpasscode\b"""),
+            Regex("""\botp\b"""),
+            Regex("""\bpin code\b"""),
+            Regex("""\bsecret key\b""")
+        )
+
+        return patterns.any { it.containsMatchIn(text) }
     }
 }
