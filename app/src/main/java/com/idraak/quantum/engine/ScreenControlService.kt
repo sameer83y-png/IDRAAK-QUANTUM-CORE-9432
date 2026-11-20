@@ -1,3 +1,4 @@
+
 package com.idraak.quantum.engine
 
 import android.accessibilityservice.AccessibilityService
@@ -6,12 +7,18 @@ import android.graphics.Path
 import android.os.Build
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import java.util.Locale
 
 enum class ScreenSwipeDirection {
     UP, DOWN, LEFT, RIGHT
 }
 
 class ScreenControlService : AccessibilityService() {
+
+    private data class ClickCandidate(
+        val node: AccessibilityNodeInfo,
+        val score: Int
+    )
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -32,27 +39,121 @@ class ScreenControlService : AccessibilityService() {
     }
 
     internal fun clickTextOnScreen(text: String): Boolean {
-        if (text.isBlank()) return false
+        val target = normalizeText(text)
+        if (target.isBlank()) return false
 
         val root = rootInActiveWindow ?: return false
-        val matches = root.findAccessibilityNodeInfosByText(text)
-            ?: return false
+        val candidates = mutableListOf<ClickCandidate>()
 
-        for (node in matches) {
-            var target: AccessibilityNodeInfo? = node
-            var depth = 0
+        collectClickCandidates(
+            node = root,
+            target = target,
+            candidates = candidates,
+            depth = 0
+        )
 
-            while (target != null && depth < 8) {
-                if (target.isEnabled && target.isClickable) {
-                    return target.performAction(
-                        AccessibilityNodeInfo.ACTION_CLICK
+        if (candidates.isEmpty()) return false
+
+        val bestScore = candidates.minOf { it.score }
+        val bestMatches = candidates.filter {
+            it.score == bestScore
+        }
+
+        // Do not guess when multiple buttons match equally.
+        if (bestMatches.size != 1) return false
+
+        return bestMatches.first().node.performAction(
+            AccessibilityNodeInfo.ACTION_CLICK
+        )
+    }
+
+    private fun collectClickCandidates(
+        node: AccessibilityNodeInfo,
+        target: String,
+        candidates: MutableList<ClickCandidate>,
+        depth: Int
+    ) {
+        if (depth > 40 || candidates.size >= 100) return
+
+        val nodeText = normalizeText(
+            node.text?.toString().orEmpty()
+        )
+
+        val description = normalizeText(
+            node.contentDescription?.toString().orEmpty()
+        )
+
+        val score = when {
+            nodeText == target || description == target -> 0
+
+            nodeText.contains(target) ||
+                description.contains(target) -> 1
+
+            else -> -1
+        }
+
+        if (score >= 0) {
+            val clickableNode = findClickableParent(node)
+
+            if (clickableNode != null) {
+                val alreadyAdded = candidates.any {
+                    it.node == clickableNode
+                }
+
+                if (!alreadyAdded) {
+                    candidates.add(
+                        ClickCandidate(
+                            node = clickableNode,
+                            score = score
+                        )
                     )
                 }
-                target = target.parent
-                depth++
             }
         }
-        return false
+
+        for (index in 0 until node.childCount) {
+            if (candidates.size >= 100) break
+
+            val child = node.getChild(index) ?: continue
+
+            collectClickCandidates(
+                node = child,
+                target = target,
+                candidates = candidates,
+                depth = depth + 1
+            )
+        }
+    }
+
+    private fun findClickableParent(
+        start: AccessibilityNodeInfo
+    ): AccessibilityNodeInfo? {
+
+        var current: AccessibilityNodeInfo? = start
+        var depth = 0
+
+        while (current != null && depth < 8) {
+            if (current.isEnabled && current.isClickable) {
+                return current
+            }
+
+            current = current.parent
+            depth++
+        }
+
+        return null
+    }
+
+    private fun normalizeText(value: String): String {
+        return value
+            .trim()
+            .lowercase(Locale.ROOT)
+            .replace(
+                Regex("[^\\p{L}\\p{M}\\p{N}\\s]"),
+                " "
+            )
+            .replace(Regex("\\s+"), " ")
+            .trim()
     }
 
     internal fun scrollScreenForward(): Boolean {
