@@ -3,6 +3,8 @@ package com.idraak.quantum
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -71,6 +73,7 @@ data class ChatMessage(
 )
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -84,17 +87,28 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun IdraakHomeScreen() {
+
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val mainHandler = remember {
+        Handler(Looper.getMainLooper())
+    }
 
     val backgroundColor = Color(0xFF050B18)
     val blue = Color(0xFF087DFF)
 
     var inputText by remember { mutableStateOf("") }
     var showSettings by remember { mutableStateOf(false) }
-    var voiceStatus by remember { mutableStateOf("VOICE SYSTEM READY") }
+    var voiceStatus by remember {
+        mutableStateOf("VOICE SYSTEM READY")
+    }
     var isListening by remember { mutableStateOf(false) }
-    var recognizedSpeech by remember { mutableStateOf<String?>(null) }
+    var isContinuousVoiceChat by remember {
+        mutableStateOf(false)
+    }
+    var recognizedSpeech by remember {
+        mutableStateOf<String?>(null)
+    }
     var isGenerating by remember { mutableStateOf(false) }
 
     var hasGeminiKey by remember {
@@ -110,44 +124,185 @@ fun IdraakHomeScreen() {
         )
     }
 
+    // Safe reference for callbacks from VoiceController.
+    val controllerReference = remember {
+        arrayOfNulls<VoiceController>(1)
+    }
+
     val voiceController = remember(context) {
+
         VoiceController(
             context = context,
-            onSpeechResult = { result ->
-                recognizedSpeech = result
-                isListening = false
-            },
-            onStatusChanged = { status ->
-                voiceStatus = status
 
-                if (
-                    status.contains("Listening", ignoreCase = true) ||
-                    status.contains("Recognizing", ignoreCase = true) ||
-                    status.contains("Processing", ignoreCase = true) ||
-                    status.contains("Ready.", ignoreCase = true)
-                ) {
-                    isListening = true
-                } else if (
-                    status.contains("recognized", ignoreCase = true) ||
-                    status.contains("error", ignoreCase = true) ||
-                    status.contains("failed", ignoreCase = true) ||
-                    status.contains("stopped", ignoreCase = true) ||
-                    status.contains("timeout", ignoreCase = true) ||
-                    status.contains("No speech", ignoreCase = true)
-                ) {
+            onSpeechResult = { result ->
+                mainHandler.post {
+                    recognizedSpeech = result
                     isListening = false
                 }
+            },
+
+            onStatusChanged = { status ->
+                mainHandler.post {
+
+                    voiceStatus = status
+
+                    if (
+                        status.contains(
+                            "Listening",
+                            ignoreCase = true
+                        ) ||
+                        status.contains(
+                            "Recognizing",
+                            ignoreCase = true
+                        ) ||
+                        status.contains(
+                            "Processing",
+                            ignoreCase = true
+                        ) ||
+                        status.contains(
+                            "Ready.",
+                            ignoreCase = true
+                        )
+                    ) {
+                        isListening = true
+                    } else if (
+                        status.contains(
+                            "recognized",
+                            ignoreCase = true
+                        ) ||
+                        status.contains(
+                            "finished",
+                            ignoreCase = true
+                        ) ||
+                        status.contains(
+                            "Speaking",
+                            ignoreCase = true
+                        ) ||
+                        status.contains(
+                            "error",
+                            ignoreCase = true
+                        ) ||
+                        status.contains(
+                            "failed",
+                            ignoreCase = true
+                        ) ||
+                        status.contains(
+                            "stopped",
+                            ignoreCase = true
+                        ) ||
+                        status.contains(
+                            "timeout",
+                            ignoreCase = true
+                        ) ||
+                        status.contains(
+                            "No speech",
+                            ignoreCase = true
+                        )
+                    ) {
+                        isListening = false
+                    }
+                }
+            },
+
+            onSpeechFinished = {
+
+                mainHandler.post {
+
+                    if (
+                        isContinuousVoiceChat &&
+                        !isGenerating
+                    ) {
+
+                        val permissionGranted =
+                            ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.RECORD_AUDIO
+                            ) == PackageManager.PERMISSION_GRANTED
+
+                        if (permissionGranted) {
+
+                            val started =
+                                controllerReference[0]
+                                    ?.startListening() == true
+
+                            isListening = started
+
+                            if (started) {
+                                voiceStatus =
+                                    "VOICE CHAT ACTIVE • LISTENING"
+                            }
+                        } else {
+                            isContinuousVoiceChat = false
+                            isListening = false
+                            voiceStatus =
+                                "Microphone permission required"
+                        }
+                    }
+                }
             }
-        )
+        ).also {
+            controllerReference[0] = it
+        }
     }
 
     DisposableEffect(voiceController) {
         onDispose {
+            isContinuousVoiceChat = false
             voiceController.shutdown()
+            controllerReference[0] = null
+        }
+    }
+
+    fun stopVoiceChat() {
+
+        isContinuousVoiceChat = false
+        isListening = false
+
+        voiceController.cancelListening()
+        voiceController.stopSpeaking()
+
+        voiceStatus = "VOICE CHAT STOPPED"
+    }
+
+    fun startVoiceChat() {
+
+        if (isGenerating) {
+            voiceStatus = "Please wait for AI response"
+            return
+        }
+
+        isContinuousVoiceChat = true
+
+        val permissionGranted =
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+
+        if (permissionGranted) {
+
+            val started = voiceController.startListening()
+
+            isListening = started
+
+            if (started) {
+                voiceStatus =
+                    "VOICE CHAT ACTIVE • LISTENING"
+            } else {
+                voiceStatus =
+                    "Could not start voice recognition"
+            }
+
+        } else {
+            voiceStatus = "Requesting microphone permission"
+
+            // Permission launcher is handled below.
+            microphonePermissionRequest = true
         }
     }
 
     fun sendMessage(messageText: String = inputText) {
+
         val message = messageText.trim()
 
         if (message.isEmpty() || isGenerating) return
@@ -156,9 +311,17 @@ fun IdraakHomeScreen() {
         inputText = ""
 
         if (!hasGeminiKey) {
+
             val demoResponse = AIEngine.getResponse(message)
+
             messages.add(ChatMessage(demoResponse, false))
-            voiceController.speak(demoResponse)
+
+            if (isContinuousVoiceChat || isListening) {
+                voiceController.speak(demoResponse)
+            } else {
+                voiceController.speak(demoResponse)
+            }
+
             voiceStatus = "DEMO MODE ACTIVE"
             return
         }
@@ -167,27 +330,39 @@ fun IdraakHomeScreen() {
         voiceStatus = "GEMINI AI PROCESSING..."
 
         scope.launch {
+
             try {
-                val response = GeminiAIEngine.generateResponse(
-                    context = context.applicationContext,
-                    userMessage = message
-                )
+
+                val response =
+                    GeminiAIEngine.generateResponse(
+                        context = context.applicationContext,
+                        userMessage = message
+                    )
 
                 messages.add(ChatMessage(response, false))
+
                 voiceController.speak(response)
+
                 voiceStatus = "GEMINI AI CONNECTED"
 
             } catch (error: Exception) {
-                val errorMessage = error.message
-                    ?.takeIf { it.isNotBlank() }
-                    ?: "Unknown connection error"
+
+                val errorMessage =
+                    error.message
+                        ?.takeIf { it.isNotBlank() }
+                        ?: "Unknown connection error"
 
                 val safeMessage =
                     "Boss, Gemini se connection nahi ho paya.\n\n" +
                     "Error: $errorMessage\n\n" +
                     "Settings aur API Key check kijiye."
 
-                messages.add(ChatMessage(safeMessage, false))
+                messages.add(
+                    ChatMessage(safeMessage, false)
+                )
+
+                voiceController.speak(safeMessage)
+
                 voiceStatus = "GEMINI CONNECTION ERROR"
 
             } finally {
@@ -197,52 +372,65 @@ fun IdraakHomeScreen() {
     }
 
     LaunchedEffect(recognizedSpeech) {
+
         val spokenText = recognizedSpeech
 
         if (!spokenText.isNullOrBlank()) {
+
             inputText = spokenText
             sendMessage(spokenText)
+
             recognizedSpeech = null
         }
+    }
+
+    var microphonePermissionRequest by remember {
+        mutableStateOf(false)
     }
 
     val microphonePermissionLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.RequestPermission()
         ) { granted ->
-            if (granted) {
-                val started = voiceController.startListening()
 
-                if (started) {
-                    isListening = true
+            if (granted) {
+
+                if (isContinuousVoiceChat) {
+
+                    val started =
+                        voiceController.startListening()
+
+                    isListening = started
+
+                    voiceStatus = if (started) {
+                        "VOICE CHAT ACTIVE • LISTENING"
+                    } else {
+                        "Could not start listening"
+                    }
                 }
+
             } else {
-                voiceStatus = "Microphone permission denied"
+
+                isContinuousVoiceChat = false
                 isListening = false
+                voiceStatus = "Microphone permission denied"
             }
         }
 
-    fun startVoiceChat() {
-        val permissionGranted =
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.RECORD_AUDIO
-            ) == PackageManager.PERMISSION_GRANTED
+    LaunchedEffect(microphonePermissionRequest) {
 
-        if (permissionGranted) {
-            val started = voiceController.startListening()
+        if (microphonePermissionRequest) {
 
-            if (started) {
-                isListening = true
-            }
-        } else {
+            microphonePermissionRequest = false
+
             microphonePermissionLauncher.launch(
                 Manifest.permission.RECORD_AUDIO
             )
         }
     }
 
-    val transition = rememberInfiniteTransition(label = "core")
+    val transition =
+        rememberInfiniteTransition(label = "core")
 
     val pulse by transition.animateFloat(
         initialValue = 0.94f,
@@ -258,14 +446,20 @@ fun IdraakHomeScreen() {
         modifier = Modifier.fillMaxSize(),
         color = backgroundColor
     ) {
+
         if (showSettings) {
+
             SettingsScreen(
                 onBack = {
-                    hasGeminiKey = GeminiKeyStore.get(context) != null
+                    hasGeminiKey =
+                        GeminiKeyStore.get(context) != null
+
                     showSettings = false
                 }
             )
+
         } else {
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -281,6 +475,7 @@ fun IdraakHomeScreen() {
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
@@ -288,7 +483,9 @@ fun IdraakHomeScreen() {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+
                     Column {
+
                         Text(
                             text = "IDRAAK",
                             color = Color.White,
@@ -306,8 +503,15 @@ fun IdraakHomeScreen() {
                     }
 
                     TextButton(
-                        onClick = { showSettings = true }
+                        onClick = {
+                            if (isContinuousVoiceChat) {
+                                stopVoiceChat()
+                            }
+
+                            showSettings = true
+                        }
                     ) {
+
                         Text(
                             "SETTINGS",
                             color = Color(0xFF65C8FF),
@@ -318,6 +522,7 @@ fun IdraakHomeScreen() {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // Original Idraak Core Orb preserved.
                 Box(
                     modifier = Modifier
                         .size(105.dp)
@@ -334,6 +539,7 @@ fun IdraakHomeScreen() {
                         ),
                     contentAlignment = Alignment.Center
                 ) {
+
                     Text(
                         text = "IQ",
                         color = Color.White,
@@ -356,7 +562,9 @@ fun IdraakHomeScreen() {
 
                 Text(
                     text = voiceStatus,
-                    color = if (isListening) {
+                    color = if (
+                        isListening || isContinuousVoiceChat
+                    ) {
                         Color(0xFF43E8B2)
                     } else {
                         Color(0xFF8EA6C9)
@@ -366,7 +574,9 @@ fun IdraakHomeScreen() {
                 )
 
                 if (isGenerating) {
+
                     Spacer(modifier = Modifier.height(5.dp))
+
                     Text(
                         text = "Idraak is thinking...",
                         color = Color(0xFF65C8FF),
@@ -380,17 +590,22 @@ fun IdraakHomeScreen() {
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement =
+                        Arrangement.spacedBy(10.dp)
                 ) {
+
                     items(messages) { message ->
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = if (message.isUser) {
-                                Arrangement.End
-                            } else {
-                                Arrangement.Start
-                            }
+                            horizontalArrangement =
+                                if (message.isUser) {
+                                    Arrangement.End
+                                } else {
+                                    Arrangement.Start
+                                }
                         ) {
+
                             Surface(
                                 color = if (message.isUser) {
                                     Color(0xFF123B70)
@@ -400,6 +615,7 @@ fun IdraakHomeScreen() {
                                 shape = RoundedCornerShape(16.dp),
                                 modifier = Modifier.fillMaxWidth(0.88f)
                             ) {
+
                                 Text(
                                     text = message.text,
                                     color = Color.White,
@@ -415,9 +631,12 @@ fun IdraakHomeScreen() {
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+
                     OutlinedTextField(
                         value = inputText,
-                        onValueChange = { inputText = it },
+                        onValueChange = {
+                            inputText = it
+                        },
                         modifier = Modifier.weight(1f),
                         placeholder = {
                             Text(
@@ -431,21 +650,28 @@ fun IdraakHomeScreen() {
                             imeAction = ImeAction.Send
                         ),
                         keyboardActions = KeyboardActions(
-                            onSend = { sendMessage() }
+                            onSend = {
+                                sendMessage()
+                            }
                         )
                     )
 
                     Spacer(modifier = Modifier.size(8.dp))
 
                     Button(
-                        onClick = { sendMessage() },
+                        onClick = {
+                            sendMessage()
+                        },
                         enabled = !isGenerating,
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = blue
                         )
                     ) {
-                        Text(if (isGenerating) "WAIT" else "SEND")
+
+                        Text(
+                            if (isGenerating) "WAIT" else "SEND"
+                        )
                     }
                 }
 
@@ -453,45 +679,52 @@ fun IdraakHomeScreen() {
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement =
+                        Arrangement.spacedBy(8.dp)
                 ) {
+
                     Button(
                         onClick = {
-                            if (isListening) {
-                                voiceController.stopListening()
-                                isListening = false
+
+                            if (isContinuousVoiceChat) {
+                                stopVoiceChat()
                             } else {
                                 startVoiceChat()
                             }
                         },
+                        enabled = !isGenerating ||
+                            isContinuousVoiceChat,
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isListening) {
-                                Color(0xFFB83250)
-                            } else {
-                                Color(0xFF087DFF)
-                            }
+                            containerColor =
+                                if (isContinuousVoiceChat) {
+                                    Color(0xFFB83250)
+                                } else {
+                                    Color(0xFF087DFF)
+                                }
                         )
                     ) {
+
                         Text(
-                            if (isListening) {
-                                "STOP LISTENING"
+                            if (isContinuousVoiceChat) {
+                                "STOP VOICE CHAT"
                             } else {
-                                "🎙 TALK TO IDRAAK"
+                                "🎙 START VOICE CHAT"
                             }
                         )
                     }
 
                     Button(
                         onClick = {
-                            voiceController.stopSpeaking()
+                            stopVoiceChat()
                         },
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF263B59)
                         )
                     ) {
+
                         Text("STOP VOICE")
                     }
                 }
@@ -515,13 +748,18 @@ fun IdraakHomeScreen() {
 
 @Composable
 fun SettingsScreen(onBack: () -> Unit) {
+
     val context = LocalContext.current
 
     var apiKey by remember { mutableStateOf("") }
+
     var hasSavedKey by remember {
         mutableStateOf(GeminiKeyStore.get(context) != null)
     }
-    var statusMessage by remember { mutableStateOf("") }
+
+    var statusMessage by remember {
+        mutableStateOf("")
+    }
 
     val backgroundColor = Color(0xFF050B18)
 
@@ -540,7 +778,9 @@ fun SettingsScreen(onBack: () -> Unit) {
             .verticalScroll(rememberScrollState())
             .padding(20.dp)
     ) {
+
         TextButton(onClick = onBack) {
+
             Text(
                 "← BACK TO IDRAAK",
                 color = Color(0xFF65C8FF)
@@ -566,7 +806,11 @@ fun SettingsScreen(onBack: () -> Unit) {
 
         SettingsStatusCard(
             title = "GEMINI AI CONNECTION",
-            status = if (hasSavedKey) "API KEY SAVED" else "DEMO MODE ACTIVE",
+            status = if (hasSavedKey) {
+                "API KEY SAVED"
+            } else {
+                "DEMO MODE ACTIVE"
+            },
             detail = if (hasSavedKey) {
                 "Gemini API key is saved securely on this device."
             } else {
@@ -587,12 +831,19 @@ fun SettingsScreen(onBack: () -> Unit) {
 
         OutlinedTextField(
             value = apiKey,
-            onValueChange = { apiKey = it },
+            onValueChange = {
+                apiKey = it
+            },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Paste your Gemini API Key") },
-            placeholder = { Text("Enter API key") },
+            label = {
+                Text("Paste your Gemini API Key")
+            },
+            placeholder = {
+                Text("Enter API key")
+            },
             singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
+            visualTransformation =
+                PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(
                 imeAction = ImeAction.Done
             )
@@ -602,17 +853,29 @@ fun SettingsScreen(onBack: () -> Unit) {
 
         Button(
             onClick = {
+
                 if (apiKey.isBlank()) {
-                    statusMessage = "Please enter your API key first."
+
+                    statusMessage =
+                        "Please enter your API key first."
+
                 } else {
-                    val saved = GeminiKeyStore.save(context, apiKey)
+
+                    val saved =
+                        GeminiKeyStore.save(context, apiKey)
 
                     if (saved) {
+
                         hasSavedKey = true
                         apiKey = ""
-                        statusMessage = "Gemini API key saved securely."
+
+                        statusMessage =
+                            "Gemini API key saved securely."
+
                     } else {
-                        statusMessage = "Could not save the API key. Please try again."
+
+                        statusMessage =
+                            "Could not save the API key. Please try again."
                     }
                 }
             },
@@ -621,22 +884,33 @@ fun SettingsScreen(onBack: () -> Unit) {
                 containerColor = Color(0xFF087DFF)
             )
         ) {
+
             Text("SAVE GEMINI API KEY")
         }
 
         if (hasSavedKey) {
+
             TextButton(
                 onClick = {
-                    val deleted = GeminiKeyStore.delete(context)
+
+                    val deleted =
+                        GeminiKeyStore.delete(context)
 
                     if (deleted) {
+
                         hasSavedKey = false
-                        statusMessage = "Saved API key removed."
+
+                        statusMessage =
+                            "Saved API key removed."
+
                     } else {
-                        statusMessage = "Could not remove the saved key."
+
+                        statusMessage =
+                            "Could not remove the saved key."
                     }
                 }
             ) {
+
                 Text(
                     "REMOVE SAVED API KEY",
                     color = Color(0xFFFF8297)
@@ -645,6 +919,7 @@ fun SettingsScreen(onBack: () -> Unit) {
         }
 
         if (statusMessage.isNotBlank()) {
+
             Text(
                 text = statusMessage,
                 color = Color(0xFF43E8B2),
@@ -656,7 +931,7 @@ fun SettingsScreen(onBack: () -> Unit) {
 
         SettingsStatusCard(
             title = "VOICE SYSTEM",
-            status = "VOICE CHAT FOUNDATION",
+            status = "CONTINUOUS VOICE CHAT FOUNDATION",
             detail = "Speech recognition and Android text-to-speech are connected to the chat screen."
         )
 
@@ -715,6 +990,7 @@ fun SettingsStatusCard(
     status: String,
     detail: String
 ) {
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -722,7 +998,11 @@ fun SettingsStatusCard(
         color = Color(0xFF14243D),
         shape = RoundedCornerShape(16.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+
             Text(
                 text = title,
                 color = Color(0xFF65C8FF),
@@ -757,6 +1037,7 @@ fun VoiceCharacterCard(
     detail: String,
     accent: Color
 ) {
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -764,10 +1045,12 @@ fun VoiceCharacterCard(
         color = Color(0xFF18243A),
         shape = RoundedCornerShape(16.dp)
     ) {
+
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+
             Box(
                 modifier = Modifier
                     .size(12.dp)
@@ -777,6 +1060,7 @@ fun VoiceCharacterCard(
             Spacer(modifier = Modifier.size(12.dp))
 
             Column {
+
                 Text(
                     text = name,
                     color = Color.White,
