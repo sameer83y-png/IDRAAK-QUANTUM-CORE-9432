@@ -1,15 +1,16 @@
 package com.idraak.quantum.engine
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.GestureDescription
+import android.graphics.Path
+import android.os.Build
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 
-/**
- * Idraak Screen Control
- *
- * This service works only after the user manually enables
- * Idraak in Android Accessibility settings.
- */
+enum class ScreenSwipeDirection {
+    UP, DOWN, LEFT, RIGHT
+}
+
 class ScreenControlService : AccessibilityService() {
 
     override fun onServiceConnected() {
@@ -18,12 +19,11 @@ class ScreenControlService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // Screen events are received here.
-        // No automatic clicks or actions are performed.
+        // Screen events are monitored only.
     }
 
     override fun onInterrupt() {
-        // Android interrupted the accessibility service.
+        // Android interrupted the service.
     }
 
     override fun onUnbind(intent: android.content.Intent?): Boolean {
@@ -48,18 +48,15 @@ class ScreenControlService : AccessibilityService() {
                         AccessibilityNodeInfo.ACTION_CLICK
                     )
                 }
-
                 target = target.parent
                 depth++
             }
         }
-
         return false
     }
 
     internal fun scrollScreenForward(): Boolean {
         val root = rootInActiveWindow ?: return false
-
         return root.performAction(
             AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
         )
@@ -67,10 +64,61 @@ class ScreenControlService : AccessibilityService() {
 
     internal fun scrollScreenBackward(): Boolean {
         val root = rootInActiveWindow ?: return false
-
         return root.performAction(
             AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD
         )
+    }
+
+    internal fun swipeScreen(
+        direction: ScreenSwipeDirection
+    ): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            return false
+        }
+
+        val width = resources.displayMetrics.widthPixels.toFloat()
+        val height = resources.displayMetrics.heightPixels.toFloat()
+
+        if (width <= 0f || height <= 0f) return false
+
+        val centerX = width / 2f
+        val centerY = height / 2f
+
+        val path = Path()
+
+        when (direction) {
+            ScreenSwipeDirection.UP -> {
+                path.moveTo(centerX, height * 0.78f)
+                path.lineTo(centerX, height * 0.28f)
+            }
+
+            ScreenSwipeDirection.DOWN -> {
+                path.moveTo(centerX, height * 0.28f)
+                path.lineTo(centerX, height * 0.78f)
+            }
+
+            ScreenSwipeDirection.LEFT -> {
+                path.moveTo(width * 0.82f, centerY)
+                path.lineTo(width * 0.18f, centerY)
+            }
+
+            ScreenSwipeDirection.RIGHT -> {
+                path.moveTo(width * 0.18f, centerY)
+                path.lineTo(width * 0.82f, centerY)
+            }
+        }
+
+        val gesture = GestureDescription.Builder()
+            .addStroke(
+                GestureDescription.StrokeDescription(
+                    path,
+                    0L,
+                    350L
+                )
+            )
+            .build()
+
+        return dispatchGesture(gesture, null, null)
     }
 
     internal fun goBack(): Boolean {
@@ -86,9 +134,6 @@ class ScreenControlService : AccessibilityService() {
     }
 }
 
-/**
- * Safe bridge for future connection with Idraak's command engine.
- */
 object ScreenControlBridge {
 
     @Volatile
@@ -119,6 +164,30 @@ object ScreenControlBridge {
 
     fun scrollBackward(): Boolean {
         return activeService?.scrollScreenBackward() ?: false
+    }
+
+    fun swipeUp(): Boolean {
+        return activeService?.swipeScreen(
+            ScreenSwipeDirection.UP
+        ) ?: false
+    }
+
+    fun swipeDown(): Boolean {
+        return activeService?.swipeScreen(
+            ScreenSwipeDirection.DOWN
+        ) ?: false
+    }
+
+    fun swipeLeft(): Boolean {
+        return activeService?.swipeScreen(
+            ScreenSwipeDirection.LEFT
+        ) ?: false
+    }
+
+    fun swipeRight(): Boolean {
+        return activeService?.swipeScreen(
+            ScreenSwipeDirection.RIGHT
+        ) ?: false
     }
 
     fun back(): Boolean {
