@@ -5,11 +5,7 @@ import java.util.Locale
 
 /**
  * Idraak Offline Screen Command Handler
- *
- * Converts simple Hindi and English commands into
- * Accessibility-based screen actions.
- *
- * This handler is not yet connected to OfflineBrain.
+ * Converts Hindi and English commands into screen actions.
  */
 object OfflineScreenCommandHandler {
 
@@ -20,26 +16,17 @@ object OfflineScreenCommandHandler {
     )
 
     fun execute(userCommand: String): Result {
-
         val command = normalize(userCommand)
 
         if (command.isBlank()) {
-            return Result(
-                false,
-                "कृपया स्क्रीन कमांड बताइए।",
-                "EMPTY"
-            )
+            return Result(false, "कृपया स्क्रीन कमांड बताइए।", "EMPTY")
         }
 
         // Back navigation
         if (matches(
                 command,
-                "back",
-                "go back",
-                "press back",
-                "पीछे जाओ",
-                "वापस जाओ",
-                "बैक दबाओ"
+                "back", "go back", "press back",
+                "पीछे जाओ", "वापस जाओ", "बैक दबाओ"
             )
         ) {
             return perform("BACK") {
@@ -50,12 +37,8 @@ object OfflineScreenCommandHandler {
         // Home navigation
         if (matches(
                 command,
-                "go home",
-                "open home",
-                "home screen",
-                "होम खोलो",
-                "होम पर जाओ",
-                "घर जाओ"
+                "go home", "open home", "home screen",
+                "होम खोलो", "होम पर जाओ", "घर जाओ"
             )
         ) {
             return perform("HOME") {
@@ -63,14 +46,65 @@ object OfflineScreenCommandHandler {
             }
         }
 
-        // Scroll forward
+        // Actual finger swipe UP
         if (matches(
                 command,
-                "scroll down",
-                "swipe down",
-                "नीचे स्क्रॉल करो",
-                "नीचे जाओ",
-                "नीचे करो"
+                "swipe up", "swipe upward",
+                "ऊपर स्वाइप", "ऊपर स्वाइप करो",
+                "स्वाइप ऊपर", "स्वाइप ऊपर करो"
+            )
+        ) {
+            return perform("SWIPE_UP") {
+                ScreenControlBridge.swipeUp()
+            }
+        }
+
+        // Actual finger swipe DOWN
+        if (matches(
+                command,
+                "swipe down", "swipe downward",
+                "नीचे स्वाइप", "नीचे स्वाइप करो",
+                "स्वाइप नीचे", "स्वाइप नीचे करो"
+            )
+        ) {
+            return perform("SWIPE_DOWN") {
+                ScreenControlBridge.swipeDown()
+            }
+        }
+
+        // Actual finger swipe LEFT
+        if (matches(
+                command,
+                "swipe left", "swipe to left",
+                "left swipe", "बाएं स्वाइप",
+                "बाएं स्वाइप करो", "बाईं तरफ स्वाइप करो",
+                "स्वाइप बाएं"
+            )
+        ) {
+            return perform("SWIPE_LEFT") {
+                ScreenControlBridge.swipeLeft()
+            }
+        }
+
+        // Actual finger swipe RIGHT
+        if (matches(
+                command,
+                "swipe right", "swipe to right",
+                "right swipe", "दाएं स्वाइप",
+                "दाएं स्वाइप करो", "दाईं तरफ स्वाइप करो",
+                "स्वाइप दाएं"
+            )
+        ) {
+            return perform("SWIPE_RIGHT") {
+                ScreenControlBridge.swipeRight()
+            }
+        }
+
+        // Accessibility scroll forward
+        if (matches(
+                command,
+                "scroll down", "नीचे स्क्रॉल करो",
+                "स्क्रॉल नीचे करो"
             )
         ) {
             return perform("SCROLL_DOWN") {
@@ -78,14 +112,11 @@ object OfflineScreenCommandHandler {
             }
         }
 
-        // Scroll backward
+        // Accessibility scroll backward
         if (matches(
                 command,
-                "scroll up",
-                "swipe up",
-                "ऊपर स्क्रॉल करो",
-                "ऊपर जाओ",
-                "ऊपर करो"
+                "scroll up", "ऊपर स्क्रॉल करो",
+                "स्क्रॉल ऊपर करो"
             )
         ) {
             return perform("SCROLL_UP") {
@@ -93,7 +124,7 @@ object OfflineScreenCommandHandler {
             }
         }
 
-        // Open notifications
+        // Notifications
         if (matches(
                 command,
                 "open notifications",
@@ -108,11 +139,10 @@ object OfflineScreenCommandHandler {
             }
         }
 
-        // Find a requested screen text to click
+        // Find requested text to click
         val targetText = extractClickTarget(command)
 
         if (targetText != null) {
-
             if (targetText.isBlank()) {
                 return Result(
                     false,
@@ -121,8 +151,7 @@ object OfflineScreenCommandHandler {
                 )
             }
 
-            // Do not trigger consequential actions without
-            // a separate confirmation flow.
+            // Consequential actions require a separate confirmation flow.
             if (isSensitiveTarget(targetText)) {
                 return Result(
                     false,
@@ -147,7 +176,6 @@ object OfflineScreenCommandHandler {
         intent: String,
         action: () -> Boolean
     ): Result {
-
         if (!ScreenControlBridge.isServiceConnected()) {
             return Result(
                 false,
@@ -168,7 +196,7 @@ object OfflineScreenCommandHandler {
             } else {
                 Result(
                     false,
-                    "कार्रवाई पूरी नहीं हुई। स्क्रीन पर जरूरी बटन या कंट्रोल नहीं मिला।",
+                    "कार्रवाई पूरी नहीं हुई। स्क्रीन पर जरूरी कंट्रोल उपलब्ध नहीं हुआ।",
                     "ACTION_FAILED"
                 )
             }
@@ -182,7 +210,6 @@ object OfflineScreenCommandHandler {
     }
 
     private fun extractClickTarget(command: String): String? {
-
         val prefixes = listOf(
             "click on ",
             "click ",
@@ -215,26 +242,12 @@ object OfflineScreenCommandHandler {
     }
 
     private fun isSensitiveTarget(target: String): Boolean {
-
         val sensitiveWords = listOf(
-            "send",
-            "submit",
-            "delete",
-            "remove",
-            "purchase",
-            "buy",
-            "pay",
-            "confirm",
-            "transfer",
-            "भेजो",
-            "भेजें",
-            "डिलीट",
-            "हटाओ",
-            "खरीदो",
-            "पेमेंट",
-            "भुगतान",
-            "पुष्टि",
-            "ट्रांसफर"
+            "send", "submit", "delete", "remove",
+            "purchase", "buy", "pay", "confirm", "transfer",
+            "भेजो", "भेजें", "डिलीट", "हटाओ",
+            "खरीदो", "पेमेंट", "भुगतान",
+            "पुष्टि", "ट्रांसफर"
         )
 
         val value = normalize(target)
@@ -248,7 +261,6 @@ object OfflineScreenCommandHandler {
         command: String,
         vararg phrases: String
     ): Boolean {
-
         return phrases.any { phrase ->
             command == normalize(phrase)
         }
