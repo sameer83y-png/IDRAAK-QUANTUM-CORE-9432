@@ -1,3 +1,4 @@
+
 package com.idraak.quantum.engine
 
 import java.util.Locale
@@ -179,6 +180,27 @@ object OfflineScreenCommandHandler {
             "यह स्क्रीन कमांड समझ नहीं आई। कृपया स्पष्ट कमांड दीजिए।",
             "UNKNOWN"
         )
+    }
+
+    /**
+     * Executes a previously blocked sensitive click.
+     * Call this only after OfflineBrain has received
+     * an explicit confirmation for the pending target.
+     */
+    fun executeConfirmedClick(targetText: String): Result {
+        val target = normalize(targetText)
+
+        if (target.isBlank()) {
+            return Result(
+                false,
+                "क्लिक करने के लिए बटन का नाम उपलब्ध नहीं है।",
+                "CLICK_EMPTY"
+            )
+        }
+
+        return perform("CONFIRMED_CLICK") {
+            ScreenControlBridge.tapText(target)
+        }
     }
 
     private fun perform(
