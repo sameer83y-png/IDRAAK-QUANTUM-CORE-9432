@@ -1,4 +1,4 @@
-name: IDRAAK QUANTUM APK Build
+name:IDRAAK QUANTUM APK Build
 
 on:
   push:
@@ -39,6 +39,37 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '8.7'
+
+      - name: Download Hindi Vosk Model
+        run: |
+          mkdir -p /tmp/vosk-hi
+          curl -fL --retry 3 \
+            https://alphacephei.com/vosk/models/vosk-model-small-hi-0.22.zip \
+            -o /tmp/vosk-hi/model.zip
+          unzip -q /tmp/vosk-hi/model.zip -d /tmp/vosk-hi
+          MODEL_DIR=$(find /tmp/vosk-hi -mindepth 1 -maxdepth 1 -type d -name "vosk-model-small-hi-0.22")
+          test -n "$MODEL_DIR"
+          mkdir -p app/src/main/assets/vosk
+          mv "$MODEL_DIR" app/src/main/assets/vosk/hi
+
+      - name: Download Indian English Vosk Model
+        run: |
+          mkdir -p /tmp/vosk-en
+          curl -fL --retry 3 \
+            https://alphacephei.com/vosk/models/vosk-model-small-en-in-0.4.zip \
+            -o /tmp/vosk-en/model.zip
+          unzip -q /tmp/vosk-en/model.zip -d /tmp/vosk-en
+          MODEL_DIR=$(find /tmp/vosk-en -mindepth 1 -maxdepth 1 -type d -name "vosk-model-small-en-in-0.4")
+          test -n "$MODEL_DIR"
+          mv "$MODEL_DIR" app/src/main/assets/vosk/en-in
+
+      - name: Verify Vosk Models
+        run: |
+          test -d app/src/main/assets/vosk/hi
+          test -d app/src/main/assets/vosk/en-in
+          test -f app/src/main/assets/vosk/hi/conf/model.conf
+          test -f app/src/main/assets/vosk/en-in/conf/model.conf
+          echo "Hindi and Indian English models are ready."
 
       - name: Build Debug APK
         run: gradle :app:assembleDebug
