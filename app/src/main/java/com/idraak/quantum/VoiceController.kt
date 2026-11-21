@@ -3,6 +3,7 @@ package com.idraak.quantum
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.SystemClock
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import androidx.core.content.ContextCompat
@@ -48,6 +49,9 @@ class VoiceController(
     @Volatile
     private var lastDeliveredText = ""
 
+    @Volatile
+    private var lastDeliveredTime = 0L
+
     private val recognitionListener = object : RecognitionListener {
 
         override fun onPartialResult(hypothesis: String?) {
@@ -65,9 +69,6 @@ class VoiceController(
 
             handleRecognitionResult(hypothesis)
             onStatusChanged("Speech recognized")
-
-            // Do not restart listening here.
-            // MainActivity should receive the command and speak its response.
         }
 
         override fun onError(exception: Exception?) {
@@ -193,8 +194,6 @@ class VoiceController(
         val existingService = speechService
 
         if (existingService != null) {
-            lastDeliveredText = ""
-
             val started = existingService.startListening(
                 recognitionListener
             )
@@ -212,7 +211,6 @@ class VoiceController(
         }
 
         isLoadingModel = true
-        lastDeliveredText = ""
         onStatusChanged("Preparing offline voice model...")
 
         val languageToLoad = selectedLanguage
@@ -260,9 +258,6 @@ class VoiceController(
                             isShutdown ||
                             selectedLanguage != languageToLoad
                         ) {
-                            service?.shutdown()
-                            recognizer?.close()
-                            loadedModel?.close()
                             isLoadingModel = false
                             return@synchronized
                         }
@@ -353,10 +348,17 @@ class VoiceController(
 
             if (recognizedText.isBlank()) return
 
-            // Vosk can report the same utterance in result and finalResult.
-            if (recognizedText == lastDeliveredText) return
+            val currentTime = SystemClock.elapsedRealtime()
+
+            val isDuplicate =
+                recognizedText == lastDeliveredText &&
+                    currentTime - lastDeliveredTime < 1200L
+
+            if (isDuplicate) return
 
             lastDeliveredText = recognizedText
+            lastDeliveredTime = currentTime
+
             onSpeechResult(recognizedText)
 
         } catch (_: Exception) {
