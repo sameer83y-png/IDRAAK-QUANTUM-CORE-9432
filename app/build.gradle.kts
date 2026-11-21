@@ -1,3 +1,4 @@
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -42,4 +43,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
 
     implementation(libs.androidx.navigation.compose)
+
+    // Vosk Offline Speech Recognition
+    implementation("com.alphacephei:vosk-android:0.3.75")
 }
