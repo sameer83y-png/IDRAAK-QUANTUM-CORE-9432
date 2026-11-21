@@ -1,4 +1,3 @@
-
 package com.idraak.quantum.engine
 
 import android.content.Context
@@ -20,8 +19,6 @@ object OfflineBrain {
         val createdAt: Long
     )
 
-    // Pending confirmation stays in memory only.
-    // It is cleared after confirmation, cancellation or timeout.
     private var pendingClick: PendingClick? = null
 
     data class Decision(
@@ -37,6 +34,16 @@ object OfflineBrain {
         if (message.isBlank()) {
             return Decision("EMPTY", "कृपया मुझे कोई कमांड दीजिए।")
         }
+
+        val screenControl = isScreenCommand(message)
+
+        // Screen commands must not be mistaken for app-opening commands.
+        val openApp = !screenControl && containsAny(
+            message,
+            "open", "launch",
+            "खोलो", "खोल दो", "ऐप खोल",
+            "चालू करो"
+        )
 
         val isNegative = containsAny(
             message,
@@ -59,15 +66,6 @@ object OfflineBrain {
             "टॉर्च", "फ्लैशलाइट",
             "टॉर्च जलाओ", "टॉर्च बंद"
         )
-
-        val openApp = containsAny(
-            message,
-            "open", "launch",
-            "खोलो", "खोल दो", "ऐप खोल",
-            "चालू करो"
-        )
-
-        val screenControl = isScreenCommand(message)
 
         val actionCount = listOf(
             sendMessage, flashlight, openApp, screenControl
@@ -112,8 +110,7 @@ object OfflineBrain {
         if (screenControl) {
             return Decision(
                 "SCREEN_CONTROL",
-                "स्क्रीन कमांड पहचान ली गई है।",
-                false
+                "स्क्रीन कमांड पहचान ली गई है।"
             )
         }
 
@@ -194,65 +191,37 @@ object OfflineBrain {
     private fun isScreenCommand(message: String): Boolean {
 
         val exactCommands = listOf(
-            "back",
-            "go back",
-            "press back",
-            "पीछे जाओ",
-            "वापस जाओ",
-            "बैक दबाओ",
+            "back", "go back", "press back",
+            "पीछे जाओ", "वापस जाओ", "बैक दबाओ",
 
-            "go home",
-            "open home",
-            "home screen",
-            "होम खोलो",
-            "होम पर जाओ",
-            "घर जाओ",
+            "go home", "open home", "home screen",
+            "होम खोलो", "होम पर जाओ", "घर जाओ",
 
-            "scroll down",
-            "नीचे स्क्रॉल करो",
-            "नीचे जाओ",
-            "नीचे करो",
+            "scroll down", "नीचे स्क्रॉल करो",
+            "नीचे जाओ", "नीचे करो",
 
-            "scroll up",
-            "ऊपर स्क्रॉल करो",
-            "ऊपर जाओ",
-            "ऊपर करो",
+            "scroll up", "ऊपर स्क्रॉल करो",
+            "ऊपर जाओ", "ऊपर करो",
 
-            "swipe up",
-            "swipe upward",
-            "ऊपर स्वाइप",
-            "ऊपर स्वाइप करो",
-            "स्वाइप ऊपर",
-            "स्वाइप ऊपर करो",
+            "swipe up", "swipe upward",
+            "ऊपर स्वाइप", "ऊपर स्वाइप करो",
+            "स्वाइप ऊपर", "स्वाइप ऊपर करो",
 
-            "swipe down",
-            "swipe downward",
-            "नीचे स्वाइप",
-            "नीचे स्वाइप करो",
-            "स्वाइप नीचे",
-            "स्वाइप नीचे करो",
+            "swipe down", "swipe downward",
+            "नीचे स्वाइप", "नीचे स्वाइप करो",
+            "स्वाइप नीचे", "स्वाइप नीचे करो",
 
-            "swipe left",
-            "swipe to left",
-            "left swipe",
-            "बाएं स्वाइप",
-            "बाएं स्वाइप करो",
-            "बाईं तरफ स्वाइप करो",
-            "स्वाइप बाएं",
+            "swipe left", "swipe to left", "left swipe",
+            "बाएं स्वाइप", "बाएं स्वाइप करो",
+            "बाईं तरफ स्वाइप करो", "स्वाइप बाएं",
 
-            "swipe right",
-            "swipe to right",
-            "right swipe",
-            "दाएं स्वाइप",
-            "दाएं स्वाइप करो",
-            "दाईं तरफ स्वाइप करो",
-            "स्वाइप दाएं",
+            "swipe right", "swipe to right", "right swipe",
+            "दाएं स्वाइप", "दाएं स्वाइप करो",
+            "दाईं तरफ स्वाइप करो", "स्वाइप दाएं",
 
-            "open notifications",
-            "show notifications",
+            "open notifications", "show notifications",
             "notification panel",
-            "नोटिफिकेशन खोलो",
-            "नोटिफिकेशन दिखाओ"
+            "नोटिफिकेशन खोलो", "नोटिफिकेशन दिखाओ"
         )
 
         if (exactCommands.any { message == normalize(it) }) {
@@ -260,13 +229,9 @@ object OfflineBrain {
         }
 
         val clickPrefixes = listOf(
-            "click ",
-            "click on ",
-            "tap ",
-            "tap on ",
-            "press ",
-            "क्लिक करो ",
-            "दबाओ "
+            "click ", "click on ",
+            "tap ", "tap on ",
+            "press ", "क्लिक करो ", "दबाओ "
         )
 
         if (clickPrefixes.any { message.startsWith(it) }) {
@@ -295,11 +260,6 @@ object OfflineBrain {
         )
     }
 
-    /**
-     * MainActivity calls this method for recognized text.
-     * The synchronized method protects pending confirmation
-     * from overlapping voice or text commands.
-     */
     @Synchronized
     fun respond(
         context: Context,
@@ -307,8 +267,6 @@ object OfflineBrain {
     ): String {
 
         val message = normalize(userMessage)
-
-        // Handle an existing confirmation before any new command.
         val pending = pendingClick
 
         if (pending != null) {
@@ -319,24 +277,26 @@ object OfflineBrain {
 
             if (expired) {
                 pendingClick = null
-            } else if (isNegativeConfirmation(message)) {
+
+                return "पुष्टि का समय समाप्त हो गया। कृपया कमांड दोबारा दीजिए।"
+            }
+
+            if (isNegativeConfirmation(message)) {
 
                 pendingClick = null
 
                 recordExperience(
-                    context = context,
-                    intent = "SCREEN_CONFIRMED_CLICK",
-                    status = "REJECTED",
-                    steps = listOf(
-                        pending.target,
-                        "User rejected the click"
-                    )
+                    context,
+                    "SCREEN_CONFIRMED_CLICK",
+                    "REJECTED",
+                    listOf(pending.target, "User cancelled")
                 )
 
                 return "ठीक है। ${pending.target} पर क्लिक रद्द कर दिया गया है।"
-            } else if (isPositiveConfirmation(message)) {
+            }
 
-                // Clear first so the same confirmation cannot be reused.
+            if (isPositiveConfirmation(message)) {
+
                 pendingClick = null
 
                 val result =
@@ -351,13 +311,10 @@ object OfflineBrain {
                 }
 
                 recordExperience(
-                    context = context,
-                    intent = "SCREEN_CONFIRMED_CLICK",
-                    status = status,
-                    steps = listOf(
-                        pending.target,
-                        result.message
-                    )
+                    context,
+                    "SCREEN_CONFIRMED_CLICK",
+                    status,
+                    listOf(pending.target, result.message)
                 )
 
                 return if (result.success) {
@@ -365,10 +322,10 @@ object OfflineBrain {
                 } else {
                     "पुष्टि मिल गई, लेकिन क्लिक पूरा नहीं हुआ। ${result.message}"
                 }
-            } else {
-                // Any unrelated command cancels the old pending action.
-                pendingClick = null
             }
+
+            // A different command cancels the previous pending click.
+            pendingClick = null
         }
 
         val decision = understand(userMessage)
@@ -386,12 +343,11 @@ object OfflineBrain {
 
                     if (target.isNullOrBlank()) {
                         recordExperience(
-                            context = context,
-                            intent = "SCREEN_CLICK",
-                            status = "FAILED",
-                            steps = listOf(userMessage, result.message)
+                            context,
+                            "SCREEN_CLICK",
+                            "FAILED",
+                            listOf(userMessage, result.message)
                         )
-
                         return result.message
                     }
 
@@ -401,28 +357,26 @@ object OfflineBrain {
                     )
 
                     recordExperience(
-                        context = context,
-                        intent = "SCREEN_CLICK",
-                        status = "PENDING_CONFIRMATION",
-                        steps = listOf(
-                            userMessage,
-                            "Waiting for explicit user confirmation"
-                        )
+                        context,
+                        "SCREEN_CLICK",
+                        "PENDING_CONFIRMATION",
+                        listOf(userMessage, "Waiting for confirmation")
                     )
 
                     return "यह महत्वपूर्ण कार्रवाई है: \"$target\"। क्या आप इसे क्लिक करने की अनुमति देते हैं? पुष्टि के लिए हाँ कहें, रद्द करने के लिए नहीं कहें।"
                 }
 
-                val outcome = when {
-                    result.success -> "SUCCESS"
-                    else -> "FAILED"
+                val outcome = if (result.success) {
+                    "SUCCESS"
+                } else {
+                    "FAILED"
                 }
 
                 recordExperience(
-                    context = context,
-                    intent = "SCREEN_${result.intent}",
-                    status = outcome,
-                    steps = listOf(userMessage, result.message)
+                    context,
+                    "SCREEN_${result.intent}",
+                    outcome,
+                    listOf(userMessage, result.message)
                 )
 
                 return result.message
@@ -431,7 +385,6 @@ object OfflineBrain {
             "OPEN_APP",
             "SEND_MESSAGE",
             "FLASHLIGHT" -> {
-
                 recordExperience(
                     context,
                     decision.intent,
@@ -444,54 +397,26 @@ object OfflineBrain {
     }
 
     private fun isPositiveConfirmation(message: String): Boolean {
-        val phrases = listOf(
-            "yes",
-            "yes please",
-            "yeah",
-            "yep",
-            "confirm",
-            "confirmed",
-            "proceed",
-            "do it",
-            "go ahead",
-            "haan",
-            "han",
-            "ji haan",
+        return listOf(
+            "yes", "yes please", "yeah", "yep",
+            "confirm", "confirmed", "proceed",
+            "do it", "go ahead",
+            "haan", "han", "ji haan",
             "haan kar do",
-            "कर दो",
-            "कर दीजिए",
-            "हाँ",
-            "हां",
-            "जी हाँ",
-            "जी हां",
-            "जी"
-        )
-
-        return phrases.any { message == normalize(it) }
+            "कर दो", "कर दीजिए",
+            "हाँ", "हां", "जी हाँ", "जी हां", "जी"
+        ).any { message == normalize(it) }
     }
 
     private fun isNegativeConfirmation(message: String): Boolean {
-        val phrases = listOf(
-            "no",
-            "no thanks",
-            "nope",
-            "cancel",
-            "cancel it",
-            "don't do it",
-            "do not",
-            "nahi",
-            "nahin",
-            "mat karo",
-            "नहीं",
-            "नही",
-            "ना",
-            "मत करो",
-            "रद्द",
-            "रद्द करो",
-            "कैंसल"
-        )
-
-        return phrases.any { message == normalize(it) }
+        return listOf(
+            "no", "no thanks", "nope",
+            "cancel", "cancel it",
+            "don't do it", "do not",
+            "nahi", "nahin", "mat karo",
+            "नहीं", "नही", "ना", "मत करो",
+            "रद्द", "रद्द करो", "कैंसल"
+        ).any { message == normalize(it) }
     }
 
     private fun extractClickTarget(command: String): String? {
@@ -499,13 +424,9 @@ object OfflineBrain {
         val value = normalize(command)
 
         val prefixes = listOf(
-            "click on ",
-            "click ",
-            "tap on ",
-            "tap ",
-            "press ",
-            "क्लिक करो ",
-            "दबाओ "
+            "click on ", "click ",
+            "tap on ", "tap ",
+            "press ", "क्लिक करो ", "दबाओ "
         )
 
         for (prefix in prefixes) {
@@ -537,12 +458,7 @@ object OfflineBrain {
     ) {
         if (intent.isBlank()) return
 
-        saveLegacyExperience(
-            context,
-            intent,
-            status,
-            steps
-        )
+        saveLegacyExperience(context, intent, status, steps)
 
         val normalizedStatus = status
             .trim()
