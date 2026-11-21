@@ -1,4 +1,3 @@
-
 package com.idraak.quantum
 
 import android.Manifest
@@ -184,6 +183,10 @@ fun IdraakHomeScreen() {
         }
     }
 
+    var selectedVoiceLanguage by remember(voiceController) {
+        mutableStateOf(voiceController.getRecognitionLanguage())
+    }
+
     DisposableEffect(voiceController) {
         onDispose {
             isContinuousVoiceChat = false
@@ -317,6 +320,22 @@ fun IdraakHomeScreen() {
                     },
                     onOpenMemory = {
                         showMemoryDashboard = true
+                    },
+                    selectedVoiceLanguage = selectedVoiceLanguage,
+                    onVoiceLanguageSelected = { language ->
+                        isContinuousVoiceChat = false
+                        isListening = false
+                        voiceController.cancelListening()
+                        voiceController.setRecognitionLanguage(language)
+                        selectedVoiceLanguage = language
+
+                        voiceStatus = when (language) {
+                            VoskModelStore.VoskLanguage.HINDI ->
+                                "HINDI OFFLINE MODEL SELECTED"
+
+                            VoskModelStore.VoskLanguage.INDIAN_ENGLISH ->
+                                "INDIAN ENGLISH OFFLINE MODEL SELECTED"
+                        }
                     }
                 )
             }
@@ -379,7 +398,6 @@ fun IdraakHomeScreen() {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Existing Core Orb retained.
                     Box(
                         modifier = Modifier
                             .size(105.dp)
@@ -568,7 +586,9 @@ fun IdraakHomeScreen() {
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
-    onOpenMemory: () -> Unit
+    onOpenMemory: () -> Unit,
+    selectedVoiceLanguage: VoskModelStore.VoskLanguage,
+    onVoiceLanguageSelected: (VoskModelStore.VoskLanguage) -> Unit
 ) {
     val context = LocalContext.current
 
@@ -636,9 +656,60 @@ fun SettingsScreen(
 
         SettingsStatusCard(
             title = "VOICE SYSTEM",
-            status = "ANDROID SPEECH + TEXT TO SPEECH",
-            detail = "Voice recognition and voice output use Android speech services. Speech recognition may require an internet connection depending on the device service."
+            status = "OFFLINE VOSK + ANDROID TEXT TO SPEECH",
+            detail = "Hindi and Indian English speech recognition models are bundled with the app. The selected Vosk model runs locally; Android Text-to-Speech is used for voice output."
         )
+
+        Text(
+            text = "OFFLINE SPEECH LANGUAGE",
+            color = Color(0xFF00B7FF),
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Choose the language Idraak should recognize while listening.",
+            color = Color(0xFF9CB0CC),
+            fontSize = 12.sp
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Button(
+            onClick = {
+                onVoiceLanguageSelected(VoskModelStore.VoskLanguage.HINDI)
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (
+                    selectedVoiceLanguage == VoskModelStore.VoskLanguage.HINDI
+                ) Color(0xFF087DFF) else Color(0xFF263B59)
+            )
+        ) {
+            Text("HINDI OFFLINE")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = {
+                onVoiceLanguageSelected(VoskModelStore.VoskLanguage.INDIAN_ENGLISH)
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (
+                    selectedVoiceLanguage == VoskModelStore.VoskLanguage.INDIAN_ENGLISH
+                ) Color(0xFF087DFF) else Color(0xFF263B59)
+            )
+        ) {
+            Text("INDIAN ENGLISH OFFLINE")
+        }
+
+        Spacer(modifier = Modifier.height(18.dp))
 
         SettingsStatusCard(
             title = "PHONE CONTROLLERS",
