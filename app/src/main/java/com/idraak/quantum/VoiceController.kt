@@ -1,53 +1,120 @@
 package com.idraak.quantum
 
-import android.annotation.SuppressLint
 import android.content.Context
-import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
-import android.speech.RecognitionListener
-import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import androidx.core.content.ContextCompat
+import org.json.JSONObject
+import org.vosk.Model
+import org.vosk.Recognizer
+import org.vosk.android.RecognitionListener
+import org.vosk.android.SpeechService
+import java.io.IOException
 import java.util.Locale
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class VoiceController(
     context: Context,
     private val onSpeechResult: (String) -> Unit,
     private val onStatusChanged: (String) -> Unit,
     private val onSpeechFinished: () -> Unit = {}
-) : RecognitionListener {
+) {
 
     private val appContext = context.applicationContext
+    private val modelStore = VoskModelStore(appContext)
 
-    private var speechRecognizer: SpeechRecognizer? = null
+    private val executor: ExecutorService =
+        Executors.newSingleThreadExecutor()
+
     private var textToSpeech: TextToSpeech? = null
-
     private var isTtsReady = false
+
+    @Volatile
     private var isShutdown = false
 
+    @Volatile
+    private var isLoadingModel = false
+
+    @Volatile
+    private var selectedLanguage =
+        VoskModelStore.VoskLanguage.HINDI
+
+    private var currentModel: Model? = null
+    private var currentRecognizer: Recognizer? = null
+    private var speechService: SpeechService? = null
+
+    private val recognitionListener = object : RecognitionListener {
+
+        override fun onPartialResult(hypothesis: String?) {
+            if (!isShutdown) {
+                onStatusChanged("Recognizing your voice...")
+            }
+        }
+
+        override fun onResult(hypothesis: String?) {
+            handleRecognitionResult(hypothesis, false)
+        }
+
+        override fun onFinalResult(hypothesis: String?) {
+            if (isShutdown) return
+
+            handleRecognitionResult(hypothesis, true)
+
+            onStatusChanged("Speech recognized")
+            onSpeechFinished()
+        }
+
+        override fun onError(exception: Exception?) {
+            if (!isShutdown) {
+                onStatusChanged(
+                    "Offline voice error: " +
+                        (exception?.localizedMessage ?: "Unknown error")
+                )
+            }
+        }
+
+        override fun onTimeout() {
+            if (!isShutdown) {
+                onStatusChanged("Listening timeout")
+                onSpeechFinished()
+            }
+        }
+    }
+
     init {
-        initializeSpeechRecognition()
         initializeTextToSpeech()
     }
 
-    private fun initializeSpeechRecognition() {
-        if (!SpeechRecognizer.isRecognitionAvailable(appContext)) {
-            onStatusChanged("Speech recognition is not available")
-            return
-        }
+    /**
+     * Select Hindi or Indian English recognition model.
+     * Selection applies to the next listening session.
+     */
+    @Synchronized
+    fun setRecognitionLanguage(
+        language: VoskModelStore.VoskLanguage
+    ) {
+        if (isShutdown) return
 
-        try {
-            speechRecognizer = SpeechRecognizer
-                .createSpeechRecognizer(appContext)
-                .also {
-                    it.setRecognitionListener(this)
-                }
-        } catch (exception: Exception) {
-            onStatusChanged(
-                "Speech initialization failed: ${exception.localizedMessage}"
-            )
-        }
+        if (selectedLanguage == language) return
+
+        selectedLanguage = language
+
+        stopRecognitionResources()
+
+        onStatusChanged(
+            if (language == VoskModelStore.VoskLanguage.HINDI) {
+                "Hindi offline voice selected"
+            } else {
+                "Indian English offline voice selected"
+            }
+        )
+    }
+
+    fun getRecognitionLanguage(): VoskModelStore.VoskLanguage {
+        return selectedLanguage
     }
 
     private fun initializeTextToSpeech() {
@@ -57,14 +124,13 @@ class VoiceController(
 
             if (status == TextToSpeech.SUCCESS) {
 
-                val defaultLocale = Locale.getDefault()
-
-                val languageResult =
-                    textToSpeech?.setLanguage(defaultLocale)
+                val result = textToSpeech?.setLanguage(
+                    Locale.getDefault()
+                )
 
                 if (
-                    languageResult == TextToSpeech.LANG_MISSING_DATA ||
-                    languageResult == TextToSpeech.LANG_NOT_SUPPORTED
+                    result == TextToSpeech.LANG_MISSING_DATA ||
+                    result == TextToSpeech.LANG_NOT_SUPPORTED
                 ) {
                     textToSpeech?.setLanguage(Locale.US)
                 }
@@ -82,7 +148,9 @@ class VoiceController(
             object : UtteranceProgressListener() {
 
                 override fun onStart(utteranceId: String?) {
-                    onStatusChanged("Speaking...")
+                    if (!isShutdown) {
+                        onStatusChanged("Speaking...")
+                    }
                 }
 
                 override fun onDone(utteranceId: String?) {
@@ -113,74 +181,191 @@ class VoiceController(
         )
     }
 
-    @SuppressLint("MissingPermission")
+    /**
+     * Starts Vosk offline recognition.
+     * Model loading and preparation happen in the background.
+     */
+    @Synchronized
     fun startListening(): Boolean {
 
         if (isShutdown) return false
 
-        val recognizer = speechRecognizer
+        val permissionGranted =
+            ContextCompat.checkSelfPermission(
+                appContext,
+                android.Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
 
-        if (recognizer == null) {
-            onStatusChanged("Speech recognition unavailable")
+        if (!permissionGranted) {
+            onStatusChanged("Microphone permission is required")
             return false
         }
 
-        return try {
+        val existingService = speechService
 
-            val intent = Intent(
-                RecognizerIntent.ACTION_RECOGNIZE_SPEECH
-            ).apply {
-
-                putExtra(
-                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-                )
-
-                putExtra(
-                    RecognizerIntent.EXTRA_LANGUAGE,
-                    Locale.getDefault().toLanguageTag()
-                )
-
-                putExtra(
-                    RecognizerIntent.EXTRA_MAX_RESULTS,
-                    1
-                )
-
-                putExtra(
-                    RecognizerIntent.EXTRA_PARTIAL_RESULTS,
-                    false
-                )
-
-            }
-
-            onStatusChanged("Listening...")
-            recognizer.startListening(intent)
-
-            true
-
-        } catch (exception: Exception) {
-
-            onStatusChanged(
-                "Could not start listening: ${exception.localizedMessage}"
+        if (existingService != null) {
+            val started = existingService.startListening(
+                recognitionListener
             )
 
-            false
+            if (started) {
+                onStatusChanged("Listening offline...")
+            }
+
+            return started
+        }
+
+        if (isLoadingModel) {
+            onStatusChanged("Offline voice model is loading...")
+            return true
+        }
+
+        isLoadingModel = true
+        onStatusChanged("Preparing offline voice model...")
+
+        val languageToLoad = selectedLanguage
+
+        try {
+            executor.execute {
+
+                try {
+                    if (isShutdown) return@execute
+
+                    val modelDirectory =
+                        modelStore.prepareModel(languageToLoad)
+
+                    if (isShutdown) return@execute
+
+                    onStatusChanged("Loading offline recognition engine...")
+
+                    val loadedModel = Model(
+                        modelDirectory.absolutePath
+                    )
+
+                    if (isShutdown) {
+                        loadedModel.close()
+                        return@execute
+                    }
+
+                    val recognizer = Recognizer(
+                        loadedModel,
+                        16000.0f
+                    )
+
+                    if (isShutdown) {
+                        recognizer.close()
+                        loadedModel.close()
+                        return@execute
+                    }
+
+                    val service = SpeechService(
+                        recognizer,
+                        16000.0f
+                    )
+
+                    synchronized(this) {
+
+                        if (isShutdown) {
+                            service.shutdown()
+                            loadedModel.close()
+                            return@synchronized
+                        }
+
+                        currentModel = loadedModel
+                        currentRecognizer = recognizer
+                        speechService = service
+                        isLoadingModel = false
+
+                        val started = service.startListening(
+                            recognitionListener
+                        )
+
+                        if (started) {
+                            onStatusChanged(
+                                if (
+                                    languageToLoad ==
+                                    VoskModelStore.VoskLanguage.HINDI
+                                ) {
+                                    "Hindi offline listening..."
+                                } else {
+                                    "Indian English offline listening..."
+                                }
+                            )
+                        } else {
+                            onStatusChanged(
+                                "Could not start offline listening"
+                            )
+                        }
+                    }
+
+                } catch (exception: Exception) {
+
+                    isLoadingModel = false
+
+                    if (!isShutdown) {
+                        onStatusChanged(
+                            "Offline model error: " +
+                                (exception.localizedMessage
+                                    ?: "Unknown error")
+                        )
+                    }
+                }
+            }
+
+        } catch (exception: Exception) {
+            isLoadingModel = false
+            onStatusChanged(
+                "Could not prepare offline model: " +
+                    (exception.localizedMessage ?: "Unknown error")
+            )
+            return false
+        }
+
+        return true
+    }
+
+    private fun handleRecognitionResult(
+        hypothesis: String?,
+        isFinal: Boolean
+    ) {
+        if (isShutdown || hypothesis.isNullOrBlank()) return
+
+        try {
+            val json = JSONObject(hypothesis)
+            val recognizedText = json.optString("text", "").trim()
+
+            if (recognizedText.isNotBlank()) {
+                onSpeechResult(recognizedText)
+
+                if (isFinal) {
+                    onStatusChanged("Speech recognized")
+                }
+            }
+        } catch (exception: Exception) {
+            if (isFinal && !isShutdown) {
+                onStatusChanged("Could not read recognition result")
+            }
         }
     }
 
+    @Synchronized
     fun stopListening() {
-        speechRecognizer?.stopListening()
+        if (isShutdown) return
+
+        speechService?.stop()
         onStatusChanged("Listening stopped")
     }
 
+    @Synchronized
     fun cancelListening() {
-        speechRecognizer?.cancel()
+        if (isShutdown) return
+
+        speechService?.cancel()
         onStatusChanged("Listening cancelled")
     }
 
     fun speak(text: String) {
-
-        if (text.isBlank()) return
+        if (isShutdown || text.isBlank()) return
 
         val tts = textToSpeech
 
@@ -203,94 +388,74 @@ class VoiceController(
 
     fun stopSpeaking() {
         textToSpeech?.stop()
-        onStatusChanged("Voice output stopped")
+
+        if (!isShutdown) {
+            onStatusChanged("Voice output stopped")
+        }
     }
 
+    @Synchronized
+    private fun stopRecognitionResources() {
+
+        try {
+            speechService?.cancel()
+            speechService?.shutdown()
+        } catch (_: Exception) {
+        }
+
+        speechService = null
+
+        try {
+            currentRecognizer?.close()
+        } catch (_: Exception) {
+        }
+
+        currentRecognizer = null
+
+        try {
+            currentModel?.close()
+        } catch (_: Exception) {
+        }
+
+        currentModel = null
+    }
+
+    @Synchronized
     fun shutdown() {
 
-        isShutdown = true
+        if (isShutdown) return
 
-        speechRecognizer?.destroy()
-        speechRecognizer = null
+        isShutdown = true
+        isLoadingModel = false
+
+        try {
+            speechService?.cancel()
+            speechService?.shutdown()
+        } catch (_: Exception) {
+        }
+
+        speechService = null
+
+        try {
+            currentRecognizer?.close()
+        } catch (_: Exception) {
+        }
+
+        currentRecognizer = null
+
+        try {
+            currentModel?.close()
+        } catch (_: Exception) {
+        }
+
+        currentModel = null
 
         textToSpeech?.stop()
         textToSpeech?.shutdown()
         textToSpeech = null
 
         isTtsReady = false
+
+        executor.shutdownNow()
     }
-
-    override fun onReadyForSpeech(params: Bundle?) {
-        onStatusChanged("Ready. Speak now.")
-    }
-
-    override fun onBeginningOfSpeech() {
-        onStatusChanged("Recognizing your voice...")
-    }
-
-    override fun onRmsChanged(rmsdB: Float) = Unit
-
-    override fun onBufferReceived(buffer: ByteArray?) = Unit
-
-    override fun onEndOfSpeech() {
-        onStatusChanged("Processing your speech...")
-    }
-
-    override fun onError(error: Int) {
-
-        val message = when (error) {
-
-            SpeechRecognizer.ERROR_AUDIO ->
-                "Microphone audio error"
-
-            SpeechRecognizer.ERROR_CLIENT ->
-                "Speech recognition client error"
-
-            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ->
-                "Microphone permission is required"
-
-            SpeechRecognizer.ERROR_NETWORK ->
-                "Network error during recognition"
-
-            SpeechRecognizer.ERROR_NETWORK_TIMEOUT ->
-                "Speech recognition network timeout"
-
-            SpeechRecognizer.ERROR_NO_MATCH ->
-                "No speech detected. Please try again."
-
-            SpeechRecognizer.ERROR_RECOGNIZER_BUSY ->
-                "Speech recognizer is busy"
-
-            SpeechRecognizer.ERROR_SERVER ->
-                "Speech recognition service error"
-
-            SpeechRecognizer.ERROR_SPEECH_TIMEOUT ->
-                "No speech input detected"
-
-            else ->
-                "Speech recognition failed. Error: $error"
-        }
-
-        onStatusChanged(message)
-    }
-
-    override fun onResults(results: Bundle?) {
-
-        val matches = results?.getStringArrayList(
-            SpeechRecognizer.RESULTS_RECOGNITION
-        )
-
-        val recognizedText = matches?.firstOrNull()?.trim()
-
-        if (!recognizedText.isNullOrBlank()) {
-            onSpeechResult(recognizedText)
-            onStatusChanged("Speech recognized")
-        } else {
-            onStatusChanged("No speech result received")
-        }
-    }
-
-    override fun onPartialResults(partialResults: Bundle?) = Unit
-
-    override fun onEvent(eventType: Int, params: Bundle?) = Unit
 }
