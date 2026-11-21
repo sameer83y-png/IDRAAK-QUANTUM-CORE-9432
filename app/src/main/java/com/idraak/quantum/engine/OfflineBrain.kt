@@ -1,3 +1,4 @@
+
 package com.idraak.quantum.engine
 
 import android.content.Context
@@ -12,6 +13,16 @@ object OfflineBrain {
     private const val PREFS_NAME = "idraak_offline_brain"
     private const val MEMORY_KEY = "experience_memory"
     private const val MAX_MEMORIES = 200
+    private const val CONFIRMATION_TIMEOUT_MS = 30_000L
+
+    private data class PendingClick(
+        val target: String,
+        val createdAt: Long
+    )
+
+    // Pending confirmation stays in memory only.
+    // It is cleared after confirmation, cancellation or timeout.
+    private var pendingClick: PendingClick? = null
 
     data class Decision(
         val intent: String,
@@ -106,7 +117,6 @@ object OfflineBrain {
             )
         }
 
-        // Time
         if (containsAny(
                 message,
                 "time", "current time", "what time",
@@ -121,7 +131,6 @@ object OfflineBrain {
             return Decision("TIME", "अभी समय $time है।")
         }
 
-        // Date
         if (containsAny(
                 message,
                 "date", "today date", "today's date",
@@ -136,7 +145,6 @@ object OfflineBrain {
             return Decision("DATE", "आज की तारीख $date है।")
         }
 
-        // Identity
         if (containsAny(
                 message,
                 "who are you", "your name",
@@ -152,7 +160,6 @@ object OfflineBrain {
             )
         }
 
-        // Greeting
         if (containsAny(
                 message,
                 "hello", "hi", "hey",
@@ -165,7 +172,6 @@ object OfflineBrain {
             )
         }
 
-        // Help
         if (containsAny(
                 message,
                 "help", "what can you do",
@@ -185,7 +191,6 @@ object OfflineBrain {
         )
     }
 
-    // Detect commands supported by OfflineScreenCommandHandler
     private fun isScreenCommand(message: String): Boolean {
 
         val exactCommands = listOf(
@@ -290,11 +295,81 @@ object OfflineBrain {
         )
     }
 
-    // MainActivity compatibility and screen execution
+    /**
+     * MainActivity calls this method for recognized text.
+     * The synchronized method protects pending confirmation
+     * from overlapping voice or text commands.
+     */
+    @Synchronized
     fun respond(
         context: Context,
         userMessage: String
     ): String {
+
+        val message = normalize(userMessage)
+
+        // Handle an existing confirmation before any new command.
+        val pending = pendingClick
+
+        if (pending != null) {
+
+            val expired =
+                System.currentTimeMillis() - pending.createdAt >
+                    CONFIRMATION_TIMEOUT_MS
+
+            if (expired) {
+                pendingClick = null
+            } else if (isNegativeConfirmation(message)) {
+
+                pendingClick = null
+
+                recordExperience(
+                    context = context,
+                    intent = "SCREEN_CONFIRMED_CLICK",
+                    status = "REJECTED",
+                    steps = listOf(
+                        pending.target,
+                        "User rejected the click"
+                    )
+                )
+
+                return "ठीक है। ${pending.target} पर क्लिक रद्द कर दिया गया है।"
+            } else if (isPositiveConfirmation(message)) {
+
+                // Clear first so the same confirmation cannot be reused.
+                pendingClick = null
+
+                val result =
+                    OfflineScreenCommandHandler.executeConfirmedClick(
+                        pending.target
+                    )
+
+                val status = if (result.success) {
+                    "SUCCESS"
+                } else {
+                    "FAILED"
+                }
+
+                recordExperience(
+                    context = context,
+                    intent = "SCREEN_CONFIRMED_CLICK",
+                    status = status,
+                    steps = listOf(
+                        pending.target,
+                        result.message
+                    )
+                )
+
+                return if (result.success) {
+                    "आपकी पुष्टि मिल गई। ${pending.target} पर क्लिक कर दिया गया है।"
+                } else {
+                    "पुष्टि मिल गई, लेकिन क्लिक पूरा नहीं हुआ। ${result.message}"
+                }
+            } else {
+                // Any unrelated command cancels the old pending action.
+                pendingClick = null
+            }
+        }
 
         val decision = understand(userMessage)
 
@@ -302,14 +377,44 @@ object OfflineBrain {
 
             "SCREEN_CONTROL" -> {
 
-                val result = OfflineScreenCommandHandler.execute(
-                    userMessage
-                )
+                val result =
+                    OfflineScreenCommandHandler.execute(userMessage)
+
+                if (result.intent == "CLICK_CONFIRMATION_REQUIRED") {
+
+                    val target = extractClickTarget(userMessage)
+
+                    if (target.isNullOrBlank()) {
+                        recordExperience(
+                            context = context,
+                            intent = "SCREEN_CLICK",
+                            status = "FAILED",
+                            steps = listOf(userMessage, result.message)
+                        )
+
+                        return result.message
+                    }
+
+                    pendingClick = PendingClick(
+                        target = target,
+                        createdAt = System.currentTimeMillis()
+                    )
+
+                    recordExperience(
+                        context = context,
+                        intent = "SCREEN_CLICK",
+                        status = "PENDING_CONFIRMATION",
+                        steps = listOf(
+                            userMessage,
+                            "Waiting for explicit user confirmation"
+                        )
+                    )
+
+                    return "यह महत्वपूर्ण कार्रवाई है: \"$target\"। क्या आप इसे क्लिक करने की अनुमति देते हैं? पुष्टि के लिए हाँ कहें, रद्द करने के लिए नहीं कहें।"
+                }
 
                 val outcome = when {
                     result.success -> "SUCCESS"
-                    result.intent == "CLICK_CONFIRMATION_REQUIRED" ->
-                        "PENDING_CONFIRMATION"
                     else -> "FAILED"
                 }
 
@@ -338,7 +443,92 @@ object OfflineBrain {
         return decision.response
     }
 
-    // Record actual action outcomes
+    private fun isPositiveConfirmation(message: String): Boolean {
+        val phrases = listOf(
+            "yes",
+            "yes please",
+            "yeah",
+            "yep",
+            "confirm",
+            "confirmed",
+            "proceed",
+            "do it",
+            "go ahead",
+            "haan",
+            "han",
+            "ji haan",
+            "haan kar do",
+            "कर दो",
+            "कर दीजिए",
+            "हाँ",
+            "हां",
+            "जी हाँ",
+            "जी हां",
+            "जी"
+        )
+
+        return phrases.any { message == normalize(it) }
+    }
+
+    private fun isNegativeConfirmation(message: String): Boolean {
+        val phrases = listOf(
+            "no",
+            "no thanks",
+            "nope",
+            "cancel",
+            "cancel it",
+            "don't do it",
+            "do not",
+            "nahi",
+            "nahin",
+            "mat karo",
+            "नहीं",
+            "नही",
+            "ना",
+            "मत करो",
+            "रद्द",
+            "रद्द करो",
+            "कैंसल"
+        )
+
+        return phrases.any { message == normalize(it) }
+    }
+
+    private fun extractClickTarget(command: String): String? {
+
+        val value = normalize(command)
+
+        val prefixes = listOf(
+            "click on ",
+            "click ",
+            "tap on ",
+            "tap ",
+            "press ",
+            "क्लिक करो ",
+            "दबाओ "
+        )
+
+        for (prefix in prefixes) {
+            if (value.startsWith(prefix)) {
+                return value.removePrefix(prefix).trim()
+            }
+        }
+
+        val suffixes = listOf(
+            " पर क्लिक करो",
+            " को क्लिक करो",
+            " दबाओ"
+        )
+
+        for (suffix in suffixes) {
+            if (value.endsWith(suffix)) {
+                return value.removeSuffix(suffix).trim()
+            }
+        }
+
+        return null
+    }
+
     fun recordExperience(
         context: Context,
         intent: String,
