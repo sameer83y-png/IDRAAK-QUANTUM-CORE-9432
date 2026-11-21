@@ -26,6 +26,11 @@ class VoiceController(
     private val appContext = context.applicationContext
     private val modelStore = VoskModelStore(appContext)
 
+    private val preferences = appContext.getSharedPreferences(
+        LANGUAGE_PREFERENCES,
+        Context.MODE_PRIVATE
+    )
+
     private val executor: ExecutorService =
         Executors.newSingleThreadExecutor()
 
@@ -40,7 +45,7 @@ class VoiceController(
 
     @Volatile
     private var selectedLanguage =
-        VoskModelStore.VoskLanguage.HINDI
+        loadSavedLanguage()
 
     private var currentModel: Model? = null
     private var currentRecognizer: Recognizer? = null
@@ -91,6 +96,21 @@ class VoiceController(
         initializeTextToSpeech()
     }
 
+    private fun loadSavedLanguage(): VoskModelStore.VoskLanguage {
+        val savedLanguage = preferences.getString(
+            LANGUAGE_KEY,
+            VoskModelStore.VoskLanguage.HINDI.name
+        )
+
+        return try {
+            VoskModelStore.VoskLanguage.valueOf(
+                savedLanguage ?: VoskModelStore.VoskLanguage.HINDI.name
+            )
+        } catch (_: IllegalArgumentException) {
+            VoskModelStore.VoskLanguage.HINDI
+        }
+    }
+
     @Synchronized
     fun setRecognitionLanguage(
         language: VoskModelStore.VoskLanguage
@@ -98,13 +118,18 @@ class VoiceController(
         if (isShutdown || selectedLanguage == language) return
 
         selectedLanguage = language
+
+        preferences.edit()
+            .putString(LANGUAGE_KEY, language.name)
+            .apply()
+
         stopRecognitionResources()
 
         onStatusChanged(
             if (language == VoskModelStore.VoskLanguage.HINDI) {
-                "Hindi offline voice selected"
+                "Hindi offline voice selected and saved"
             } else {
-                "Indian English offline voice selected"
+                "Indian English offline voice selected and saved"
             }
         )
     }
@@ -477,5 +502,13 @@ class VoiceController(
         isTtsReady = false
 
         executor.shutdownNow()
+    }
+
+    companion object {
+        private const val LANGUAGE_PREFERENCES =
+            "idraak_voice_preferences"
+
+        private const val LANGUAGE_KEY =
+            "selected_recognition_language"
     }
 }
