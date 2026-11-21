@@ -37,7 +37,6 @@ object OfflineBrain {
 
         val screenControl = isScreenCommand(message)
 
-        // Screen commands must not be mistaken for app-opening commands.
         val openApp = !screenControl && containsAny(
             message,
             "open", "launch",
@@ -103,7 +102,7 @@ object OfflineBrain {
         if (openApp) {
             return Decision(
                 "OPEN_APP",
-                "ऐप खोलने की कमांड समझ गया हूँ। Phone Control Engine अभी जोड़ना बाकी है।"
+                "ऐप खोलने की कमांड समझ गया हूँ।"
             )
         }
 
@@ -178,7 +177,7 @@ object OfflineBrain {
         ) {
             return Decision(
                 "HELP",
-                "मैं बातचीत, समय, तारीख और कुछ Offline Screen Commands पहचान सकता हूँ। Screen Control के लिए Accessibility अनुमति जरूरी है।"
+                "मैं बातचीत, समय, तारीख, Offline App Opening और कुछ Offline Screen Commands पहचान सकता हूँ। Screen Control के लिए Accessibility अनुमति जरूरी है।"
             )
         }
 
@@ -324,13 +323,49 @@ object OfflineBrain {
                 }
             }
 
-            // A different command cancels the previous pending click.
             pendingClick = null
         }
 
         val decision = understand(userMessage)
 
         when (decision.intent) {
+
+            "OPEN_APP" -> {
+
+                val result = OfflinePhoneCommandHandler.execute(
+                    context.applicationContext,
+                    userMessage
+                )
+
+                if (result == null) {
+                    val response =
+                        "कमांड पहचान ली, लेकिन ऐप का नाम या खोलने का तरीका समझ नहीं आया। कृपया YouTube, WhatsApp, Chrome या किसी समर्थित ऐप का स्पष्ट नाम बताइए।"
+
+                    recordExperience(
+                        context,
+                        "OPEN_APP",
+                        "FAILED",
+                        listOf(userMessage, response)
+                    )
+
+                    return response
+                }
+
+                val status = if (result.success) {
+                    "SUCCESS"
+                } else {
+                    "FAILED"
+                }
+
+                recordExperience(
+                    context,
+                    "OPEN_APP",
+                    status,
+                    listOf(userMessage, result.appName, result.message)
+                )
+
+                return result.message
+            }
 
             "SCREEN_CONTROL" -> {
 
@@ -382,7 +417,6 @@ object OfflineBrain {
                 return result.message
             }
 
-            "OPEN_APP",
             "SEND_MESSAGE",
             "FLASHLIGHT" -> {
                 recordExperience(
