@@ -11,7 +11,6 @@ import org.vosk.Model
 import org.vosk.Recognizer
 import org.vosk.android.RecognitionListener
 import org.vosk.android.SpeechService
-import java.io.IOException
 import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -46,6 +45,9 @@ class VoiceController(
     private var currentRecognizer: Recognizer? = null
     private var speechService: SpeechService? = null
 
+    @Volatile
+    private var lastDeliveredText = ""
+
     private val recognitionListener = object : RecognitionListener {
 
         override fun onPartialResult(hypothesis: String?) {
@@ -55,16 +57,17 @@ class VoiceController(
         }
 
         override fun onResult(hypothesis: String?) {
-            handleRecognitionResult(hypothesis, false)
+            handleRecognitionResult(hypothesis)
         }
 
         override fun onFinalResult(hypothesis: String?) {
             if (isShutdown) return
 
-            handleRecognitionResult(hypothesis, true)
-
+            handleRecognitionResult(hypothesis)
             onStatusChanged("Speech recognized")
-            onSpeechFinished()
+
+            // Do not restart listening here.
+            // MainActivity should receive the command and speak its response.
         }
 
         override fun onError(exception: Exception?) {
@@ -79,7 +82,6 @@ class VoiceController(
         override fun onTimeout() {
             if (!isShutdown) {
                 onStatusChanged("Listening timeout")
-                onSpeechFinished()
             }
         }
     }
@@ -88,20 +90,13 @@ class VoiceController(
         initializeTextToSpeech()
     }
 
-    /**
-     * Select Hindi or Indian English recognition model.
-     * Selection applies to the next listening session.
-     */
     @Synchronized
     fun setRecognitionLanguage(
         language: VoskModelStore.VoskLanguage
     ) {
-        if (isShutdown) return
-
-        if (selectedLanguage == language) return
+        if (isShutdown || selectedLanguage == language) return
 
         selectedLanguage = language
-
         stopRecognitionResources()
 
         onStatusChanged(
@@ -172,19 +167,13 @@ class VoiceController(
                     errorCode: Int
                 ) {
                     if (!isShutdown) {
-                        onStatusChanged(
-                            "Voice output error: $errorCode"
-                        )
+                        onStatusChanged("Voice output error: $errorCode")
                     }
                 }
             }
         )
     }
 
-    /**
-     * Starts Vosk offline recognition.
-     * Model loading and preparation happen in the background.
-     */
     @Synchronized
     fun startListening(): Boolean {
 
@@ -204,6 +193,8 @@ class VoiceController(
         val existingService = speechService
 
         if (existingService != null) {
+            lastDeliveredText = ""
+
             val started = existingService.startListening(
                 recognitionListener
             )
@@ -221,12 +212,17 @@ class VoiceController(
         }
 
         isLoadingModel = true
+        lastDeliveredText = ""
         onStatusChanged("Preparing offline voice model...")
 
         val languageToLoad = selectedLanguage
 
         try {
             executor.execute {
+
+                var loadedModel: Model? = null
+                var recognizer: Recognizer? = null
+                var service: SpeechService? = null
 
                 try {
                     if (isShutdown) return@execute
@@ -236,49 +232,54 @@ class VoiceController(
 
                     if (isShutdown) return@execute
 
-                    onStatusChanged("Loading offline recognition engine...")
+                    onStatusChanged(
+                        "Loading offline recognition engine..."
+                    )
 
-                    val loadedModel = Model(
+                    loadedModel = Model(
                         modelDirectory.absolutePath
                     )
 
-                    if (isShutdown) {
-                        loadedModel.close()
-                        return@execute
-                    }
+                    if (isShutdown) return@execute
 
-                    val recognizer = Recognizer(
+                    recognizer = Recognizer(
                         loadedModel,
                         16000.0f
                     )
 
-                    if (isShutdown) {
-                        recognizer.close()
-                        loadedModel.close()
-                        return@execute
-                    }
+                    if (isShutdown) return@execute
 
-                    val service = SpeechService(
+                    service = SpeechService(
                         recognizer,
                         16000.0f
                     )
 
                     synchronized(this) {
 
-                        if (isShutdown) {
-                            service.shutdown()
-                            loadedModel.close()
+                        if (
+                            isShutdown ||
+                            selectedLanguage != languageToLoad
+                        ) {
+                            service?.shutdown()
+                            recognizer?.close()
+                            loadedModel?.close()
+                            isLoadingModel = false
                             return@synchronized
                         }
 
                         currentModel = loadedModel
                         currentRecognizer = recognizer
                         speechService = service
+
+                        loadedModel = null
+                        recognizer = null
+                        service = null
+
                         isLoadingModel = false
 
-                        val started = service.startListening(
+                        val started = speechService?.startListening(
                             recognitionListener
-                        )
+                        ) ?: false
 
                         if (started) {
                             onStatusChanged(
@@ -309,40 +310,57 @@ class VoiceController(
                                     ?: "Unknown error")
                         )
                     }
+
+                } finally {
+                    try {
+                        service?.shutdown()
+                    } catch (_: Exception) {
+                    }
+
+                    try {
+                        recognizer?.close()
+                    } catch (_: Exception) {
+                    }
+
+                    try {
+                        loadedModel?.close()
+                    } catch (_: Exception) {
+                    }
                 }
             }
 
         } catch (exception: Exception) {
             isLoadingModel = false
+
             onStatusChanged(
                 "Could not prepare offline model: " +
                     (exception.localizedMessage ?: "Unknown error")
             )
+
             return false
         }
 
         return true
     }
 
-    private fun handleRecognitionResult(
-        hypothesis: String?,
-        isFinal: Boolean
-    ) {
+    private fun handleRecognitionResult(hypothesis: String?) {
         if (isShutdown || hypothesis.isNullOrBlank()) return
 
         try {
             val json = JSONObject(hypothesis)
-            val recognizedText = json.optString("text", "").trim()
+            val recognizedText =
+                json.optString("text", "").trim()
 
-            if (recognizedText.isNotBlank()) {
-                onSpeechResult(recognizedText)
+            if (recognizedText.isBlank()) return
 
-                if (isFinal) {
-                    onStatusChanged("Speech recognized")
-                }
-            }
-        } catch (exception: Exception) {
-            if (isFinal && !isShutdown) {
+            // Vosk can report the same utterance in result and finalResult.
+            if (recognizedText == lastDeliveredText) return
+
+            lastDeliveredText = recognizedText
+            onSpeechResult(recognizedText)
+
+        } catch (_: Exception) {
+            if (!isShutdown) {
                 onStatusChanged("Could not read recognition result")
             }
         }
