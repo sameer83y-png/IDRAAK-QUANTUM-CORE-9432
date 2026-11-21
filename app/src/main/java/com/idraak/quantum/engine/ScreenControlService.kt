@@ -26,7 +26,7 @@ class ScreenControlService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // Screen events are monitored only.
+        // Events are not stored or transmitted.
     }
 
     override fun onInterrupt() {
@@ -59,12 +59,20 @@ class ScreenControlService : AccessibilityService() {
             it.score == bestScore
         }
 
-        // Do not guess when multiple buttons match equally.
+        // Never guess between equally matching controls.
         if (bestMatches.size != 1) return false
 
-        return bestMatches.first().node.performAction(
-            AccessibilityNodeInfo.ACTION_CLICK
-        )
+        val selected = bestMatches.first().node
+
+        return try {
+            selected.isEnabled &&
+                selected.isVisibleToUser &&
+                selected.performAction(
+                    AccessibilityNodeInfo.ACTION_CLICK
+                )
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private fun collectClickCandidates(
@@ -75,53 +83,59 @@ class ScreenControlService : AccessibilityService() {
     ) {
         if (depth > 40 || candidates.size >= 100) return
 
-        val nodeText = normalizeText(
-            node.text?.toString().orEmpty()
-        )
+        try {
+            if (node.isVisibleToUser && node.isEnabled) {
+                val nodeText = normalizeText(
+                    node.text?.toString().orEmpty()
+                )
 
-        val description = normalizeText(
-            node.contentDescription?.toString().orEmpty()
-        )
+                val description = normalizeText(
+                    node.contentDescription?.toString().orEmpty()
+                )
 
-        val score = when {
-            nodeText == target || description == target -> 0
+                val score = when {
+                    nodeText == target || description == target -> 0
 
-            nodeText.contains(target) ||
-                description.contains(target) -> 1
+                    nodeText.contains(target) ||
+                        description.contains(target) -> 1
 
-            else -> -1
-        }
-
-        if (score >= 0) {
-            val clickableNode = findClickableParent(node)
-
-            if (clickableNode != null) {
-                val alreadyAdded = candidates.any {
-                    it.node == clickableNode
+                    else -> -1
                 }
 
-                if (!alreadyAdded) {
-                    candidates.add(
-                        ClickCandidate(
-                            node = clickableNode,
-                            score = score
-                        )
-                    )
+                if (score >= 0) {
+                    val clickableNode = findClickableParent(node)
+
+                    if (clickableNode != null) {
+                        val alreadyAdded = candidates.any {
+                            it.node == clickableNode
+                        }
+
+                        if (!alreadyAdded) {
+                            candidates.add(
+                                ClickCandidate(
+                                    node = clickableNode,
+                                    score = score
+                                )
+                            )
+                        }
+                    }
                 }
             }
-        }
 
-        for (index in 0 until node.childCount) {
-            if (candidates.size >= 100) break
+            for (index in 0 until node.childCount) {
+                if (candidates.size >= 100) break
 
-            val child = node.getChild(index) ?: continue
+                val child = node.getChild(index) ?: continue
 
-            collectClickCandidates(
-                node = child,
-                target = target,
-                candidates = candidates,
-                depth = depth + 1
-            )
+                collectClickCandidates(
+                    node = child,
+                    target = target,
+                    candidates = candidates,
+                    depth = depth + 1
+                )
+            }
+        } catch (_: Exception) {
+            // Ignore inaccessible nodes.
         }
     }
 
@@ -133,12 +147,20 @@ class ScreenControlService : AccessibilityService() {
         var depth = 0
 
         while (current != null && depth < 8) {
-            if (current.isEnabled && current.isClickable) {
-                return current
-            }
+            try {
+                if (
+                    current.isEnabled &&
+                    current.isVisibleToUser &&
+                    current.isClickable
+                ) {
+                    return current
+                }
 
-            current = current.parent
-            depth++
+                current = current.parent
+                depth++
+            } catch (_: Exception) {
+                return null
+            }
         }
 
         return null
@@ -157,17 +179,63 @@ class ScreenControlService : AccessibilityService() {
     }
 
     internal fun scrollScreenForward(): Boolean {
-        val root = rootInActiveWindow ?: return false
-        return root.performAction(
+        return performScroll(
             AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
         )
     }
 
     internal fun scrollScreenBackward(): Boolean {
-        val root = rootInActiveWindow ?: return false
-        return root.performAction(
+        return performScroll(
             AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD
         )
+    }
+
+    private fun performScroll(action: Int): Boolean {
+        val root = rootInActiveWindow ?: return false
+
+        return findScrollableNode(
+            node = root,
+            action = action,
+            depth = 0
+        )
+    }
+
+    private fun findScrollableNode(
+        node: AccessibilityNodeInfo,
+        action: Int,
+        depth: Int
+    ): Boolean {
+        if (depth > 40) return false
+
+        try {
+            if (
+                node.isVisibleToUser &&
+                node.isEnabled &&
+                node.isScrollable
+            ) {
+                if (node.performAction(action)) {
+                    return true
+                }
+            }
+
+            for (index in 0 until node.childCount) {
+                val child = node.getChild(index) ?: continue
+
+                if (
+                    findScrollableNode(
+                        child,
+                        action,
+                        depth + 1
+                    )
+                ) {
+                    return true
+                }
+            }
+        } catch (_: Exception) {
+            return false
+        }
+
+        return false
     }
 
     internal fun swipeScreen(
@@ -184,7 +252,6 @@ class ScreenControlService : AccessibilityService() {
 
         val centerX = width / 2f
         val centerY = height / 2f
-
         val path = Path()
 
         when (direction) {
@@ -219,7 +286,12 @@ class ScreenControlService : AccessibilityService() {
             )
             .build()
 
-        return dispatchGesture(gesture, null, null)
+        return try {
+            // true means Android accepted the gesture request.
+            dispatchGesture(gesture, null, null)
+        } catch (_: Exception) {
+            false
+        }
     }
 
     internal fun goBack(): Boolean {
