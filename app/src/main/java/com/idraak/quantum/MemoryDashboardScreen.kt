@@ -17,6 +17,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -50,6 +51,22 @@ fun MemoryDashboardScreen(
 
     var memoryPendingDeletion by remember {
         mutableStateOf<LocalMemoryStore.MemoryRecord?>(null)
+    }
+
+    var selectedEntryType by remember {
+        mutableStateOf("CORRECTION")
+    }
+
+    var entryTitle by remember {
+        mutableStateOf("")
+    }
+
+    var entryContent by remember {
+        mutableStateOf("")
+    }
+
+    var saveMessage by remember {
+        mutableStateOf("")
     }
 
     val allMemories = remember(refreshKey) {
@@ -155,6 +172,190 @@ fun MemoryDashboardScreen(
                 count = rejectedCount,
                 modifier = Modifier.weight(1f)
             )
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF14243D)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp)
+            ) {
+                Text(
+                    text = "ADD MEMORY KNOWLEDGE",
+                    color = Color(0xFF65C8FF),
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Choose what you want Idraak to learn:",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (selectedEntryType == "CORRECTION") {
+                        Button(
+                            onClick = {
+                                selectedEntryType = "CORRECTION"
+                                saveMessage = ""
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("CORRECTION")
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = {
+                                selectedEntryType = "CORRECTION"
+                                saveMessage = ""
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("CORRECTION")
+                        }
+                    }
+
+                    if (selectedEntryType == "LEARNING") {
+                        Button(
+                            onClick = {
+                                selectedEntryType = "LEARNING"
+                                saveMessage = ""
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("LEARNING")
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = {
+                                selectedEntryType = "LEARNING"
+                                saveMessage = ""
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("LEARNING")
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = entryTitle,
+                    onValueChange = {
+                        entryTitle = it
+                        saveMessage = ""
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = {
+                        Text("Topic / Title")
+                    },
+                    placeholder = {
+                        Text("Example: Preferred language")
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = entryContent,
+                    onValueChange = {
+                        entryContent = it
+                        saveMessage = ""
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    maxLines = 4,
+                    label = {
+                        Text(
+                            if (selectedEntryType == "CORRECTION") {
+                                "Correct information"
+                            } else {
+                                "Learning / Lesson"
+                            }
+                        )
+                    },
+                    placeholder = {
+                        Text("Write the correct information here")
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Button(
+                    onClick = {
+                        val title = entryTitle.trim()
+                        val content = entryContent.trim()
+
+                        if (title.isBlank() || content.isBlank()) {
+                            saveMessage =
+                                "Please enter both title and information."
+                        } else {
+                            val saved = if (
+                                selectedEntryType == "CORRECTION"
+                            ) {
+                                LocalMemoryStore.saveCorrection(
+                                    context = context,
+                                    topic = title,
+                                    correctedInformation = content
+                                )
+                            } else {
+                                LocalMemoryStore.proposeLearning(
+                                    context = context,
+                                    topic = title,
+                                    lesson = content
+                                )
+                            }
+
+                            if (saved) {
+                                entryTitle = ""
+                                entryContent = ""
+                                saveMessage =
+                                    "Saved successfully. Please verify it below."
+                                refreshKey++
+                            } else {
+                                saveMessage =
+                                    "Could not save. Check the information and try again."
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("SAVE AS PENDING")
+                }
+
+                if (saveMessage.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = saveMessage,
+                        color = Color(0xFF65C8FF),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "New entries stay PENDING until you manually verify them. Unverified information is not trusted knowledge.",
+                    color = Color.LightGray,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(14.dp))
