@@ -6,28 +6,54 @@ import java.util.Locale
 /**
  * IDRAAK QUANTUM CORE
  *
- * Reads only explicitly verified local memories.
- * Pending, failed and rejected memories are never trusted.
+ * Safe verified-memory response engine.
+ *
+ * Rules:
+ * - Only explicitly VERIFIED memories are considered.
+ * - Only trusted categories are supplied by LocalMemoryStore.
+ * - Weak or ambiguous matches are rejected.
+ * - More specific matches are preferred.
+ * - Newer verified memories win when relevance is equal.
+ * - No guess is presented as remembered information.
  */
 object VerifiedMemoryResponder {
 
     private val ignoredWords = setOf(
+        // English
         "what", "which", "where", "when", "who",
-        "tell", "me", "about", "please", "remember",
-        "do", "you", "know", "did", "i", "my",
+        "whom", "whose", "tell", "me", "about",
+        "please", "remember", "do", "does", "did",
+        "you", "your", "i", "my", "mine",
         "the", "is", "are", "was", "were",
+        "am", "a", "an", "of", "to", "for",
+        "and", "in", "on", "at", "it",
+
+        // Hindi / Hinglish
         "kya", "kaise", "kab", "kahan", "kaun",
-        "batao", "bataye", "mujhe", "mera", "meri",
-        "hai", "tha", "thi", "ke", "ki", "ka",
-        "क्या", "बताओ", "मुझे", "मेरा", "मेरी",
-        "याद", "है", "था", "थी", "के", "की", "का",
-        "کیا", "بتائیں", "مجھے", "میرا", "میری",
-        "ہے", "تھا", "تھی", "کے", "کی", "کا"
+        "batao", "bataye", "bataiye", "mujhe",
+        "mera", "meri", "mere", "tumhara",
+        "aapka", "hai", "hain", "tha", "thi",
+        "the", "ke", "ki", "ka", "ko",
+        "mein", "me", "aur", "ya",
+
+        // Hindi script
+        "क्या", "बताओ", "बताइए", "मुझे",
+        "मेरा", "मेरी", "मेरे", "तुम्हारा",
+        "आपका", "है", "हैं", "था", "थी",
+        "थे", "के", "की", "का", "को",
+        "में", "और", "या", "याद",
+
+        // Urdu
+        "کیا", "بتائیں", "بتاؤ", "مجھے",
+        "میرا", "میری", "میرے", "آپ",
+        "آپکا", "ہے", "ہیں", "تھا", "تھی",
+        "کے", "کی", "کا", "کو", "میں",
+        "اور", "یا"
     )
 
     /**
-     * Returns a verified memory answer when a clear match exists.
-     * Returns null when no reliable match is found.
+     * Returns an answer only when a reliable verified match exists.
+     * Returns null when no sufficiently clear match is found.
      */
     fun answer(
         context: Context,
@@ -53,46 +79,56 @@ object VerifiedMemoryResponder {
             val questionWords = meaningfulWords(question)
 
             val matchingMemory = memories
-                .asReversed()
-                .firstOrNull { memory ->
+                .filter { memory ->
 
                     if (
                         memory.status !=
                         LocalMemoryStore.Status.VERIFIED.name
                     ) {
-                        return@firstOrNull false
+                        return@filter false
                     }
 
                     val title = normalize(memory.title)
-                    val content = normalize(memory.content)
+                    val content = memory.content.trim()
 
-                    if (
-                        title.isBlank() ||
-                        content.isBlank()
-                    ) {
-                        return@firstOrNull false
+                    if (title.isBlank() || content.isBlank()) {
+                        return@filter false
                     }
 
-                    val exactMatch =
-                        question == title ||
-                        question.contains(title) ||
-                        title.contains(question)
-
-                    if (exactMatch) {
-                        return@firstOrNull true
-                    }
-
-                    if (questionWords.isEmpty()) {
-                        return@firstOrNull false
+                    // Exact title match is always allowed.
+                    if (question == title) {
+                        return@filter true
                     }
 
                     val titleWords = meaningfulWords(title)
 
-                    titleWords.isNotEmpty() &&
-                        titleWords.all { word ->
-                            questionWords.contains(word)
-                        }
+                    // Reject generic one-word matches.
+                    if (titleWords.size < 2) {
+                        return@filter false
+                    }
+
+                    if (questionWords.isEmpty()) {
+                        return@filter false
+                    }
+
+                    // Every meaningful title word must exist
+                    // in the user's question.
+                    titleWords.all { word ->
+                        word in questionWords
+                    }
                 }
+                .sortedWith(
+                    compareByDescending<LocalMemoryStore.MemoryRecord> {
+                        meaningfulWords(it.title).size
+                    }.thenByDescending {
+                        question.contains(normalize(it.title))
+                    }.thenByDescending {
+                        it.updatedAt
+                    }.thenByDescending {
+                        it.createdAt
+                    }
+                )
+                .firstOrNull()
 
             matchingMemory?.let { memory ->
                 "मेरी Verified Memory के अनुसार: ${memory.content}"
@@ -103,6 +139,10 @@ object VerifiedMemoryResponder {
         }
     }
 
+    /**
+     * Removes common question words so that matching
+     * focuses on the actual memory topic.
+     */
     private fun meaningfulWords(value: String): Set<String> {
         return normalize(value)
             .split(Regex("\\s+"))
@@ -113,6 +153,10 @@ object VerifiedMemoryResponder {
             .toSet()
     }
 
+    /**
+     * Normalizes Hindi, Urdu, English and Hinglish text
+     * without removing Unicode letters or numbers.
+     */
     private fun normalize(value: String): String {
         return value
             .trim()
