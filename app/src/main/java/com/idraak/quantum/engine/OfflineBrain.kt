@@ -372,6 +372,23 @@ object OfflineBrain {
 
         val decision = understand(userMessage)
 
+        // Use only explicitly verified local memory as a fallback.
+        // Normal commands and known OfflineBrain responses keep priority.
+        if (decision.intent == "UNKNOWN") {
+            val memoryAnswer = try {
+                VerifiedMemoryResponder.answer(
+                    context.applicationContext,
+                    userMessage
+                )
+            } catch (_: Exception) {
+                null
+            }
+
+            if (!memoryAnswer.isNullOrBlank()) {
+                return memoryAnswer
+            }
+        }
+
         when (decision.intent) {
             "OPEN_APP" -> {
                 val result = OfflinePhoneCommandHandler.execute(
