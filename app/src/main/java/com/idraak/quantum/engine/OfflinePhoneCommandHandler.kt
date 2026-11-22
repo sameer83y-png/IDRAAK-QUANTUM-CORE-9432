@@ -12,8 +12,9 @@ import java.util.Locale
 /**
  * Idraak Offline Phone Command Handler
  *
- * Recognizes common Hindi and English app-opening commands.
- * Does not make calls, send messages, purchase, or delete anything.
+ * Supports common Hindi, Hinglish, English and Urdu app-opening commands.
+ * Only opens allowlisted apps or system screens.
+ * Does not call, send messages, purchase or delete anything.
  */
 object OfflinePhoneCommandHandler {
 
@@ -28,14 +29,11 @@ object OfflinePhoneCommandHandler {
         context: Context,
         userCommand: String
     ): Result? {
-
         val target = extractTarget(userCommand) ?: return null
         val appContext = context.applicationContext
 
         return try {
-
             when (target) {
-
                 "youtube" -> launchPackage(
                     appContext,
                     "com.google.android.youtube",
@@ -60,7 +58,7 @@ object OfflinePhoneCommandHandler {
                     appContext,
                     "com.whatsapp",
                     "WhatsApp"
-                )
+                ) ?: unavailable("WhatsApp")
 
                 "chatgpt" -> launchPackage(
                     appContext,
@@ -96,7 +94,7 @@ object OfflinePhoneCommandHandler {
                     appContext,
                     "com.google.android.gm",
                     "Gmail"
-                )
+                ) ?: unavailable("Gmail")
 
                 "camera" -> openSystemIntent(
                     appContext,
@@ -134,18 +132,14 @@ object OfflinePhoneCommandHandler {
                     appName = target
                 )
             }
-
         } catch (_: ActivityNotFoundException) {
-
             Result(
                 handled = true,
                 success = false,
-                message = "यह ऐप आपके फोन में उपलब्ध नहीं है।",
+                message = "यह ऐप या इसकी सुविधा आपके फोन में उपलब्ध नहीं है।",
                 appName = target
             )
-
         } catch (error: Exception) {
-
             Result(
                 handled = true,
                 success = false,
@@ -158,118 +152,154 @@ object OfflinePhoneCommandHandler {
     }
 
     private fun extractTarget(command: String): String? {
-
         var value = normalize(command)
 
+        if (value.isBlank()) return null
+
+        // Longest phrases first, so "open the app" is handled correctly.
         val prefixes = listOf(
-            "open ",
+            "please open the ",
+            "please open ",
+            "open the app ",
             "open the ",
+            "open app ",
+            "open ",
             "launch ",
             "start ",
             "run ",
-            "please open ",
-            "खोलो ",
-            "खोल दो ",
-            "ऐप खोलो ",
+            "app kholo ",
+            "app khol do ",
+            "khol do ",
+            "kholo ",
+            "kholiye ",
+            "kholein ",
+            "khole ",
+            "chalu karo ",
+            "चालू करो ",
             "ऐप खोल दो ",
-            "चालू करो "
+            "ऐप खोलो ",
+            "खोल दो ",
+            "खोलो ",
+            "खोलिए ",
+            "کھول دو ",
+            "کھولو ",
+            "کھولیں "
         )
 
-        var foundPrefix = false
+        var commandMatched = false
 
         for (prefix in prefixes) {
             if (value.startsWith(prefix)) {
                 value = value.removePrefix(prefix).trim()
-                foundPrefix = true
+                commandMatched = true
                 break
             }
         }
 
-        if (!foundPrefix) {
-
+        if (!commandMatched) {
             val suffixes = listOf(
+                " open kar do",
+                " open karo",
+                " khol do",
+                " kholo",
+                " kholiye",
+                " chala do",
+                " chalao",
                 " खोल दो",
                 " खोलो",
                 " खोलिए",
                 " चालू करो",
-                " open karo",
-                " open kar do"
+                " کھول دو",
+                " کھولو",
+                " کھولیں"
             )
 
             for (suffix in suffixes) {
                 if (value.endsWith(suffix)) {
                     value = value.removeSuffix(suffix).trim()
-                    foundPrefix = true
+                    commandMatched = true
                     break
                 }
             }
         }
 
-        if (!foundPrefix) return null
+        if (!commandMatched) return null
 
         value = value
+            .removePrefix("the ")
             .removePrefix("app ")
             .removeSuffix(" app")
+            .removeSuffix(" application")
             .trim()
 
         return resolveAlias(value)
     }
 
     private fun resolveAlias(value: String): String? {
-
         return when (value) {
-
             "youtube",
             "you tube",
             "यूट्यूब",
-            "यु ट्यूब" -> "youtube"
+            "यु ट्यूब",
+            "یوٹیوب" -> "youtube"
 
             "chrome",
             "google chrome",
-            "क्रोम" -> "chrome"
+            "क्रोम",
+            "کروم" -> "chrome"
 
             "whatsapp",
             "what's app",
+            "whats app",
             "व्हाट्सएप",
-            "व्हाट्स ऐप" -> "whatsapp"
+            "व्हाट्स ऐप",
+            "واٹس ایپ" -> "whatsapp"
 
             "chatgpt",
             "chat gpt",
             "चैट जीपीटी" -> "chatgpt"
 
             "gemini",
-            "जेमिनी" -> "gemini"
+            "जेमिनी",
+            "جیمنی" -> "gemini"
 
             "maps",
             "google maps",
             "मैप",
             "मैप्स",
-            "गूगल मैप" -> "maps"
+            "गूगल मैप",
+            "گوگل میپس" -> "maps"
 
             "gmail",
-            "जीमेल" -> "gmail"
+            "जीमेल",
+            "جی میل" -> "gmail"
 
             "camera",
-            "कैमरा" -> "camera"
+            "कैमरा",
+            "کیمرہ" -> "camera"
 
             "settings",
             "setting",
             "सेटिंग",
-            "सेटिंग्स" -> "settings"
+            "सेटिंग्स",
+            "سیٹنگز" -> "settings"
 
             "phone",
             "dialer",
             "फोन",
-            "डायलर" -> "phone"
+            "डायलर",
+            "فون" -> "phone"
 
             "contacts",
             "contact",
             "कॉन्टैक्ट",
-            "कॉन्टैक्ट्स" -> "contacts"
+            "कॉन्टैक्ट्स",
+            "کانٹیکٹس" -> "contacts"
 
             "calculator",
             "calc",
-            "कैलकुलेटर" -> "calculator"
+            "कैलकुलेटर",
+            "کیلکولیٹر" -> "calculator"
 
             else -> null
         }
@@ -280,7 +310,6 @@ object OfflinePhoneCommandHandler {
         packageName: String,
         appName: String
     ): Result? {
-
         val launchIntent = context.packageManager
             .getLaunchIntentForPackage(packageName)
             ?: return null
@@ -301,7 +330,6 @@ object OfflinePhoneCommandHandler {
         url: String,
         appName: String
     ): Result {
-
         val intent = Intent(
             Intent.ACTION_VIEW,
             Uri.parse(url)
@@ -322,7 +350,6 @@ object OfflinePhoneCommandHandler {
         intent: Intent,
         appName: String
     ): Result {
-
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
 
@@ -334,10 +361,7 @@ object OfflinePhoneCommandHandler {
         )
     }
 
-    private fun openCalculator(
-        context: Context
-    ): Result {
-
+    private fun openCalculator(context: Context): Result {
         val intent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_APP_CALCULATOR)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -353,8 +377,16 @@ object OfflinePhoneCommandHandler {
         )
     }
 
-    private fun normalize(value: String): String {
+    private fun unavailable(appName: String): Result {
+        return Result(
+            handled = true,
+            success = false,
+            message = "$appName आपके फोन में उपलब्ध नहीं है।",
+            appName = appName
+        )
+    }
 
+    private fun normalize(value: String): String {
         return value
             .trim()
             .lowercase(Locale.ROOT)
