@@ -1,3 +1,4 @@
+
 package com.idraak.quantum.engine
 
 import android.content.Context
@@ -28,7 +29,6 @@ object OfflineBrain {
     )
 
     fun understand(userMessage: String): Decision {
-
         val message = normalize(userMessage)
 
         if (message.isBlank()) {
@@ -36,34 +36,37 @@ object OfflineBrain {
         }
 
         val screenControl = isScreenCommand(message)
-
-        val openApp = !screenControl && containsAny(
-            message,
-            "open", "launch",
-            "खोलो", "खोल दो", "ऐप खोल",
-            "चालू करो"
-        )
+        val openApp = !screenControl && isOpenAppCommand(message)
 
         val isNegative = containsAny(
             message,
             "don't", "do not", "dont", "never",
-            "mat", "nahi", "nahin",
-            "मत", "नहीं", "ना", "मत करना",
-            "मत खोलो", "मत भेजो"
+            "mat", "mat karo", "nahi", "nahin",
+            "not now",
+            "मत", "नहीं", "नही", "ना",
+            "मत करना", "मत खोलो", "मत भेजो",
+            "نہیں", "مت کرو", "مت کھولو", "مت بھیجو"
         )
 
         val sendMessage = containsAny(
             message,
             "send message", "send a message",
             "message bhejo", "msg bhejo",
-            "मैसेज भेजो", "संदेश भेजो"
+            "message send karo", "msg send karo",
+            "मैसेज भेजो", "संदेश भेजो",
+            "پیغام بھیجو", "میسج بھیجو",
+            "میسج بھیج دو"
         )
 
         val flashlight = containsAny(
             message,
             "flashlight", "torch",
+            "turn on torch", "turn off torch",
+            "torch on", "torch off",
+            "torch chalu karo", "torch band karo",
             "टॉर्च", "फ्लैशलाइट",
-            "टॉर्च जलाओ", "टॉर्च बंद"
+            "टॉर्च जलाओ", "टॉर्च बंद",
+            "ٹارچ جلاؤ", "ٹارچ بند کرو"
         )
 
         val actionCount = listOf(
@@ -87,7 +90,7 @@ object OfflineBrain {
         if (sendMessage) {
             return Decision(
                 "SEND_MESSAGE",
-                "मैसेज भेजने की कमांड समझ गया हूँ। भेजने से पहले आपकी पुष्टि जरूरी होगी।",
+                "मैसेज भेजने की कमांड समझ गया हूँ। भेजने से पहले आपकी स्पष्ट पुष्टि जरूरी होगी।",
                 true
             )
         }
@@ -116,7 +119,8 @@ object OfflineBrain {
         if (containsAny(
                 message,
                 "time", "current time", "what time",
-                "समय", "कितने बजे", "अभी टाइम", "वक्त"
+                "समय", "कितने बजे", "अभी टाइम", "वक्त",
+                "وقت کیا ہے", "ابھی کیا وقت ہے"
             )
         ) {
             val time = SimpleDateFormat(
@@ -130,7 +134,8 @@ object OfflineBrain {
         if (containsAny(
                 message,
                 "date", "today date", "today's date",
-                "तारीख", "आज की तारीख", "आज की डेट"
+                "तारीख", "आज की तारीख", "आज की डेट",
+                "آج کی تاریخ", "تاریخ کیا ہے"
             )
         ) {
             val date = SimpleDateFormat(
@@ -146,8 +151,10 @@ object OfflineBrain {
                 "who are you", "your name",
                 "what is your name",
                 "tum kaun", "aap kaun",
+                "tum kon ho", "aap kon hain",
                 "तुम कौन", "आप कौन",
-                "तुम्हारा नाम", "आपका नाम"
+                "तुम्हारा नाम", "आपका नाम",
+                "آپ کون ہیں", "تم کون ہو"
             )
         ) {
             return Decision(
@@ -159,7 +166,9 @@ object OfflineBrain {
         if (containsAny(
                 message,
                 "hello", "hi", "hey",
-                "नमस्ते", "सलाम", "आदाब", "राम राम"
+                "namaste", "salam", "adaab",
+                "नमस्ते", "सलाम", "आदाब", "राम राम",
+                "السلام علیکم", "سلام"
             )
         ) {
             return Decision(
@@ -171,8 +180,9 @@ object OfflineBrain {
         if (containsAny(
                 message,
                 "help", "what can you do",
-                "your features", "मदद",
-                "क्या कर सकते हो", "तुम्हारे फीचर"
+                "your features", "madad",
+                "मदद", "क्या कर सकते हो", "तुम्हारे फीचर",
+                "آپ کیا کر سکتے ہیں", "مدد کرو"
             )
         ) {
             return Decision(
@@ -187,40 +197,74 @@ object OfflineBrain {
         )
     }
 
-    private fun isScreenCommand(message: String): Boolean {
+    private fun isOpenAppCommand(message: String): Boolean {
+        val prefixes = listOf(
+            "open ", "open the ", "open app ",
+            "launch ", "start ", "run ",
+            "please open ",
+            "app kholo ", "app khol do ",
+            "khol do ", "kholo ", "kholiye ",
+            "chalu karo ",
+            "खोलो ", "खोल दो ", "खोलिए ",
+            "ऐप खोलो ", "ऐप खोल दो ",
+            "चालू करो ",
+            "کھولو ", "کھول دو ", "کھولیں "
+        )
 
+        val suffixes = listOf(
+            " open", " open karo", " open kar do",
+            " kholo", " khol do", " kholiye",
+            " chalao", " chala do",
+            " खोलो", " खोल दो", " खोलिए",
+            " کھولو", " کھول دو", " کھولیں"
+        )
+
+        return prefixes.any { message.startsWith(it) } ||
+            suffixes.any { message.endsWith(it) }
+    }
+
+    private fun isScreenCommand(message: String): Boolean {
         val exactCommands = listOf(
             "back", "go back", "press back",
             "पीछे जाओ", "वापस जाओ", "बैक दबाओ",
+            "واپس جاؤ", "پیچھے جاؤ",
 
             "go home", "open home", "home screen",
             "होम खोलो", "होम पर जाओ", "घर जाओ",
+            "ہوم پر جاؤ", "گھر جاؤ",
 
             "scroll down", "नीचे स्क्रॉल करो",
             "नीचे जाओ", "नीचे करो",
+            "نیچے اسکرول کرو", "نیچے جاؤ",
 
             "scroll up", "ऊपर स्क्रॉल करो",
             "ऊपर जाओ", "ऊपर करो",
+            "اوپر اسکرول کرو", "اوپر جاؤ",
 
             "swipe up", "swipe upward",
             "ऊपर स्वाइप", "ऊपर स्वाइप करो",
             "स्वाइप ऊपर", "स्वाइप ऊपर करो",
+            "اوپر سوائپ کرو",
 
             "swipe down", "swipe downward",
             "नीचे स्वाइप", "नीचे स्वाइप करो",
             "स्वाइप नीचे", "स्वाइप नीचे करो",
+            "نیچے سوائپ کرو",
 
             "swipe left", "swipe to left", "left swipe",
             "बाएं स्वाइप", "बाएं स्वाइप करो",
             "बाईं तरफ स्वाइप करो", "स्वाइप बाएं",
+            "بائیں سوائپ کرو",
 
             "swipe right", "swipe to right", "right swipe",
             "दाएं स्वाइप", "दाएं स्वाइप करो",
             "दाईं तरफ स्वाइप करो", "स्वाइप दाएं",
+            "دائیں سوائپ کرو",
 
             "open notifications", "show notifications",
             "notification panel",
-            "नोटिफिकेशन खोलो", "नोटिफिकेशन दिखाओ"
+            "नोटिफिकेशन खोलो", "नोटिफिकेशन दिखाओ",
+            "نوٹیفکیشن کھولو", "نوٹیفکیشن دکھاؤ"
         )
 
         if (exactCommands.any { message == normalize(it) }) {
@@ -230,7 +274,9 @@ object OfflineBrain {
         val clickPrefixes = listOf(
             "click ", "click on ",
             "tap ", "tap on ",
-            "press ", "क्लिक करो ", "दबाओ "
+            "press ",
+            "क्लिक करो ", "दबाओ ",
+            "کلک کرو ", "دباؤ "
         )
 
         if (clickPrefixes.any { message.startsWith(it) }) {
@@ -240,7 +286,9 @@ object OfflineBrain {
         val clickSuffixes = listOf(
             " पर क्लिक करो",
             " को क्लिक करो",
-            " दबाओ"
+            " दबाओ",
+            " پر کلک کرو",
+            " کو کلک کرو"
         )
 
         if (clickSuffixes.any { message.endsWith(it) }) {
@@ -255,7 +303,8 @@ object OfflineBrain {
             "click screen",
             "स्क्रीन कंट्रोल",
             "स्क्रीन पर क्लिक",
-            "स्क्रीन दबाओ"
+            "स्क्रीन दबाओ",
+            "اسکرین کنٹرول"
         )
     }
 
@@ -264,24 +313,20 @@ object OfflineBrain {
         context: Context,
         userMessage: String
     ): String {
-
         val message = normalize(userMessage)
         val pending = pendingClick
 
         if (pending != null) {
-
             val expired =
                 System.currentTimeMillis() - pending.createdAt >
                     CONFIRMATION_TIMEOUT_MS
 
             if (expired) {
                 pendingClick = null
-
                 return "पुष्टि का समय समाप्त हो गया। कृपया कमांड दोबारा दीजिए।"
             }
 
             if (isNegativeConfirmation(message)) {
-
                 pendingClick = null
 
                 recordExperience(
@@ -295,7 +340,6 @@ object OfflineBrain {
             }
 
             if (isPositiveConfirmation(message)) {
-
                 pendingClick = null
 
                 val result =
@@ -329,9 +373,7 @@ object OfflineBrain {
         val decision = understand(userMessage)
 
         when (decision.intent) {
-
             "OPEN_APP" -> {
-
                 val result = OfflinePhoneCommandHandler.execute(
                     context.applicationContext,
                     userMessage
@@ -368,13 +410,12 @@ object OfflineBrain {
             }
 
             "SCREEN_CONTROL" -> {
-
+                val canonicalCommand = canonicalScreenCommand(userMessage)
                 val result =
-                    OfflineScreenCommandHandler.execute(userMessage)
+                    OfflineScreenCommandHandler.execute(canonicalCommand)
 
                 if (result.intent == "CLICK_CONFIRMATION_REQUIRED") {
-
-                    val target = extractClickTarget(userMessage)
+                    val target = extractClickTarget(canonicalCommand)
 
                     if (target.isNullOrBlank()) {
                         recordExperience(
@@ -422,12 +463,62 @@ object OfflineBrain {
                 recordExperience(
                     context,
                     decision.intent,
-                    "UNDERSTOOD_NOT_EXECUTED"
+                    "UNDERSTOOD_NOT_EXECUTED",
+                    listOf(userMessage)
                 )
             }
         }
 
         return decision.response
+    }
+
+    private fun canonicalScreenCommand(command: String): String {
+        val value = normalize(command)
+
+        val aliases = mapOf(
+            "واپس جاؤ" to "go back",
+            "پیچھے جاؤ" to "go back",
+            "بیک دباؤ" to "press back",
+            "ہوم پر جاؤ" to "go home",
+            "گھر جاؤ" to "go home",
+            "نیچے اسکرول کرو" to "scroll down",
+            "نیچے جاؤ" to "scroll down",
+            "اوپر اسکرول کرو" to "scroll up",
+            "اوپر جاؤ" to "scroll up",
+            "اوپر سوائپ کرو" to "swipe up",
+            "نیچے سوائپ کرو" to "swipe down",
+            "بائیں سوائپ کرو" to "swipe left",
+            "دائیں سوائپ کرو" to "swipe right",
+            "نوٹیفکیشن کھولو" to "open notifications",
+            "نوٹیفکیشن دکھاؤ" to "show notifications"
+        )
+
+        aliases[value]?.let { return it }
+
+        val clickPrefixes = listOf(
+            "کلک کرو ", "دباؤ ", "کلک کریں "
+        )
+
+        for (prefix in clickPrefixes) {
+            if (value.startsWith(prefix)) {
+                val target = value.removePrefix(prefix).trim()
+                return "click $target"
+            }
+        }
+
+        val clickSuffixes = listOf(
+            " پر کلک کرو",
+            " کو کلک کرو"
+        )
+
+        for (suffix in clickSuffixes) {
+            if (value.endsWith(suffix)) {
+                val target = value.removeSuffix(suffix).trim()
+                return "click $target"
+            }
+        }
+
+        return command
     }
 
     private fun isPositiveConfirmation(message: String): Boolean {
@@ -437,8 +528,10 @@ object OfflineBrain {
             "do it", "go ahead",
             "haan", "han", "ji haan",
             "haan kar do",
+            "kar do", "kar dijiye",
             "कर दो", "कर दीजिए",
-            "हाँ", "हां", "जी हाँ", "जी हां", "जी"
+            "हाँ", "हां", "जी हाँ", "जी हां", "जी",
+            "جی ہاں", "ہاں", "کر دو"
         ).any { message == normalize(it) }
     }
 
@@ -449,18 +542,19 @@ object OfflineBrain {
             "don't do it", "do not",
             "nahi", "nahin", "mat karo",
             "नहीं", "नही", "ना", "मत करो",
-            "रद्द", "रद्द करो", "कैंसल"
+            "रद्द", "रद्द करो", "कैंसल",
+            "نہیں", "مت کرو", "منسوخ کرو"
         ).any { message == normalize(it) }
     }
 
     private fun extractClickTarget(command: String): String? {
-
         val value = normalize(command)
 
         val prefixes = listOf(
             "click on ", "click ",
             "tap on ", "tap ",
-            "press ", "क्लिक करो ", "दबाओ "
+            "press ",
+            "क्लिक करो ", "दबाओ "
         )
 
         for (prefix in prefixes) {
@@ -597,7 +691,6 @@ object OfflineBrain {
         context: Context,
         limit: Int = 20
     ): List<String> {
-
         val memories = readMemories(context)
         val result = mutableListOf<String>()
         val safeLimit = limit.coerceAtLeast(0)
@@ -639,9 +732,7 @@ object OfflineBrain {
         message: String,
         vararg phrases: String
     ): Boolean {
-
         return phrases.any { rawPhrase ->
-
             val phrase = normalize(rawPhrase)
 
             if (phrase.isBlank()) {
