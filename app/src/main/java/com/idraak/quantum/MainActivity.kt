@@ -60,6 +60,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.idraak.quantum.engine.HardwareController
 import com.idraak.quantum.engine.OfflineBrain
 
 data class ChatMessage(
@@ -101,6 +102,10 @@ fun IdraakHomeScreen() {
 
     var microphonePermissionRequest by remember {
         mutableStateOf(false)
+    }
+
+    var pendingTorchCommand by remember {
+        mutableStateOf<Pair<String, Boolean>?>(null)
     }
 
     val messages = remember {
@@ -227,12 +232,150 @@ fun IdraakHomeScreen() {
         }
     }
 
+    fun requestedTorchState(message: String): Boolean? {
+        val normalized = message.trim().lowercase()
+
+        val turnOff =
+            Regex("""\boff\b""").containsMatchIn(normalized) ||
+                listOf(
+                    "turn off",
+                    "switch off",
+                    "torch off",
+                    "flashlight off",
+                    "band",
+                    "بند",
+                    "बंद",
+                    "बुझा"
+                ).any { normalized.contains(it) }
+
+        val turnOn =
+            Regex("""\bon\b""").containsMatchIn(normalized) ||
+                listOf(
+                    "turn on",
+                    "switch on",
+                    "torch on",
+                    "flashlight on",
+                    "chalu",
+                    "चालू",
+                    "जलाओ",
+                    "جلا",
+                    "چالو"
+                ).any { normalized.contains(it) }
+
+        return when {
+            turnOn && !turnOff -> true
+            turnOff && !turnOn -> false
+            else -> null
+        }
+    }
+
+    fun executeTorchCommand(
+        originalMessage: String,
+        enabled: Boolean
+    ) {
+        val result = HardwareController.setTorch(
+            context = context.applicationContext,
+            enabled = enabled
+        )
+
+        OfflineBrain.recordExperience(
+            context = context.applicationContext,
+            intent = "FLASHLIGHT",
+            status = if (result.success) "SUCCESS" else "FAILED",
+            steps = listOf(
+                originalMessage,
+                if (enabled) "TORCH_ON" else "TORCH_OFF",
+                result.message
+            )
+        )
+
+        messages.add(
+            ChatMessage(result.message, false)
+        )
+
+        voiceController.speak(result.message)
+
+        voiceStatus = if (result.success) {
+            "FLASHLIGHT CONTROL SUCCESS"
+        } else {
+            "FLASHLIGHT CONTROL FAILED"
+        }
+    }
+
+    val cameraPermissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission()
+        ) { granted ->
+            val pending = pendingTorchCommand
+            pendingTorchCommand = null
+
+            if (pending != null) {
+                if (granted) {
+                    executeTorchCommand(
+                        originalMessage = pending.first,
+                        enabled = pending.second
+                    )
+                } else {
+                    val response =
+                        "Camera permission नहीं मिली। टॉर्च कंट्रोल नहीं किया गया।"
+
+                    messages.add(
+                        ChatMessage(response, false)
+                    )
+
+                    voiceController.speak(response)
+                    voiceStatus = "CAMERA PERMISSION DENIED"
+                }
+            }
+        }
+
     fun sendMessage(messageText: String = inputText) {
         val message = messageText.trim()
         if (message.isEmpty()) return
 
         messages.add(ChatMessage(message, true))
         inputText = ""
+
+        val decision = OfflineBrain.understand(message)
+
+        if (decision.intent == "FLASHLIGHT") {
+            val enabled = requestedTorchState(message)
+
+            if (enabled == null) {
+                val response =
+                    "कृपया साफ बताइए: टॉर्च चालू करनी है या बंद करनी है?"
+
+                messages.add(
+                    ChatMessage(response, false)
+                )
+
+                voiceController.speak(response)
+                voiceStatus = "FLASHLIGHT COMMAND NEEDS ON/OFF"
+                return
+            }
+
+            val permissionGranted =
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.CAMERA
+                ) == PackageManager.PERMISSION_GRANTED
+
+            if (permissionGranted) {
+                executeTorchCommand(
+                    originalMessage = message,
+                    enabled = enabled
+                )
+            } else {
+                pendingTorchCommand = message to enabled
+                voiceStatus = "REQUESTING CAMERA PERMISSION"
+
+                cameraPermissionLauncher.launch(
+                    Manifest.permission.CAMERA
+                )
+            }
+
+            return
+        }
 
         val response = try {
             OfflineBrain.respond(
@@ -713,8 +856,8 @@ fun SettingsScreen(
 
         SettingsStatusCard(
             title = "PHONE CONTROLLERS",
-            status = "NOT CONNECTED YET",
-            detail = "Camera, screen interaction, app control and hardware control will be added as separate modules."
+            status = "APP CONTROL • SCREEN CONTROL • FLASHLIGHT MODULES",
+            detail = "App launching, accessibility screen actions and flashlight control are implemented in separate modules. Some actions still require device permissions and real-phone testing."
         )
 
         Spacer(modifier = Modifier.height(18.dp))
