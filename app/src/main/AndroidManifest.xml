@@ -1,8 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Internet -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Microphone -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Foreground Voice Service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+
+    <!-- Notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Other existing permissions -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.CAMERA" />
 
@@ -27,6 +39,15 @@
 
         </activity>
 
+        <!-- Background Voice Service -->
+        <service
+            android:name=".VoiceForegroundService"
+            android:label="Idraak Background Voice"
+            android:exported="false"
+            android:stopWithTask="false"
+            android:foregroundServiceType="microphone" />
+
+        <!-- Accessibility Screen Control -->
         <service
             android:name=".engine.ScreenControlService"
             android:label="Idraak Screen Control"
