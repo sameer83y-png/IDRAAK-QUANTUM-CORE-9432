@@ -370,6 +370,15 @@ object OfflineBrain {
             pendingClick = null
         }
 
+        // Handle explicit user corrections before normal command detection.
+        // Corrections are saved as PENDING and require user verification.
+        MemoryFeedbackHandler.handle(
+            context.applicationContext,
+            userMessage
+        )?.let { correctionResponse ->
+            return correctionResponse
+        }
+
         val decision = understand(userMessage)
 
         // Use only explicitly verified local memory as a fallback.
