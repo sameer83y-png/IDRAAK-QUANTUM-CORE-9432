@@ -1,7 +1,12 @@
 package com.idraak.quantum
 
 import android.Manifest
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -98,7 +103,11 @@ fun IdraakHomeScreen() {
 
     var isListening by remember { mutableStateOf(false) }
     var isContinuousVoiceChat by remember { mutableStateOf(false) }
-    var recognizedSpeech by remember { mutableStateOf<String?>(null) }
+    var isBackgroundVoiceActive by remember { mutableStateOf(false) }
+
+    var recognizedSpeech by remember {
+        mutableStateOf<String?>(null)
+    }
 
     var microphonePermissionRequest by remember {
         mutableStateOf(false)
@@ -208,7 +217,57 @@ fun IdraakHomeScreen() {
         voiceStatus = "VOICE CHAT STOPPED"
     }
 
+    fun stopBackgroundVoiceService() {
+        try {
+            val intent = Intent(
+                context,
+                VoiceForegroundService::class.java
+            ).apply {
+                action = VoiceForegroundService.ACTION_STOP
+            }
+
+            context.startService(intent)
+            isBackgroundVoiceActive = false
+            voiceStatus = "BACKGROUND VOICE STOPPING"
+        } catch (error: Exception) {
+            voiceStatus =
+                "Could not stop background voice: " +
+                    (error.localizedMessage ?: "Unknown error")
+        }
+    }
+
+    fun startBackgroundVoiceService() {
+        try {
+            val intent = Intent(
+                context,
+                VoiceForegroundService::class.java
+            ).apply {
+                action = VoiceForegroundService.ACTION_START
+            }
+
+            ContextCompat.startForegroundService(
+                context,
+                intent
+            )
+
+            isBackgroundVoiceActive = true
+            voiceStatus = "BACKGROUND VOICE STARTING"
+        } catch (error: Exception) {
+            isBackgroundVoiceActive = false
+            voiceStatus =
+                "Background voice start failed: " +
+                    (error.localizedMessage ?: "Unknown error")
+        }
+    }
+
     fun startVoiceChat() {
+        if (isBackgroundVoiceActive) {
+            stopBackgroundVoiceService()
+            voiceStatus =
+                "Background voice stopped. Tap START VOICE CHAT again."
+            return
+        }
+
         isContinuousVoiceChat = true
 
         val permissionGranted =
@@ -431,6 +490,182 @@ fun IdraakHomeScreen() {
         }
     }
 
+    val backgroundNotificationPermissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission()
+        ) {
+            // Android allows a foreground service to run even if
+            // notification permission is denied. The service will
+            // still appear in Android's active-apps interface.
+            startBackgroundVoiceService()
+        }
+
+    val backgroundMicrophonePermissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission()
+        ) { granted ->
+            if (granted) {
+                val notificationGranted =
+                    Build.VERSION.SDK_INT < 33 ||
+                        ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.POST_NOTIFICATIONS
+                        ) == PackageManager.PERMISSION_GRANTED
+
+                if (
+                    Build.VERSION.SDK_INT >= 33 &&
+                    !notificationGranted
+                ) {
+                    backgroundNotificationPermissionLauncher.launch(
+                        Manifest.permission.POST_NOTIFICATIONS
+                    )
+                } else {
+                    startBackgroundVoiceService()
+                }
+            } else {
+                isBackgroundVoiceActive = false
+                voiceStatus =
+                    "Microphone permission denied. Background voice is OFF."
+            }
+        }
+
+    fun requestBackgroundVoiceStart() {
+        if (isBackgroundVoiceActive) {
+            stopBackgroundVoiceService()
+            return
+        }
+
+        if (isContinuousVoiceChat) {
+            stopVoiceChat()
+            voiceStatus =
+                "Voice Chat stopped. Tap BACKGROUND VOICE again to start."
+            return
+        }
+
+        val microphoneGranted =
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+
+        if (!microphoneGranted) {
+            backgroundMicrophonePermissionLauncher.launch(
+                Manifest.permission.RECORD_AUDIO
+            )
+            return
+        }
+
+        val notificationGranted =
+            Build.VERSION.SDK_INT < 33 ||
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+
+        if (
+            Build.VERSION.SDK_INT >= 33 &&
+            !notificationGranted
+        ) {
+            backgroundNotificationPermissionLauncher.launch(
+                Manifest.permission.POST_NOTIFICATIONS
+            )
+        } else {
+            startBackgroundVoiceService()
+        }
+    }
+
+    val backgroundVoiceReceiver = remember {
+        object : BroadcastReceiver() {
+            override fun onReceive(
+                receiverContext: Context?,
+                intent: Intent?
+            ) {
+                when (intent?.action) {
+                    VoiceForegroundService.ACTION_STATUS -> {
+                        val status =
+                            intent.getStringExtra(
+                                VoiceForegroundService.EXTRA_STATUS
+                            ) ?: return
+
+                        voiceStatus = status
+
+                        if (
+                            status.contains("stopped", true) ||
+                            status.contains("permission required", true) ||
+                            status.contains("error", true) ||
+                            status.contains("failed", true) ||
+                            status.contains("could not start", true)
+                        ) {
+                            isBackgroundVoiceActive = false
+                        } else if (
+                            status.contains("starting", true) ||
+                            status.contains("listening", true) ||
+                            status.contains("loading", true) ||
+                            status.contains("recognition engine", true)
+                        ) {
+                            isBackgroundVoiceActive = true
+                        }
+                    }
+
+                    VoiceForegroundService.ACTION_COMMAND -> {
+                        val command =
+                            intent.getStringExtra(
+                                VoiceForegroundService.EXTRA_TEXT
+                            )
+
+                        if (!command.isNullOrBlank()) {
+                            messages.add(
+                                ChatMessage(command, true)
+                            )
+                        }
+                    }
+
+                    VoiceForegroundService.ACTION_RESPONSE -> {
+                        val response =
+                            intent.getStringExtra(
+                                VoiceForegroundService.EXTRA_TEXT
+                            )
+
+                        if (!response.isNullOrBlank()) {
+                            messages.add(
+                                ChatMessage(response, false)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    DisposableEffect(context, backgroundVoiceReceiver) {
+        val filter = IntentFilter().apply {
+            addAction(VoiceForegroundService.ACTION_STATUS)
+            addAction(VoiceForegroundService.ACTION_COMMAND)
+            addAction(VoiceForegroundService.ACTION_RESPONSE)
+        }
+
+        if (Build.VERSION.SDK_INT >= 33) {
+            context.registerReceiver(
+                backgroundVoiceReceiver,
+                filter,
+                Context.RECEIVER_NOT_EXPORTED
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            context.registerReceiver(
+                backgroundVoiceReceiver,
+                filter
+            )
+        }
+
+        onDispose {
+            try {
+                context.unregisterReceiver(backgroundVoiceReceiver)
+            } catch (_: Exception) {
+            }
+        }
+    }
+
     val transition = rememberInfiniteTransition(label = "core")
 
     val pulse by transition.animateFloat(
@@ -466,6 +701,10 @@ fun IdraakHomeScreen() {
                     },
                     selectedVoiceLanguage = selectedVoiceLanguage,
                     onVoiceLanguageSelected = { language ->
+                        if (isBackgroundVoiceActive) {
+                            stopBackgroundVoiceService()
+                        }
+
                         isContinuousVoiceChat = false
                         isListening = false
                         voiceController.cancelListening()
@@ -580,7 +819,9 @@ fun IdraakHomeScreen() {
                     Text(
                         text = voiceStatus,
                         color = if (
-                            isListening || isContinuousVoiceChat
+                            isListening ||
+                            isContinuousVoiceChat ||
+                            isBackgroundVoiceActive
                         ) {
                             Color(0xFF43E8B2)
                         } else {
@@ -714,6 +955,42 @@ fun IdraakHomeScreen() {
 
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    Button(
+                        onClick = {
+                            requestBackgroundVoiceStart()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor =
+                                if (isBackgroundVoiceActive) {
+                                    Color(0xFFB83250)
+                                } else {
+                                    Color(0xFF087DFF)
+                                }
+                        )
+                    ) {
+                        Text(
+                            if (isBackgroundVoiceActive) {
+                                "STOP BACKGROUND VOICE"
+                            } else {
+                                "START BACKGROUND VOICE"
+                            },
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Text(
+                        text = "Background listening uses the microphone while active. Use the notification STOP button to end it.",
+                        color = Color(0xFF8EA6C9),
+                        fontSize = 10.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(
+                            top = 4.dp,
+                            bottom = 4.dp
+                        )
+                    )
+
                     Text(
                         text = "IDRAAK OFFLINE BRAIN • LOCAL MODE",
                         color = Color(0xFF7B91B5),
@@ -822,14 +1099,22 @@ fun SettingsScreen(
 
         Button(
             onClick = {
-                onVoiceLanguageSelected(VoskModelStore.VoskLanguage.HINDI)
+                onVoiceLanguageSelected(
+                    VoskModelStore.VoskLanguage.HINDI
+                )
             },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (
-                    selectedVoiceLanguage == VoskModelStore.VoskLanguage.HINDI
-                ) Color(0xFF087DFF) else Color(0xFF263B59)
+                containerColor =
+                    if (
+                        selectedVoiceLanguage ==
+                        VoskModelStore.VoskLanguage.HINDI
+                    ) {
+                        Color(0xFF087DFF)
+                    } else {
+                        Color(0xFF263B59)
+                    }
             )
         ) {
             Text("HINDI OFFLINE")
@@ -839,14 +1124,22 @@ fun SettingsScreen(
 
         Button(
             onClick = {
-                onVoiceLanguageSelected(VoskModelStore.VoskLanguage.INDIAN_ENGLISH)
+                onVoiceLanguageSelected(
+                    VoskModelStore.VoskLanguage.INDIAN_ENGLISH
+                )
             },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (
-                    selectedVoiceLanguage == VoskModelStore.VoskLanguage.INDIAN_ENGLISH
-                ) Color(0xFF087DFF) else Color(0xFF263B59)
+                containerColor =
+                    if (
+                        selectedVoiceLanguage ==
+                        VoskModelStore.VoskLanguage.INDIAN_ENGLISH
+                    ) {
+                        Color(0xFF087DFF)
+                    } else {
+                        Color(0xFF263B59)
+                    }
             )
         ) {
             Text("INDIAN ENGLISH OFFLINE")
