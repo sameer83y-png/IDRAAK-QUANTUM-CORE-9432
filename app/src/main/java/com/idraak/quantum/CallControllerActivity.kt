@@ -1,15 +1,14 @@
-
 package com.idraak.quantum
 
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import com.idraak.quantum.engine.CallController
 
-class CallControllerActivity : Activity() {
+class CallControllerActivity : ComponentActivity() {
 
     private val contactPicker =
         registerForActivityResult(
