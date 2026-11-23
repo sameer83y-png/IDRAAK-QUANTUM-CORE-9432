@@ -39,6 +39,11 @@
 
         </activity>
 
+        <!-- Call Controller -->
+        <activity
+            android:name=".CallControllerActivity"
+            android:exported="false" />
+
         <!-- Background Voice Service -->
         <service
             android:name=".VoiceForegroundService"
