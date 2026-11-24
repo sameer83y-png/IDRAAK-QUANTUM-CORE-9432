@@ -1,4 +1,3 @@
-
 package com.idraak.quantum
 
 import android.Manifest
@@ -14,8 +13,6 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import com.idraak.quantum.engine.HardwareController
-import com.idraak.quantum.engine.OfflineBrain
 
 class VoiceForegroundService : Service() {
 
@@ -117,6 +114,13 @@ class VoiceForegroundService : Service() {
         }
     }
 
+    /**
+     * All background voice commands now pass through
+     * OfflineCommandRouter, the same router used by
+     * the foreground voice integration.
+     *
+     * No Gemini or remote server request is made here.
+     */
     private fun processCommand(command: String) {
         if (!serviceActive || command.isBlank()) return
 
@@ -124,74 +128,19 @@ class VoiceForegroundService : Service() {
         sendCommand(command)
 
         val response = try {
-            val decision = OfflineBrain.understand(command)
-
-            if (decision.intent == "FLASHLIGHT") {
-                handleFlashlight(command)
-            } else {
-                OfflineBrain.respond(
-                    context = applicationContext,
-                    userMessage = command
-                )
-            }
+            OfflineCommandRouter.process(
+                context = applicationContext,
+                command = command
+            ).response
         } catch (error: Exception) {
             "कमांड पूरी नहीं हो सकी। " +
                 (error.localizedMessage ?: "Unknown error")
         }
 
+        if (!serviceActive) return
+
         sendResponse(response)
         voiceController?.speak(response)
-    }
-
-    private fun handleFlashlight(command: String): String {
-        val value = command.trim().lowercase()
-
-        val turnOff = listOf(
-            "off", "turn off", "switch off",
-            "torch off", "flashlight off",
-            "band", "बंद", "बुझा", "بند"
-        ).any { value.contains(it) }
-
-        val turnOn = listOf(
-            "on", "turn on", "switch on",
-            "torch on", "flashlight on",
-            "chalu", "चालू", "जलाओ", "جلا"
-        ).any { value.contains(it) }
-
-        if (turnOn == turnOff) {
-            return "कृपया साफ बताइए: टॉर्च चालू करनी है या बंद?"
-        }
-
-        val cameraGranted =
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED
-
-        if (!cameraGranted) {
-            return "टॉर्च चलाने के लिए Camera permission चाहिए। " +
-                "Idraak ऐप खोलकर पहले अनुमति दीजिए।"
-        }
-
-        val enabled = turnOn
-
-        val result = HardwareController.setTorch(
-            context = applicationContext,
-            enabled = enabled
-        )
-
-        OfflineBrain.recordExperience(
-            context = applicationContext,
-            intent = "FLASHLIGHT",
-            status = if (result.success) "SUCCESS" else "FAILED",
-            steps = listOf(
-                command,
-                if (enabled) "TORCH_ON" else "TORCH_OFF",
-                result.message
-            )
-        )
-
-        return result.message
     }
 
     private fun restartListening() {
