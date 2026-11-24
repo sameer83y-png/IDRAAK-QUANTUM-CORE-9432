@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import com.idraak.quantum.engine.CameraController
 import com.idraak.quantum.engine.DeviceStatusController
 import com.idraak.quantum.engine.HardwareController
 import com.idraak.quantum.engine.OfflineBrain
@@ -74,6 +75,21 @@ object OfflineCommandRouter {
                 response = brightnessResult.message,
                 requiresBrightnessPermission = brightnessResult.permissionRequired,
                 intent = "BRIGHTNESS_CONTROL"
+            )
+        }
+
+        // Open the installed camera app; the user controls capture and saving.
+        val cameraResult = CameraController.executeCameraCommand(appContext, message)
+        if (cameraResult != null) {
+            OfflineBrain.recordExperience(
+                context = appContext,
+                intent = "CAMERA_OPEN",
+                status = if (cameraResult.success) "SUCCESS" else "FAILED",
+                steps = listOf(message, cameraResult.message)
+            )
+            return Result(
+                response = cameraResult.message,
+                intent = "CAMERA_OPEN"
             )
         }
 
