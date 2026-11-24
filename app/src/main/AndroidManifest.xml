@@ -62,6 +62,11 @@
             android:name=".CallControllerActivity"
             android:exported="false" />
 
+        <!-- Confirmed SMS composition using the Android system messaging app. -->
+        <activity
+            android:name=".MessageControllerActivity"
+            android:exported="false" />
+
         <!-- Background Voice Service -->
         <service
             android:name=".VoiceForegroundService"
