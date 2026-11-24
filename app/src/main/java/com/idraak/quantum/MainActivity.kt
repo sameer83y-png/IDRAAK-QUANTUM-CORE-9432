@@ -43,6 +43,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -199,6 +200,10 @@ fun IdraakHomeScreen() {
 
     var selectedVoiceLanguage by remember(voiceController) {
         mutableStateOf(voiceController.getRecognitionLanguage())
+    }
+
+    var selectedSpeechRate by remember(voiceController) {
+        mutableStateOf(voiceController.getSpeechRate())
     }
 
     DisposableEffect(voiceController) {
@@ -691,6 +696,11 @@ fun IdraakHomeScreen() {
                                 }
                             }
                         }
+                    },
+                    selectedSpeechRate = selectedSpeechRate,
+                    onSpeechRateChanged = { rate ->
+                        selectedSpeechRate = rate.coerceIn(0.75f, 1.5f)
+                        voiceController.setSpeechRate(selectedSpeechRate)
                     }
                 )
             }
@@ -981,7 +991,9 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onOpenMemory: () -> Unit,
     selectedVoiceLanguage: VoskModelStore.VoskLanguage,
-    onVoiceLanguageSelected: (VoskModelStore.VoskLanguage) -> Unit
+    onVoiceLanguageSelected: (VoskModelStore.VoskLanguage) -> Unit,
+    selectedSpeechRate: Float,
+    onSpeechRateChanged: (Float) -> Unit
 ) {
     val context = LocalContext.current
 
@@ -1117,6 +1129,34 @@ fun SettingsScreen(
         ) {
             Text("INDIAN ENGLISH OFFLINE")
         }
+
+        Spacer(modifier = Modifier.height(18.dp))
+
+        Text(
+            text = "VOICE OUTPUT SPEED",
+            color = Color(0xFF00B7FF),
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Text(
+            text = "Adjust how fast Idraak speaks. This setting is saved on this device.",
+            color = Color(0xFF9CB0CC),
+            fontSize = 12.sp
+        )
+
+        Text(
+            text = String.format(java.util.Locale.US, "%.2fx", selectedSpeechRate),
+            color = Color.White,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Slider(
+            value = selectedSpeechRate,
+            onValueChange = onSpeechRateChanged,
+            valueRange = 0.75f..1.5f
+        )
 
         Spacer(modifier = Modifier.height(18.dp))
 
