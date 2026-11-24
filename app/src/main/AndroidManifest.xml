@@ -20,6 +20,8 @@
     <!-- Other existing permissions -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- User-granted special access for changing screen brightness. -->
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
 
     <uses-feature
         android:name="android.hardware.camera.flash"
