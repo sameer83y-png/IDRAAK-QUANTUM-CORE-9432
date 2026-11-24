@@ -177,6 +177,7 @@ class VoiceController(
                     textToSpeech?.setLanguage(Locale.US)
                 }
 
+                textToSpeech?.setSpeechRate(getSpeechRate())
                 isTtsReady = true
                 onStatusChanged("Voice output ready")
 
@@ -447,6 +448,8 @@ class VoiceController(
             return
         }
 
+        tts.setSpeechRate(getSpeechRate())
+
         val result = tts.speak(
             text,
             TextToSpeech.QUEUE_FLUSH,
@@ -539,5 +542,23 @@ class VoiceController(
 
         private const val LANGUAGE_KEY =
             "selected_recognition_language"
+
+        private const val SPEECH_RATE_KEY =
+            "speech_output_rate"
+    }
+
+    fun getSpeechRate(): Float {
+        return preferences.getFloat(SPEECH_RATE_KEY, 1.0f)
+            .coerceIn(0.75f, 1.5f)
+    }
+
+    fun setSpeechRate(rate: Float) {
+        val safeRate = rate.coerceIn(0.75f, 1.5f)
+        preferences.edit()
+            .putFloat(SPEECH_RATE_KEY, safeRate)
+            .apply()
+
+        textToSpeech?.setSpeechRate(safeRate)
+        onStatusChanged("Voice speed saved: " + safeRate + "x")
     }
 }
