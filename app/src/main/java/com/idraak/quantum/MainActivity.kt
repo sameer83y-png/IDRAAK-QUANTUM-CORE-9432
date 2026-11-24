@@ -4,6 +4,7 @@ package com.idraak.quantum
 import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.ComponentName
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
@@ -17,6 +18,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -1015,6 +1018,41 @@ fun SettingsScreen(
     onSpeechRateChanged: (Float) -> Unit
 ) {
     val context = LocalContext.current
+    val activity = context as? ComponentActivity
+
+    fun isScreenControlEnabled(): Boolean {
+        val enabledServices = Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        ).orEmpty()
+        val expectedComponent = ComponentName(
+            context,
+            com.idraak.quantum.engine.ScreenControlService::class.java
+        ).flattenToString()
+
+        return enabledServices.split(':').any {
+            it.equals(expectedComponent, ignoreCase = true)
+        }
+    }
+
+    var screenControlEnabled by remember {
+        mutableStateOf(isScreenControlEnabled())
+    }
+    var accessibilitySettingsError by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    DisposableEffect(activity) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                screenControlEnabled = isScreenControlEnabled()
+            }
+        }
+        activity?.lifecycle?.addObserver(observer)
+        onDispose {
+            activity?.lifecycle?.removeObserver(observer)
+        }
+    }
 
     val memoryCount = remember {
         OfflineBrain.getExperienceCount(context)
@@ -1181,9 +1219,59 @@ fun SettingsScreen(
 
         SettingsStatusCard(
             title = "PHONE CONTROLLERS",
-            status = "APP CONTROL • SCREEN CONTROL • FLASHLIGHT MODULES",
-            detail = "App launching, accessibility screen actions and flashlight control are implemented in separate modules. Some actions still require device permissions and real-phone testing."
+            status = "APP CONTROL • SCREEN CONTROL • FLASHLIGHT • CAMERA • VOLUME • BRIGHTNESS",
+            detail = "Phone controls run locally. Android may require you to enable special access or grant a permission before a control can work."
         )
+
+        SettingsStatusCard(
+            title = "SCREEN CONTROL ACCESS",
+            status = if (screenControlEnabled) {
+                "ACCESSIBILITY SERVICE ENABLED"
+            } else {
+                "ACCESSIBILITY PERMISSION NEEDED"
+            },
+            detail = "This permission lets Idraak inspect visible screen labels locally for your requested tap, and perform navigation, swipe and scroll actions. Screen events are not saved or transmitted."
+        )
+
+        Button(
+            onClick = {
+                accessibilitySettingsError = null
+                try {
+                    context.startActivity(
+                        Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                    )
+                } catch (_: Exception) {
+                    accessibilitySettingsError =
+                        "Android Accessibility Settings नहीं खुल सकीं। Settings ऐप से Accessibility खोलें।"
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (screenControlEnabled) {
+                    Color(0xFF263B59)
+                } else {
+                    Color(0xFF087DFF)
+                }
+            )
+        ) {
+            Text(
+                if (screenControlEnabled) {
+                    "MANAGE SCREEN CONTROL ACCESS"
+                } else {
+                    "ENABLE IDRAAK SCREEN CONTROL"
+                },
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        accessibilitySettingsError?.let { error ->
+            Text(
+                text = error,
+                color = Color(0xFFFFB4AB),
+                fontSize = 12.sp
+            )
+        }
 
         Spacer(modifier = Modifier.height(18.dp))
 
