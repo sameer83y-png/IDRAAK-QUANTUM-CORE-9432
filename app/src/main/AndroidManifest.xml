@@ -7,7 +7,7 @@
         android:name="android.permission.INTERNET"
         tools:node="remove" />
 
-<!-- Microphone -->
+    <!-- Microphone -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <!-- Foreground Voice Service -->
@@ -43,6 +43,11 @@
             </intent-filter>
 
         </activity>
+
+        <!-- In-app CameraX preview and voice-triggered photo capture. -->
+        <activity
+            android:name=".CameraCaptureActivity"
+            android:exported="false" />
 
         <!-- Call Controller -->
         <activity
