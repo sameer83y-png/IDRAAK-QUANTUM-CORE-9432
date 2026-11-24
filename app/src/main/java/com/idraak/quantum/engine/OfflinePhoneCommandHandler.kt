@@ -1,13 +1,12 @@
 package com.idraak.quantum.engine
 
 import android.content.Context
+import android.content.Intent
+import java.util.Locale
 
 /**
- * External app launching is intentionally disabled in Idraak Offline.
- *
- * Idraak handles supported actions through its own local controllers.
- * This compatibility handler returns a clear response for app-launch
- * requests without opening third-party apps or websites.
+ * Launches an already-installed Android app using only local package data.
+ * This does not open websites or contact any server.
  */
 object OfflinePhoneCommandHandler {
 
@@ -18,18 +17,122 @@ object OfflinePhoneCommandHandler {
         val appName: String = ""
     )
 
-    fun execute(
-        context: Context,
-        userCommand: String
-    ): Result? {
-        val command = userCommand.trim()
-        if (command.isBlank()) return null
+    private data class InstalledApp(val packageName: String, val label: String)
 
-        return Result(
-            handled = true,
-            success = false,
-            message = "बाहरी ऐप खोलना Idraak Offline में बंद है। मैं केवल अपनी अंदरूनी सुविधाएँ और फोन के स्थानीय कंट्रोल संभालूँगा।",
-            appName = command
+    fun execute(context: Context, userCommand: String): Result? {
+        val target = extractAppName(userCommand)
+        if (target.isBlank()) {
+            return Result(true, false, "कौन-सा ऐप खोलना है? कृपया ऐप का नाम साफ बताइए।")
+        }
+
+        val packageManager = context.packageManager
+        val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val installedApps = try {
+            packageManager.queryIntentActivities(launcherIntent, 0)
+                .mapNotNull { info ->
+                    val activity = info.activityInfo ?: return@mapNotNull null
+                    if (activity.packageName == context.packageName) return@mapNotNull null
+                    val label = info.loadLabel(packageManager)?.toString()?.trim().orEmpty()
+                    if (label.isBlank()) return@mapNotNull null
+                    InstalledApp(activity.packageName, label)
+                }
+                .distinctBy { it.packageName }
+        } catch (_: Exception) {
+            emptyList()
+        }
+
+        if (installedApps.isEmpty()) {
+            return Result(true, false, "फोन में उपलब्ध ऐप की सूची नहीं मिल सकी। Android की ऐप सेटिंग जाँचिए।", target)
+        }
+
+        val normalizedTarget = normalize(target)
+        val aliases = aliasesFor(normalizedTarget)
+        val exactMatches = installedApps.filter { app ->
+            val label = normalize(app.label)
+            label == normalizedTarget || aliases.contains(label)
+        }
+        val matches = if (exactMatches.isNotEmpty()) exactMatches else installedApps.filter { app ->
+            val label = normalize(app.label)
+            label.contains(normalizedTarget) || normalizedTarget.contains(label)
+        }
+
+        if (matches.isEmpty()) {
+            return Result(true, false, "मुझे फोन में \"$target\" नाम का इंस्टॉल ऐप नहीं मिला। ऐप इंस्टॉल है तो उसका सही नाम बताइए।", target)
+        }
+        if (matches.size > 1) {
+            val names = matches.take(4).joinToString(", ") { it.label }
+            return Result(true, false, "एक से ज्यादा मिलते-जुलते ऐप मिले: $names। कृपया पूरा ऐप नाम बताइए।", target)
+        }
+
+        val selected = matches.single()
+        return try {
+            val launchIntent = packageManager.getLaunchIntentForPackage(selected.packageName)
+                ?: return Result(true, false, "${selected.label} मिला, लेकिन Android ने उसे खोलने की अनुमति नहीं दी।", selected.label)
+            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.applicationContext.startActivity(launchIntent)
+            Result(true, true, "${selected.label} खोल रहा हूँ।", selected.label)
+        } catch (_: Exception) {
+            Result(true, false, "${selected.label} नहीं खुल सका। Android ने ऐप लॉन्च रोक दिया।", selected.label)
+        }
+    }
+
+    private fun extractAppName(command: String): String {
+        var value = normalize(command)
+        val conversationalPrefixes = listOf(
+            "bhai ", "yaar ", "please ", "zara ",
+            "भाई ", "यार ", "जरा ", "कृपया ",
+            "بھائی ", "یار ", "ذرا "
         )
+        conversationalPrefixes.forEach { if (value.startsWith(it)) value = value.removePrefix(it).trim() }
+
+        val prefixes = listOf(
+            "could you please open ", "please open the ", "could you open ", "please launch ",
+            "open the app ", "open app ", "open the ", "launch the app ", "launch ",
+            "start the app ", "start app ", "start ", "run the app ", "run ",
+            "app open karo ", "app kholo ", "app khol do ", "open karo ", "open kar do ",
+            "khol do ", "kholo ", "chalu karo ", "ऐप खोल दो ", "ऐप खोलो ", "खोल दो ", "खोलो ",
+            "चालू कर दो ", "चालू करो ", "ایپ کھول دو ", "ایپ کھولو ", "کھول دو ", "کھولو "
+        )
+        for (prefix in prefixes.sortedByDescending { it.length }) {
+            if (value.startsWith(prefix)) {
+                value = value.removePrefix(prefix).trim()
+                break
+            }
+        }
+
+        val suffixes = listOf(
+            " please open", " open please", " open kar do", " open karo", " open",
+            " launch karo", " start kar do", " start karo", " on kar do", " on karo",
+            " chalu kar do", " chalu karo", " kholo", " khol do", " kholiye", " chalao", " chala do",
+            " ऐप खोल दो", " ऐप खोलो", " खोल दो", " खोलो", " चालू कर दो", " चालू करो", " ऑन कर दो",
+            " کھول دو", " کھولو", " چلا دو", " شروع کرو", " آن کر دو"
+        )
+        for (suffix in suffixes.sortedByDescending { it.length }) {
+            if (value.endsWith(suffix)) {
+                value = value.removeSuffix(suffix).trim()
+                break
+            }
+        }
+        value = value.removeSuffix(" app").removePrefix("the ").trim()
+        return value
+    }
+
+    private fun aliasesFor(target: String): Set<String> {
+        return mapOf(
+            "यूट्यूब" to setOf("youtube"), "یوٹیوب" to setOf("youtube"),
+            "व्हाट्सएप" to setOf("whatsapp"), "व्हाट्सऐप" to setOf("whatsapp"),
+            "واٹس ایپ" to setOf("whatsapp"), "क्रोम" to setOf("chrome"),
+            "کروم" to setOf("chrome"), "इंस्टाग्राम" to setOf("instagram"),
+            "فیس بک" to setOf("facebook"), "फेसबुक" to setOf("facebook"),
+            "जीमेल" to setOf("gmail"), "गूगल मैप" to setOf("maps", "google maps"),
+            "गूगल मैप्स" to setOf("maps", "google maps"), "कैमरा" to setOf("camera"),
+            "सेटिंग" to setOf("settings"), "सेटिंग्स" to setOf("settings")
+        )[target].orEmpty()
+    }
+
+    private fun normalize(value: String): String {
+        return value.trim().lowercase(Locale.ROOT)
+            .replace(Regex("[^\\p{L}\\p{M}\\p{N}\\s]"), " ")
+            .replace(Regex("\\s+"), " ").trim()
     }
 }
