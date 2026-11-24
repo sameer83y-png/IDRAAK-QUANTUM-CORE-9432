@@ -1,10 +1,10 @@
-
 package com.idraak.quantum
 
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import com.idraak.quantum.engine.DeviceStatusController
 import com.idraak.quantum.engine.HardwareController
 import com.idraak.quantum.engine.OfflineBrain
 
@@ -24,21 +24,14 @@ object OfflineCommandRouter {
         val intent: String = "UNKNOWN"
     )
 
-    fun process(
-        context: Context,
-        command: String
-    ): Result {
+    fun process(context: Context, command: String): Result {
         val appContext = context.applicationContext
         val message = command.trim()
 
         if (message.isBlank()) {
-            return Result(
-                response = "कृपया कोई कमांड बोलिए।",
-                intent = "EMPTY"
-            )
+            return Result(response = "कृपया कोई कमांड बोलिए।", intent = "EMPTY")
         }
 
-        // Safe Call: existing contact selection and confirmation flow.
         if (CallCommandHandler.tryHandle(context, message)) {
             return Result(
                 response = "कॉन्टैक्ट चुनिए। उसके बाद Dialer खोलने से पहले पुष्टि होगी।",
@@ -46,11 +39,19 @@ object OfflineCommandRouter {
             )
         }
 
-        // Media volume is controlled locally by Android AudioManager.
-        val volumeResult = HardwareController.executeVolumeCommand(
-            appContext,
-            message
-        )
+        // Battery status is read directly from Android's local battery broadcast.
+        val batteryResult = DeviceStatusController.executeBatteryCommand(appContext, message)
+        if (batteryResult != null) {
+            OfflineBrain.recordExperience(
+                context = appContext,
+                intent = "BATTERY_STATUS",
+                status = if (batteryResult.success) "SUCCESS" else "FAILED",
+                steps = listOf(message, batteryResult.message)
+            )
+            return Result(response = batteryResult.message, intent = "BATTERY_STATUS")
+        }
+
+        val volumeResult = HardwareController.executeVolumeCommand(appContext, message)
         if (volumeResult != null) {
             OfflineBrain.recordExperience(
                 context = appContext,
@@ -58,18 +59,10 @@ object OfflineCommandRouter {
                 status = if (volumeResult.success) "SUCCESS" else "FAILED",
                 steps = listOf(message, volumeResult.message)
             )
-            return Result(
-                response = volumeResult.message,
-                intent = "VOLUME_CONTROL"
-            )
+            return Result(response = volumeResult.message, intent = "VOLUME_CONTROL")
         }
 
-
-        // Screen brightness is changed locally through Android system settings.
-        val brightnessResult = HardwareController.executeBrightnessCommand(
-            appContext,
-            message
-        )
+        val brightnessResult = HardwareController.executeBrightnessCommand(appContext, message)
         if (brightnessResult != null) {
             OfflineBrain.recordExperience(
                 context = appContext,
@@ -86,11 +79,8 @@ object OfflineCommandRouter {
 
         val decision = OfflineBrain.understand(message)
 
-        // Torch commands are handled through the same route
-        // for both foreground and background voice.
         if (decision.intent == "FLASHLIGHT") {
             val enabled = requestedTorchState(message)
-
             if (enabled == null) {
                 return Result(
                     response = "कृपया साफ बताइए: टॉर्च चालू करनी है या बंद करनी है?",
@@ -98,11 +88,10 @@ object OfflineCommandRouter {
                 )
             }
 
-            val permissionGranted =
-                ContextCompat.checkSelfPermission(
-                    appContext,
-                    Manifest.permission.CAMERA
-                ) == PackageManager.PERMISSION_GRANTED
+            val permissionGranted = ContextCompat.checkSelfPermission(
+                appContext,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
 
             if (!permissionGranted) {
                 return Result(
@@ -113,21 +102,12 @@ object OfflineCommandRouter {
                 )
             }
 
-            return executeTorch(
-                context = appContext,
-                originalCommand = message,
-                enabled = enabled
-            )
+            return executeTorch(appContext, message, enabled)
         }
 
-        // App opening, screen control, memory and normal offline
-        // conversation continue through the existing OfflineBrain.
         return try {
             Result(
-                response = OfflineBrain.respond(
-                    context = appContext,
-                    userMessage = message
-                ),
+                response = OfflineBrain.respond(context = appContext, userMessage = message),
                 intent = decision.intent
             )
         } catch (error: Exception) {
@@ -139,18 +119,12 @@ object OfflineCommandRouter {
         }
     }
 
-    fun executeTorch(
-        context: Context,
-        originalCommand: String,
-        enabled: Boolean
-    ): Result {
+    fun executeTorch(context: Context, originalCommand: String, enabled: Boolean): Result {
         val appContext = context.applicationContext
-
-        val permissionGranted =
-            ContextCompat.checkSelfPermission(
-                appContext,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED
+        val permissionGranted = ContextCompat.checkSelfPermission(
+            appContext,
+            Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
 
         if (!permissionGranted) {
             return Result(
@@ -162,11 +136,7 @@ object OfflineCommandRouter {
         }
 
         return try {
-            val hardwareResult = HardwareController.setTorch(
-                context = appContext,
-                enabled = enabled
-            )
-
+            val hardwareResult = HardwareController.setTorch(appContext, enabled)
             OfflineBrain.recordExperience(
                 context = appContext,
                 intent = "FLASHLIGHT",
@@ -177,11 +147,7 @@ object OfflineCommandRouter {
                     hardwareResult.message
                 )
             )
-
-            Result(
-                response = hardwareResult.message,
-                intent = "FLASHLIGHT"
-            )
+            Result(response = hardwareResult.message, intent = "FLASHLIGHT")
         } catch (error: Exception) {
             Result(
                 response = "टॉर्च कंट्रोल में समस्या आई: " +
@@ -191,37 +157,14 @@ object OfflineCommandRouter {
         }
     }
 
-    private fun requestedTorchState(
-        command: String
-    ): Boolean? {
+    private fun requestedTorchState(command: String): Boolean? {
         val value = command.trim().lowercase()
-
-        val turnOff =
-            Regex("""\boff\b""").containsMatchIn(value) ||
-                listOf(
-                    "turn off",
-                    "switch off",
-                    "torch off",
-                    "flashlight off",
-                    "band",
-                    "بند",
-                    "बंद",
-                    "बुझा"
-                ).any { value.contains(it) }
-
-        val turnOn =
-            Regex("""\bon\b""").containsMatchIn(value) ||
-                listOf(
-                    "turn on",
-                    "switch on",
-                    "torch on",
-                    "flashlight on",
-                    "chalu",
-                    "चालू",
-                    "जलाओ",
-                    "جلا",
-                    "چالو"
-                ).any { value.contains(it) }
+        val turnOff = Regex("""\boff\b""").containsMatchIn(value) ||
+            listOf("turn off", "switch off", "torch off", "flashlight off",
+                "band", "بند", "बंद", "बुझा").any { value.contains(it) }
+        val turnOn = Regex("""\bon\b""").containsMatchIn(value) ||
+            listOf("turn on", "switch on", "torch on", "flashlight on",
+                "chalu", "चालू", "जलाओ", "جلا", "چالو").any { value.contains(it) }
 
         return when {
             turnOn && !turnOff -> true
