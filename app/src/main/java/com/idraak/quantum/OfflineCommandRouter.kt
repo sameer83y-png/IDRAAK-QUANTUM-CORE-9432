@@ -20,6 +20,7 @@ object OfflineCommandRouter {
         val response: String,
         val requiresCameraPermission: Boolean = false,
         val torchEnabled: Boolean? = null,
+        val requiresBrightnessPermission: Boolean = false,
         val intent: String = "UNKNOWN"
     )
 
@@ -60,6 +61,26 @@ object OfflineCommandRouter {
             return Result(
                 response = volumeResult.message,
                 intent = "VOLUME_CONTROL"
+            )
+        }
+
+
+        // Screen brightness is changed locally through Android system settings.
+        val brightnessResult = HardwareController.executeBrightnessCommand(
+            appContext,
+            message
+        )
+        if (brightnessResult != null) {
+            OfflineBrain.recordExperience(
+                context = appContext,
+                intent = "BRIGHTNESS_CONTROL",
+                status = if (brightnessResult.success) "SUCCESS" else "FAILED",
+                steps = listOf(message, brightnessResult.message)
+            )
+            return Result(
+                response = brightnessResult.message,
+                requiresBrightnessPermission = brightnessResult.permissionRequired,
+                intent = "BRIGHTNESS_CONTROL"
             )
         }
 
