@@ -38,6 +38,26 @@ class VoiceForegroundService : Service() {
                 return START_NOT_STICKY
             }
 
+            ACTION_SET_LANGUAGE -> {
+                val languageName = intent.getStringExtra(EXTRA_LANGUAGE)
+                val language = try {
+                    VoskModelStore.VoskLanguage.valueOf(
+                        languageName ?: ""
+                    )
+                } catch (_: IllegalArgumentException) {
+                    null
+                }
+
+                if (serviceActive && language != null) {
+                    voiceController?.setRecognitionLanguage(
+                        language,
+                        resumeListening = true
+                    )
+                } else if (language == null) {
+                    sendStatus("Unsupported offline voice language")
+                }
+            }
+
             ACTION_START, null -> {
                 startVoiceService()
             }
@@ -297,6 +317,11 @@ class VoiceForegroundService : Service() {
 
         const val ACTION_STOP =
             "com.idraak.quantum.action.STOP_BACKGROUND_VOICE"
+
+        const val ACTION_SET_LANGUAGE =
+            "com.idraak.quantum.action.SET_BACKGROUND_VOICE_LANGUAGE"
+
+        const val EXTRA_LANGUAGE = "language"
 
         const val ACTION_STATUS =
             "com.idraak.quantum.action.BACKGROUND_VOICE_STATUS"
