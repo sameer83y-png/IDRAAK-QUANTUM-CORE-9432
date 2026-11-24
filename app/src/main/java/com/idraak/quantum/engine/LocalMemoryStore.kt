@@ -2,10 +2,19 @@ package com.idraak.quantum.engine
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import android.util.Base64
 import org.json.JSONArray
 import org.json.JSONObject
+import java.nio.charset.StandardCharsets
+import java.security.KeyStore
 import java.util.Locale
 import java.util.UUID
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
 
 /**
  * IDRAAK QUANTUM CORE
@@ -28,6 +37,11 @@ object LocalMemoryStore {
     private const val MEMORY_KEY = "memory_records"
     private const val BACKUP_KEY = "memory_records_backup"
     private const val MAX_RECORDS = 500
+    private const val ENCRYPTED_PREFIX = "enc:v1:"
+    private const val KEY_ALIAS = "idraak_local_memory_aes"
+    private const val KEYSTORE = "AndroidKeyStore"
+    private const val CIPHER = "AES/GCM/NoPadding"
+    private const val IV_LENGTH = 12
 
     private val lock = Any()
 
@@ -517,24 +531,121 @@ object LocalMemoryStore {
         val primary = prefs.getString(MEMORY_KEY, null)
 
         if (!primary.isNullOrBlank()) {
-            try {
-                return JSONArray(primary)
-            } catch (_: Exception) {
-                // Try backup.
+            val decoded = decodeStoredArray(primary)
+
+            if (decoded != null) {
+                // Migrate older plaintext records in place. If encryption is
+                // temporarily unavailable, keep the original data readable.
+                if (!primary.startsWith(ENCRYPTED_PREFIX)) {
+                    val encrypted = encryptStoredValue(primary)
+                    if (encrypted != null) {
+                        prefs.edit()
+                            .putString(MEMORY_KEY, encrypted)
+                            .putString(BACKUP_KEY, encrypted)
+                            .commit()
+                    }
+                }
+                return decoded
             }
         }
 
         val backup = prefs.getString(BACKUP_KEY, null)
 
         if (!backup.isNullOrBlank()) {
-            try {
-                return JSONArray(backup)
-            } catch (_: Exception) {
-                // Both copies are damaged.
+            val decodedBackup = decodeStoredArray(backup)
+            if (decodedBackup != null) {
+                return decodedBackup
             }
         }
 
         return JSONArray()
+    }
+
+    private fun decodeStoredArray(storedValue: String): JSONArray? {
+        return try {
+            val json = if (storedValue.startsWith(ENCRYPTED_PREFIX)) {
+                decryptStoredValue(storedValue) ?: return null
+            } else {
+                storedValue
+            }
+            JSONArray(json)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun encryptStoredValue(plainText: String): String? {
+        return try {
+            val cipher = Cipher.getInstance(CIPHER)
+            cipher.init(Cipher.ENCRYPT_MODE, getMemoryKey())
+            val encrypted = cipher.doFinal(
+                plainText.toByteArray(StandardCharsets.UTF_8)
+            )
+            val combined = cipher.iv + encrypted
+            ENCRYPTED_PREFIX + Base64.encodeToString(
+                combined,
+                Base64.NO_WRAP
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun decryptStoredValue(storedValue: String): String? {
+        return try {
+            if (!storedValue.startsWith(ENCRYPTED_PREFIX)) {
+                return null
+            }
+
+            val encoded = storedValue.removePrefix(ENCRYPTED_PREFIX)
+            val combined = Base64.decode(encoded, Base64.NO_WRAP)
+            if (combined.size <= IV_LENGTH) return null
+
+            val iv = combined.copyOfRange(0, IV_LENGTH)
+            val encrypted = combined.copyOfRange(IV_LENGTH, combined.size)
+
+            val cipher = Cipher.getInstance(CIPHER)
+            cipher.init(
+                Cipher.DECRYPT_MODE,
+                getMemoryKey(),
+                GCMParameterSpec(128, iv)
+            )
+
+            String(
+                cipher.doFinal(encrypted),
+                StandardCharsets.UTF_8
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun getMemoryKey(): SecretKey {
+        val keyStore = KeyStore.getInstance(KEYSTORE)
+        keyStore.load(null)
+
+        val existingKey = keyStore.getKey(KEY_ALIAS, null)
+        if (existingKey is SecretKey) return existingKey
+
+        val generator = KeyGenerator.getInstance(
+            KeyProperties.KEY_ALGORITHM_AES,
+            KEYSTORE
+        )
+
+        val spec = KeyGenParameterSpec.Builder(
+            KEY_ALIAS,
+            KeyProperties.PURPOSE_ENCRYPT or
+                KeyProperties.PURPOSE_DECRYPT
+        )
+            .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+            .setEncryptionPaddings(
+                KeyProperties.ENCRYPTION_PADDING_NONE
+            )
+            .setRandomizedEncryptionRequired(true)
+            .build()
+
+        generator.init(spec)
+        return generator.generateKey()
     }
 
     /**
@@ -553,30 +664,39 @@ object LocalMemoryStore {
             val prefs = preferences(context)
             val newData = memories.toString()
 
-            // Validate new JSON before saving.
+            // Validate new JSON before encrypting it.
             JSONArray(newData)
+
+            val encryptedNewData = encryptStoredValue(newData)
+                ?: return false
 
             val oldPrimary = prefs.getString(MEMORY_KEY, null)
 
             if (!oldPrimary.isNullOrBlank()) {
-                try {
-                    JSONArray(oldPrimary)
+                val oldArray = decodeStoredArray(oldPrimary)
+
+                if (oldArray != null) {
+                    val encryptedBackup = if (
+                        oldPrimary.startsWith(ENCRYPTED_PREFIX)
+                    ) {
+                        oldPrimary
+                    } else {
+                        encryptStoredValue(oldPrimary)
+                    } ?: return false
 
                     val backupSaved = prefs.edit()
-                        .putString(BACKUP_KEY, oldPrimary)
+                        .putString(BACKUP_KEY, encryptedBackup)
                         .commit()
 
                     if (!backupSaved) {
                         return false
                     }
-
-                } catch (_: Exception) {
-                    // Preserve the previous backup if primary is damaged.
                 }
+                // If primary is damaged, preserve the existing backup.
             }
 
             prefs.edit()
-                .putString(MEMORY_KEY, newData)
+                .putString(MEMORY_KEY, encryptedNewData)
                 .commit()
 
         } catch (_: Exception) {
