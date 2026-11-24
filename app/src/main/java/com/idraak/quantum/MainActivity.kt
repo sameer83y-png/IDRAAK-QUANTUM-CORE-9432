@@ -9,6 +9,8 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.net.Uri
+import android.provider.Settings
 import android.os.Handler
 import android.os.Looper
 import androidx.activity.ComponentActivity
@@ -357,6 +359,23 @@ fun IdraakHomeScreen() {
                     (error.localizedMessage ?: "Unknown error"),
                 intent = "ERROR"
             )
+        }
+
+        if (result.requiresBrightnessPermission) {
+            messages.add(ChatMessage(result.response, false))
+            voiceController.speak(result.response)
+            voiceStatus = "BRIGHTNESS PERMISSION REQUIRED"
+            try {
+                context.startActivity(
+                    Intent(
+                        Settings.ACTION_MANAGE_WRITE_SETTINGS,
+                        Uri.parse("package:${context.packageName}")
+                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+            } catch (error: Exception) {
+                voiceStatus = "COULD NOT OPEN BRIGHTNESS PERMISSION SETTINGS"
+            }
+            return
         }
 
         if (result.requiresCameraPermission) {
