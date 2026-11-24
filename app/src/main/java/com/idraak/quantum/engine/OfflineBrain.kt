@@ -221,10 +221,10 @@ object OfflineBrain {
             " please open", " please kholo",
             " kholo", " khol do", " kholiye",
             " chalao", " chala do", " start kar do",
-            " chalu kar do", " chalao please",
-            " खोलो", " खोल दो", " खोलिए", " चला दो",
-            " کھولو", " کھول دو", " کھولیں", " چلا دو",
-            " چلاؤ", " کھول دیں"
+            " chalu kar do", " chalao please", " on kar do", " on karo",
+            " open karo", " open kar do", " launch karo", " start karo",
+            " खोलो", " खोल दो", " खोलिए", " चला दो", " चालू कर दो", " चालू करो", " ऑन कर दो",
+            " کھولو", " کھول دو", " کھولیں", " چلا دو", " آن کر دو", " شروع کرو"
         )
 
         return prefixes.any { message.startsWith(it) } ||
