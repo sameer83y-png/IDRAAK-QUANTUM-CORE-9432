@@ -40,6 +40,18 @@ object OfflineCommandRouter {
             )
         }
 
+        // Prepare an SMS offline and let the user confirm before opening the SMS app.
+        val messageResponse = MessageCommandHandler.tryHandle(context, message)
+        if (messageResponse != null) {
+            OfflineBrain.recordExperience(
+                context = appContext,
+                intent = "MESSAGE_COMPOSE",
+                status = "AWAITING_USER_CONFIRMATION",
+                steps = listOf(message, messageResponse)
+            )
+            return Result(response = messageResponse, intent = "MESSAGE_COMPOSE")
+        }
+
         // Battery status is read directly from Android's local battery broadcast.
         val batteryResult = DeviceStatusController.executeBatteryCommand(appContext, message)
         if (batteryResult != null) {
