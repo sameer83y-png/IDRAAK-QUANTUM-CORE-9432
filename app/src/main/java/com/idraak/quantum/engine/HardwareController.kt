@@ -3,6 +3,7 @@ package com.idraak.quantum.engine
 
 import android.Manifest
 import android.media.AudioManager
+import android.provider.Settings
 import java.util.Locale
 import android.content.Context
 import android.content.pm.PackageManager
@@ -90,6 +91,72 @@ object HardwareController {
         } catch (error: Exception) {
             Result(false, "वॉल्यूम कंट्रोल में समस्या: " +
                 (error.localizedMessage ?: "Unknown error"))
+        }
+    }
+
+
+    /**
+     * Changes screen brightness through Android's system settings.
+     * WRITE_SETTINGS is a special user-granted permission, not a normal runtime permission.
+     */
+    fun executeBrightnessCommand(
+        context: Context,
+        command: String
+    ): Result? {
+        val value = command.trim().lowercase(Locale.ROOT)
+        val action = when {
+            listOf("brightness up", "increase brightness", "screen brighter", "चमक बढ़ाओ", "ब्राइटनेस बढ़ाओ", "रोशनी बढ़ाओ")
+                .any { value.contains(it) } -> "UP"
+            listOf("brightness down", "decrease brightness", "screen dim", "चमक कम करो", "ब्राइटनेस कम करो", "रोशनी कम करो")
+                .any { value.contains(it) } -> "DOWN"
+            listOf("maximum brightness", "brightness full", "चमक पूरी करो", "ब्राइटनेस फुल करो")
+                .any { value.contains(it) } -> "MAX"
+            listOf("minimum brightness", "brightness minimum", "चमक सबसे कम करो", "ब्राइटनेस जीरो करो")
+                .any { value.contains(it) } -> "MIN"
+            else -> return null
+        }
+
+        if (!Settings.System.canWrite(context)) {
+            return Result(
+                success = false,
+                message = "स्क्रीन ब्राइटनेस बदलने के लिए Android की Modify System Settings अनुमति चाहिए।",
+                permissionRequired = true
+            )
+        }
+
+        return try {
+            val current = Settings.System.getInt(
+                context.contentResolver,
+                Settings.System.SCREEN_BRIGHTNESS,
+                128
+            ).coerceIn(0, 255)
+            val next = when (action) {
+                "UP" -> (current + 26).coerceAtMost(255)
+                "DOWN" -> (current - 26).coerceAtLeast(0)
+                "MAX" -> 255
+                else -> 0
+            }
+
+            Settings.System.putInt(
+                context.contentResolver,
+                Settings.System.SCREEN_BRIGHTNESS,
+                next
+            )
+            Result(
+                success = true,
+                message = when (action) {
+                    "UP" -> "स्क्रीन ब्राइटनेस बढ़ा दी गई है।"
+                    "DOWN" -> "स्क्रीन ब्राइटनेस कम कर दी गई है।"
+                    "MAX" -> "स्क्रीन ब्राइटनेस अधिकतम कर दी गई है।"
+                    else -> "स्क्रीन ब्राइटनेस न्यूनतम कर दी गई है।"
+                }
+            )
+        } catch (error: Exception) {
+            Result(
+                success = false,
+                message = "ब्राइटनेस कंट्रोल में समस्या: " +
+                    (error.localizedMessage ?: "Unknown error")
+            )
         }
     }
 
