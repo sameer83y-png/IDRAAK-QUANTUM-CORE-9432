@@ -45,6 +45,24 @@ object OfflineCommandRouter {
             )
         }
 
+        // Media volume is controlled locally by Android AudioManager.
+        val volumeResult = HardwareController.executeVolumeCommand(
+            appContext,
+            message
+        )
+        if (volumeResult != null) {
+            OfflineBrain.recordExperience(
+                context = appContext,
+                intent = "VOLUME_CONTROL",
+                status = if (volumeResult.success) "SUCCESS" else "FAILED",
+                steps = listOf(message, volumeResult.message)
+            )
+            return Result(
+                response = volumeResult.message,
+                intent = "VOLUME_CONTROL"
+            )
+        }
+
         val decision = OfflineBrain.understand(message)
 
         // Torch commands are handled through the same route
