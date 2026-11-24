@@ -191,6 +191,8 @@ class VoiceController(
                 override fun onError(utteranceId: String?) {
                     if (!isShutdown) {
                         onStatusChanged("Voice output error")
+                        // Resume listening if the device TTS engine fails.
+                        onSpeechFinished()
                     }
                 }
 
@@ -200,6 +202,8 @@ class VoiceController(
                 ) {
                     if (!isShutdown) {
                         onStatusChanged("Voice output error: $errorCode")
+                        // Do not leave continuous/background voice paused.
+                        onSpeechFinished()
                     }
                 }
             }
