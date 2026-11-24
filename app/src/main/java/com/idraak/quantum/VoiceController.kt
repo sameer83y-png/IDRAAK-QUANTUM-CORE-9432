@@ -117,7 +117,8 @@ class VoiceController(
 
     @Synchronized
     fun setRecognitionLanguage(
-        language: VoskModelStore.VoskLanguage
+        language: VoskModelStore.VoskLanguage,
+        resumeListening: Boolean = false
     ) {
         if (isShutdown || selectedLanguage == language) return
 
@@ -136,6 +137,22 @@ class VoiceController(
                 "Indian English offline voice selected and saved"
             }
         )
+
+        // Queue the restart behind any model-loading task already in progress.
+        // This prevents a language switch from leaving the recognizer idle.
+        if (resumeListening) {
+            try {
+                executor.execute {
+                    if (!isShutdown) {
+                        startListening()
+                    }
+                }
+            } catch (_: java.util.concurrent.RejectedExecutionException) {
+                if (!isShutdown) {
+                    onStatusChanged("Could not restart offline voice")
+                }
+            }
+        }
     }
 
     fun getRecognitionLanguage(): VoskModelStore.VoskLanguage {
