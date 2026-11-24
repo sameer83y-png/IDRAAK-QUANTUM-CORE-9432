@@ -67,20 +67,20 @@ class MessageControllerActivity : ComponentActivity() {
     }
 
     private fun showMessageConfirmation(name: String, number: String) {
+        val confirmationText = listOf(
+            "किसे मैसेज भेजना है:",
+            name,
+            number,
+            "",
+            "मैसेज:",
+            messageBody,
+            "",
+            "हाँ चुनने पर SMS ऐप खुलेगा। मैसेज भेजने के लिए आपको वहाँ Send दबाना होगा।"
+        ).joinToString("\n")
+
         AlertDialog.Builder(this)
             .setTitle("मैसेज की पुष्टि")
-            .setMessage(
-                "किसे मैसेज भेजना है:
-$name
-$number
-
-" +
-                    "मैसेज:
-$messageBody
-
-" +
-                    "हाँ चुनने पर SMS ऐप खुलेगा। मैसेज भेजने के लिए आपको वहाँ Send दबाना होगा।"
-            )
+            .setMessage(confirmationText)
             .setPositiveButton("हाँ, SMS ऐप खोलो") { _, _ ->
                 openSmsComposer(number)
             }
@@ -95,13 +95,13 @@ $messageBody
 
     private fun openSmsComposer(number: String) {
         try {
-            val intent = Intent(
+            val smsIntent = Intent(
                 Intent.ACTION_SENDTO,
                 Uri.fromParts("smsto", number, null)
             ).apply {
                 putExtra("sms_body", messageBody)
             }
-            startActivity(intent)
+            startActivity(smsIntent)
             finish()
         } catch (_: ActivityNotFoundException) {
             showMessage("फोन में SMS ऐप उपलब्ध नहीं है।")
