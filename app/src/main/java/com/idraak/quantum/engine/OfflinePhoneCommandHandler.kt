@@ -158,7 +158,11 @@ object OfflinePhoneCommandHandler {
 
         // Longest phrases first, so "open the app" is handled correctly.
         val prefixes = listOf(
+            "could you please open ",
             "please open the ",
+            "could you open ",
+            "open up ",
+            "please launch ",
             "please open ",
             "open the app ",
             "open the ",
@@ -169,6 +173,8 @@ object OfflinePhoneCommandHandler {
             "run ",
             "app kholo ",
             "app khol do ",
+            "zara kholo ",
+            "zara khol do ",
             "khol do ",
             "kholo ",
             "kholiye ",
@@ -178,9 +184,15 @@ object OfflinePhoneCommandHandler {
             "चालू करो ",
             "ऐप खोल दो ",
             "ऐप खोलो ",
+            "जरा खोल दो ",
+            "जरा खोलो ",
             "खोल दो ",
             "खोलो ",
             "खोलिए ",
+            "ایپ کھول دو ",
+            "ایپ کھولو ",
+            "ذرا کھول دو ",
+            "ذرا کھولو ",
             "کھول دو ",
             "کھولو ",
             "کھولیں "
@@ -198,6 +210,8 @@ object OfflinePhoneCommandHandler {
 
         if (!commandMatched) {
             val suffixes = listOf(
+                " please open",
+                " please kholo",
                 " open kar do",
                 " open karo",
                 " khol do",
@@ -205,13 +219,20 @@ object OfflinePhoneCommandHandler {
                 " kholiye",
                 " chala do",
                 " chalao",
+                " start kar do",
+                " chalu kar do",
+                " chalao please",
                 " खोल दो",
                 " खोलो",
                 " खोलिए",
+                " चला दो",
                 " चालू करो",
                 " کھول دو",
                 " کھولو",
-                " کھولیں"
+                " کھولیں",
+                " چلا دو",
+                " چلاؤ",
+                " کھول دیں"
             )
 
             for (suffix in suffixes) {
