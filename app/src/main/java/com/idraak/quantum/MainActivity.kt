@@ -1107,7 +1107,7 @@ fun SettingsScreen(
         SettingsStatusCard(
             title = "AI BRAIN",
             status = "OFFLINE BRAIN ACTIVE",
-            detail = "Gemini connection has been removed from the main chat flow. OfflineBrain currently recognizes basic commands using local rules."
+            detail = "Idraak runs with its own offline brain. External AI connections and internet services are disabled."
         )
 
         SettingsStatusCard(
