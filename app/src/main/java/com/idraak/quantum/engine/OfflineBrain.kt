@@ -199,24 +199,32 @@ object OfflineBrain {
 
     private fun isOpenAppCommand(message: String): Boolean {
         val prefixes = listOf(
+            "please open the ", "could you open ",
+            "could you please open ", "open up ",
             "open ", "open the ", "open app ",
-            "launch ", "start ", "run ",
-            "please open ",
+            "please launch ", "launch ", "start ", "run ",
             "app kholo ", "app khol do ",
+            "zara kholo ", "zara khol do ",
             "khol do ", "kholo ", "kholiye ",
             "chalu karo ",
-            "खोलो ", "खोल दो ", "खोलिए ",
             "ऐप खोलो ", "ऐप खोल दो ",
+            "जरा खोलो ", "जरा खोल दो ",
+            "खोलो ", "खोल दो ", "खोलिए ",
             "चालू करो ",
+            "ایپ کھولو ", "ایپ کھول دو ",
+            "ذرا کھولو ", "ذرا کھول دو ",
             "کھولو ", "کھول دو ", "کھولیں "
         )
 
         val suffixes = listOf(
             " open", " open karo", " open kar do",
+            " please open", " please kholo",
             " kholo", " khol do", " kholiye",
-            " chalao", " chala do",
-            " खोलो", " खोल दो", " खोलिए",
-            " کھولو", " کھول دو", " کھولیں"
+            " chalao", " chala do", " start kar do",
+            " chalu kar do", " chalao please",
+            " खोलो", " खोल दो", " खोलिए", " चला दो",
+            " کھولو", " کھول دو", " کھولیں", " چلا دو",
+            " چلاؤ", " کھول دیں"
         )
 
         return prefixes.any { message.startsWith(it) } ||
