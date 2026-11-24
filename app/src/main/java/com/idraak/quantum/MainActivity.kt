@@ -636,22 +636,60 @@ fun IdraakHomeScreen() {
                     },
                     selectedVoiceLanguage = selectedVoiceLanguage,
                     onVoiceLanguageSelected = { language ->
-                        if (isBackgroundVoiceActive) {
-                            stopBackgroundVoiceService()
-                        }
-
-                        isContinuousVoiceChat = false
-                        isListening = false
-                        voiceController.cancelListening()
-                        voiceController.setRecognitionLanguage(language)
                         selectedVoiceLanguage = language
 
-                        voiceStatus = when (language) {
-                            VoskModelStore.VoskLanguage.HINDI ->
-                                "HINDI OFFLINE MODEL SELECTED"
+                        if (isBackgroundVoiceActive) {
+                            // Change the model inside the running foreground service.
+                            // It restarts recognition locally without stopping the service.
+                            val intent = Intent(
+                                context,
+                                VoiceForegroundService::class.java
+                            ).apply {
+                                action = VoiceForegroundService.ACTION_SET_LANGUAGE
+                                putExtra(
+                                    VoiceForegroundService.EXTRA_LANGUAGE,
+                                    language.name
+                                )
+                            }
 
-                            VoskModelStore.VoskLanguage.INDIAN_ENGLISH ->
-                                "INDIAN ENGLISH OFFLINE MODEL SELECTED"
+                            try {
+                                context.startService(intent)
+                                voiceStatus = "BACKGROUND VOICE LANGUAGE CHANGING"
+                            } catch (error: Exception) {
+                                voiceStatus =
+                                    "Could not change background voice language: " +
+                                        (error.localizedMessage ?: "Unknown error")
+                            }
+                        } else {
+                            val resumeForegroundVoiceChat =
+                                isContinuousVoiceChat && isListening
+
+                            isContinuousVoiceChat = false
+                            isListening = false
+                            voiceController.cancelListening()
+
+                            voiceController.setRecognitionLanguage(
+                                language,
+                                resumeListening = resumeForegroundVoiceChat
+                            )
+
+                            if (resumeForegroundVoiceChat) {
+                                isContinuousVoiceChat = true
+                                isListening = voiceController.startListening()
+                                voiceStatus = if (isListening) {
+                                    "VOICE CHAT ACTIVE • LANGUAGE CHANGED"
+                                } else {
+                                    "Language saved • voice restart pending"
+                                }
+                            } else {
+                                voiceStatus = when (language) {
+                                    VoskModelStore.VoskLanguage.HINDI ->
+                                        "HINDI OFFLINE MODEL SELECTED"
+
+                                    VoskModelStore.VoskLanguage.INDIAN_ENGLISH ->
+                                        "INDIAN ENGLISH OFFLINE MODEL SELECTED"
+                                }
+                            }
                         }
                     }
                 )
