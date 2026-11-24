@@ -82,12 +82,16 @@ class VoiceController(
                     "Offline voice error: " +
                         (exception?.localizedMessage ?: "Unknown error")
                 )
+                // A recognition error must not leave background voice idle.
+                onSpeechFinished()
             }
         }
 
         override fun onTimeout() {
             if (!isShutdown) {
                 onStatusChanged("Listening timeout")
+                // Vosk may stop after a timeout; allow the service to resume.
+                onSpeechFinished()
             }
         }
     }
@@ -162,6 +166,8 @@ class VoiceController(
             } else {
                 isTtsReady = false
                 onStatusChanged("Voice output initialization failed")
+                // Keep listening usable even when Android TTS is unavailable.
+                onSpeechFinished()
             }
         }
 
@@ -416,6 +422,7 @@ class VoiceController(
 
         if (tts == null || !isTtsReady) {
             onStatusChanged("Voice output is not ready")
+            onSpeechFinished()
             return
         }
 
@@ -428,6 +435,7 @@ class VoiceController(
 
         if (result == TextToSpeech.ERROR) {
             onStatusChanged("Could not speak the response")
+            onSpeechFinished()
         }
     }
 
