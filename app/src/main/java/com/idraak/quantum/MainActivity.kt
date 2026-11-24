@@ -66,7 +66,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import com.idraak.quantum.engine.HardwareController
 import com.idraak.quantum.engine.OfflineBrain
 
 data class ChatMessage(
@@ -292,73 +291,22 @@ fun IdraakHomeScreen() {
         }
     }
 
-    fun requestedTorchState(message: String): Boolean? {
-        val normalized = message.trim().lowercase()
-
-        val turnOff =
-            Regex("""\boff\b""").containsMatchIn(normalized) ||
-                listOf(
-                    "turn off",
-                    "switch off",
-                    "torch off",
-                    "flashlight off",
-                    "band",
-                    "بند",
-                    "बंद",
-                    "बुझा"
-                ).any { normalized.contains(it) }
-
-        val turnOn =
-            Regex("""\bon\b""").containsMatchIn(normalized) ||
-                listOf(
-                    "turn on",
-                    "switch on",
-                    "torch on",
-                    "flashlight on",
-                    "chalu",
-                    "चालू",
-                    "जलाओ",
-                    "جلا",
-                    "چالو"
-                ).any { normalized.contains(it) }
-
-        return when {
-            turnOn && !turnOff -> true
-            turnOff && !turnOn -> false
-            else -> null
-        }
-    }
-
     fun executeTorchCommand(
         originalMessage: String,
         enabled: Boolean
     ) {
-        val result = HardwareController.setTorch(
+        val result = OfflineCommandRouter.executeTorch(
             context = context.applicationContext,
+            originalCommand = originalMessage,
             enabled = enabled
         )
 
-        OfflineBrain.recordExperience(
-            context = context.applicationContext,
-            intent = "FLASHLIGHT",
-            status = if (result.success) "SUCCESS" else "FAILED",
-            steps = listOf(
-                originalMessage,
-                if (enabled) "TORCH_ON" else "TORCH_OFF",
-                result.message
-            )
-        )
-
-        messages.add(
-            ChatMessage(result.message, false)
-        )
-
-        voiceController.speak(result.message)
-
-        voiceStatus = if (result.success) {
-            "FLASHLIGHT CONTROL SUCCESS"
+        messages.add(ChatMessage(result.response, false))
+        voiceController.speak(result.response)
+        voiceStatus = if (result.requiresCameraPermission) {
+            "CAMERA PERMISSION REQUIRED"
         } else {
-            "FLASHLIGHT CONTROL FAILED"
+            "FLASHLIGHT CONTROL PROCESSED"
         }
     }
 
@@ -379,10 +327,7 @@ fun IdraakHomeScreen() {
                     val response =
                         "Camera permission नहीं मिली। टॉर्च कंट्रोल नहीं किया गया।"
 
-                    messages.add(
-                        ChatMessage(response, false)
-                    )
-
+                    messages.add(ChatMessage(response, false))
                     voiceController.speak(response)
                     voiceStatus = "CAMERA PERMISSION DENIED"
                 }
@@ -396,71 +341,49 @@ fun IdraakHomeScreen() {
         messages.add(ChatMessage(message, true))
         inputText = ""
 
-        // SAFE CALL: contact selection and confirmation are required.
-        if (CallCommandHandler.tryHandle(context, message)) {
-            val response =
-                "कॉन्टैक्ट चुनिए। उसके बाद Dialer खोलने से पहले पुष्टि होगी।"
-
-            messages.add(ChatMessage(response, false))
-            voiceController.speak(response)
-            voiceStatus = "SAFE CALL CONTROLLER OPENED"
-            return
+        val result = try {
+            OfflineCommandRouter.process(
+                context = context.applicationContext,
+                command = message
+            )
+        } catch (error: Exception) {
+            OfflineCommandRouter.Result(
+                response = "Offline कमांड पूरी नहीं हो सकी: " +
+                    (error.localizedMessage ?: "Unknown error"),
+                intent = "ERROR"
+            )
         }
 
-        val decision = OfflineBrain.understand(message)
-
-        if (decision.intent == "FLASHLIGHT") {
-            val enabled = requestedTorchState(message)
+        if (result.requiresCameraPermission) {
+            val enabled = result.torchEnabled
 
             if (enabled == null) {
-                val response =
-                    "कृपया साफ बताइए: टॉर्च चालू करनी है या बंद करनी है?"
-
-                messages.add(
-                    ChatMessage(response, false)
-                )
-
-                voiceController.speak(response)
+                messages.add(ChatMessage(result.response, false))
+                voiceController.speak(result.response)
                 voiceStatus = "FLASHLIGHT COMMAND NEEDS ON/OFF"
                 return
             }
 
-            val permissionGranted =
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.CAMERA
-                ) == PackageManager.PERMISSION_GRANTED
+            pendingTorchCommand = message to enabled
+            messages.add(ChatMessage(result.response, false))
+            voiceController.speak(result.response)
+            voiceStatus = "REQUESTING CAMERA PERMISSION"
 
-            if (permissionGranted) {
-                executeTorchCommand(
-                    originalMessage = message,
-                    enabled = enabled
-                )
-            } else {
-                pendingTorchCommand = message to enabled
-                voiceStatus = "REQUESTING CAMERA PERMISSION"
-
-                cameraPermissionLauncher.launch(
-                    Manifest.permission.CAMERA
-                )
-            }
-
+            cameraPermissionLauncher.launch(
+                Manifest.permission.CAMERA
+            )
             return
         }
 
-        val response = try {
-            OfflineBrain.respond(
-                context = context.applicationContext,
-                userMessage = message
-            )
-        } catch (error: Exception) {
-            "Boss, Offline Brain mein ek error aaya: " +
-                (error.localizedMessage ?: "Unknown error")
-        }
+        messages.add(ChatMessage(result.response, false))
+        voiceController.speak(result.response)
 
-        messages.add(ChatMessage(response, false))
-        voiceController.speak(response)
-        voiceStatus = "OFFLINE BRAIN ACTIVE"
+        voiceStatus = when (result.intent) {
+            "SAFE_CALL" -> "SAFE CALL CONTROLLER OPENED"
+            "FLASHLIGHT" -> "FLASHLIGHT CONTROL PROCESSED"
+            "ERROR" -> "OFFLINE COMMAND FAILED"
+            else -> "OFFLINE COMMAND ROUTER ACTIVE"
+        }
     }
 
     LaunchedEffect(recognizedSpeech) {
