@@ -21,7 +21,7 @@ object OfflineScreenCommandHandler {
         if (command.isBlank()) {
             return Result(
                 false,
-                "कृपया स्क्रीन कमांड बताइए।",
+                "براہِ کرم اسکرین کا حکم بتائیں۔",
                 "EMPTY"
             )
         }
@@ -192,7 +192,7 @@ object OfflineScreenCommandHandler {
             if (targetText.isBlank()) {
                 return Result(
                     false,
-                    "किस बटन पर क्लिक करना है, उसका नाम बताइए।",
+                    "بتائیں کس بٹن پر کلک کرنا ہے۔",
                     "CLICK_EMPTY"
                 )
             }
@@ -201,7 +201,7 @@ object OfflineScreenCommandHandler {
             if (isSensitiveTarget(targetText)) {
                 return Result(
                     false,
-                    "यह कार्रवाई महत्वपूर्ण हो सकती है। पहले अलग से पुष्टि जरूरी है।",
+                    "یہ اہم کارروائی ہو سکتی ہے۔ پہلے آپ کی تصدیق ضروری ہے۔",
                     "CLICK_CONFIRMATION_REQUIRED"
                 )
             }
@@ -213,7 +213,7 @@ object OfflineScreenCommandHandler {
 
         return Result(
             false,
-            "यह स्क्रीन कमांड समझ नहीं आई। कृपया स्पष्ट कमांड दीजिए।",
+            "اسکرین کا حکم سمجھ نہیں آیا۔ براہِ کرم واضح بتائیں۔",
             "UNKNOWN"
         )
     }
@@ -229,7 +229,7 @@ object OfflineScreenCommandHandler {
         if (target.isBlank()) {
             return Result(
                 false,
-                "क्लिक करने के लिए बटन का नाम उपलब्ध नहीं है।",
+                "کلک کرنے کے لیے بٹن کا نام دستیاب نہیں۔",
                 "CLICK_EMPTY"
             )
         }
@@ -247,7 +247,7 @@ object OfflineScreenCommandHandler {
         if (!ScreenControlBridge.isServiceConnected()) {
             return Result(
                 false,
-                "Idraak Screen Control अभी चालू नहीं है। Android Accessibility Settings में इसे अनुमति दें।",
+                "ادراک کا اسکرین کنٹرول ابھی فعال نہیں۔ فون کی رسائی کی ترتیبات میں اجازت دیں۔",
                 "SERVICE_DISABLED"
             )
         }
@@ -258,13 +258,13 @@ object OfflineScreenCommandHandler {
             if (completed) {
                 Result(
                     true,
-                    "कमांड सफलतापूर्वक पूरी हुई।",
+                    "حکم کامیابی سے مکمل ہو گیا۔",
                     intent
                 )
             } else {
                 Result(
                     false,
-                    "कार्रवाई पूरी नहीं हुई। स्क्रीन पर जरूरी कंट्रोल उपलब्ध नहीं हुआ।",
+                    "عمل مکمل نہیں ہوا۔ اسکرین پر مطلوبہ اختیار دستیاب نہیں تھا۔",
                     "ACTION_FAILED"
                 )
             }
@@ -272,7 +272,7 @@ object OfflineScreenCommandHandler {
         } catch (_: Exception) {
             Result(
                 false,
-                "स्क्रीन कंट्रोल में समस्या आई।",
+                "اسکرین کنٹرول میں مسئلہ پیش آیا۔",
                 "ACTION_ERROR"
             )
         }
