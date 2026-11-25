@@ -32,7 +32,7 @@ object OfflineCommandRouter {
         val message = command.trim()
 
         if (message.isBlank()) {
-            return Result(response = "कृपया कोई कमांड बोलिए।", intent = "EMPTY")
+            return Result(response = "براہِ کرم اپنا حکم بتائیں۔", intent = "EMPTY")
         }
 
         // A clear refusal must take priority over call/message handlers.
@@ -98,14 +98,14 @@ object OfflineCommandRouter {
                 steps = listOf("Explicit refusal detected")
             )
             return Result(
-                response = "ठीक है। आपने मना किया है, इसलिए कोई कार्रवाई नहीं की गई।",
+                response = "ٹھیک ہے، آپ نے منع کیا ہے، اس لیے کوئی کارروائی نہیں کی گئی۔",
                 intent = "CANCELLED"
             )
         }
 
         if (CallCommandHandler.tryHandle(context, message, launchActivity = allowForegroundUi)) {
             return Result(
-                response = if (allowForegroundUi) "कॉन्टैक्ट चुनिए। उसके बाद Dialer खोलने से पहले पुष्टि होगी।" else "कॉल कमांड तैयार है।",
+                response = if (allowForegroundUi) "رابطہ منتخب کریں۔ فون ایپ کھولنے سے پہلے تصدیق لی جائے گی۔" else "کال کا عمل تیار ہے۔",
                 requiresForegroundUi = !allowForegroundUi,
                 intent = "SAFE_CALL"
             )
@@ -209,7 +209,7 @@ object OfflineCommandRouter {
         // Open the installed camera app; the user controls capture and saving.
         if (!allowForegroundUi && CameraController.isCameraCommand(message)) {
             return Result(
-                response = "कैमरा कमांड तैयार है। आगे बढ़ने के लिए Idraak नोटिफिकेशन में OPEN & RUN दबाइए।",
+                response = "کیمرہ کھولنے کا حکم تیار ہے۔ جاری رکھنے کے لیے ادراک کی اطلاع میں کھولنے کا اختیار دبائیں۔",
                 requiresForegroundUi = true,
                 intent = "CAMERA_OPEN"
             )
@@ -232,7 +232,7 @@ object OfflineCommandRouter {
 
         if (!allowForegroundUi && decision.intent == "OPEN_APP") {
             return Result(
-                response = "ऐप खोलने की कमांड तैयार है। आगे बढ़ने के लिए Idraak नोटिफिकेशन में OPEN & RUN दबाइए।",
+                response = "ایپ کھولنے کا حکم تیار ہے۔ جاری رکھنے کے لیے ادراک کی اطلاع میں کھولنے کا اختیار دبائیں۔",
                 requiresForegroundUi = true,
                 intent = "OPEN_APP"
             )
@@ -242,7 +242,7 @@ object OfflineCommandRouter {
             val enabled = requestedTorchState(message)
             if (enabled == null) {
                 return Result(
-                    response = "कृपया साफ बताइए: टॉर्च चालू करनी है या बंद करनी है?",
+                    response = "واضح بتائیں: ٹارچ جلانی ہے یا بجھانی ہے؟",
                     intent = "FLASHLIGHT"
                 )
             }
@@ -254,7 +254,7 @@ object OfflineCommandRouter {
 
             if (!permissionGranted) {
                 return Result(
-                    response = "टॉर्च चलाने के लिए Camera permission चाहिए। Idraak ऐप खोलकर अनुमति दीजिए।",
+                    response = "ٹارچ چلانے کے لیے کیمرے کی اجازت درکار ہے۔ ادراک کھول کر اجازت دیں۔",
                     requiresCameraPermission = true,
                     torchEnabled = enabled,
                     intent = "FLASHLIGHT"
@@ -287,7 +287,7 @@ object OfflineCommandRouter {
 
         if (!permissionGranted) {
             return Result(
-                response = "Camera permission नहीं मिली। टॉर्च कंट्रोल नहीं किया गया।",
+                response = "کیمرے کی اجازت نہیں ملی، اس لیے ٹارچ کنٹرول نہیں کی گئی۔",
                 requiresCameraPermission = true,
                 torchEnabled = enabled,
                 intent = "FLASHLIGHT"
@@ -309,7 +309,7 @@ object OfflineCommandRouter {
             Result(response = hardwareResult.message, intent = "FLASHLIGHT")
         } catch (error: Exception) {
             Result(
-                response = "टॉर्च कंट्रोल में समस्या आई: " +
+                response = "ٹارچ کنٹرول میں مسئلہ پیش آیا: " +
                     (error.localizedMessage ?: "Unknown error"),
                 intent = "FLASHLIGHT"
             )
