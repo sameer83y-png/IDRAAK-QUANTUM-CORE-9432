@@ -25,24 +25,31 @@ object MemoryBackupManager {
     private const val SALT_BYTES = 16
     private const val IV_BYTES = 12
     private const val MIN_PASSPHRASE_LENGTH = 10
+    private const val MAX_BACKUP_CHARS = 8 * 1024 * 1024
     private const val CIPHER = "AES/GCM/NoPadding"
     private const val KDF = "PBKDF2WithHmacSHA256"
+    private const val AAD_PREFIX = "IDRAAK-MEMORY-BACKUP:"
 
     fun createBackup(context: Context, passphrase: CharArray): String? {
-        if (passphrase.size < MIN_PASSPHRASE_LENGTH) return null
+        var plainBytes: ByteArray? = null
+        try {
+            if (passphrase.size < MIN_PASSPHRASE_LENGTH) return null
 
-        return try {
             val salt = ByteArray(SALT_BYTES).also { SecureRandom().nextBytes(it) }
             val iv = ByteArray(IV_BYTES).also { SecureRandom().nextBytes(it) }
-            val key = deriveKey(passphrase, salt)
             val cipher = Cipher.getInstance(CIPHER)
-            cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(128, iv))
-            cipher.updateAAD("IDRAAK-MEMORY-BACKUP:$FORMAT_VERSION".toByteArray(StandardCharsets.UTF_8))
+            cipher.init(
+                Cipher.ENCRYPT_MODE,
+                deriveKey(passphrase, salt),
+                GCMParameterSpec(128, iv)
+            )
+            cipher.updateAAD((AAD_PREFIX + FORMAT_VERSION).toByteArray(StandardCharsets.UTF_8))
 
-            val plainText = LocalMemoryStore.exportForBackup(context)
-            val encrypted = cipher.doFinal(plainText.toByteArray(StandardCharsets.UTF_8))
+            plainBytes = LocalMemoryStore.exportForBackup(context)
+                .toByteArray(StandardCharsets.UTF_8)
+            val encrypted = cipher.doFinal(plainBytes)
 
-            JSONObject().apply {
+            val result = JSONObject().apply {
                 put("format", "IDRAAK_MEMORY_BACKUP")
                 put("version", FORMAT_VERSION)
                 put("kdf", KDF)
@@ -51,9 +58,12 @@ object MemoryBackupManager {
                 put("iv", Base64.encodeToString(iv, Base64.NO_WRAP))
                 put("data", Base64.encodeToString(encrypted, Base64.NO_WRAP))
             }.toString()
+
+            return result.takeIf { it.length <= MAX_BACKUP_CHARS }
         } catch (_: Exception) {
-            null
+            return null
         } finally {
+            plainBytes?.fill(0)
             passphrase.fill('\u0000')
         }
     }
@@ -63,12 +73,16 @@ object MemoryBackupManager {
         backupText: String,
         passphrase: CharArray
     ): Boolean {
-        if (passphrase.size < MIN_PASSPHRASE_LENGTH) {
-            passphrase.fill('\u0000')
-            return false
-        }
+        var decryptedBytes: ByteArray? = null
+        try {
+            if (
+                passphrase.size < MIN_PASSPHRASE_LENGTH ||
+                backupText.isBlank() ||
+                backupText.length > MAX_BACKUP_CHARS
+            ) {
+                return false
+            }
 
-        return try {
             val envelope = JSONObject(backupText)
             if (
                 envelope.optString("format") != "IDRAAK_MEMORY_BACKUP" ||
@@ -82,7 +96,12 @@ object MemoryBackupManager {
             val salt = Base64.decode(envelope.getString("salt"), Base64.NO_WRAP)
             val iv = Base64.decode(envelope.getString("iv"), Base64.NO_WRAP)
             val encrypted = Base64.decode(envelope.getString("data"), Base64.NO_WRAP)
-            if (salt.size != SALT_BYTES || iv.size != IV_BYTES || encrypted.size < 16) {
+            if (
+                salt.size != SALT_BYTES ||
+                iv.size != IV_BYTES ||
+                encrypted.size < 16 ||
+                encrypted.size > MAX_BACKUP_CHARS
+            ) {
                 return false
             }
 
@@ -92,16 +111,16 @@ object MemoryBackupManager {
                 deriveKey(passphrase, salt),
                 GCMParameterSpec(128, iv)
             )
-            cipher.updateAAD("IDRAAK-MEMORY-BACKUP:$FORMAT_VERSION".toByteArray(StandardCharsets.UTF_8))
-            val plainText = String(
-                cipher.doFinal(encrypted),
-                StandardCharsets.UTF_8
-            )
+            cipher.updateAAD((AAD_PREFIX + FORMAT_VERSION).toByteArray(StandardCharsets.UTF_8))
+            decryptedBytes = cipher.doFinal(encrypted)
+            val plainText = String(decryptedBytes, StandardCharsets.UTF_8)
 
-            LocalMemoryStore.restoreFromBackup(context, plainText)
+            // LocalMemoryStore validates every record before replacing existing data.
+            return LocalMemoryStore.restoreFromBackup(context, plainText)
         } catch (_: Exception) {
-            false
+            return false
         } finally {
+            decryptedBytes?.fill(0)
             passphrase.fill('\u0000')
         }
     }
@@ -109,8 +128,12 @@ object MemoryBackupManager {
     private fun deriveKey(passphrase: CharArray, salt: ByteArray): SecretKeySpec {
         val spec = PBEKeySpec(passphrase, salt, ITERATIONS, KEY_BITS)
         return try {
-            val bytes = SecretKeyFactory.getInstance(KDF).generateSecret(spec).encoded
-            SecretKeySpec(bytes, "AES")
+            val keyBytes = SecretKeyFactory.getInstance(KDF).generateSecret(spec).encoded
+            try {
+                SecretKeySpec(keyBytes, "AES")
+            } finally {
+                keyBytes.fill(0)
+            }
         } finally {
             spec.clearPassword()
         }
