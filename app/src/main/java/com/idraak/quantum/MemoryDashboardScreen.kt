@@ -63,7 +63,7 @@ fun MemoryDashboardScreen(
     var editMessage by remember { mutableStateOf("") }
 
     var selectedEntryType by remember {
-        mutableStateOf("CORRECTION")
+        mutableStateOf("درستگی")
     }
 
     var entryTitle by remember {
@@ -104,19 +104,19 @@ fun MemoryDashboardScreen(
     }
 
     val pendingCount = allMemories.count {
-        it.status == LocalMemoryStore.Status.PENDING.name
+        it.status == LocalMemoryStore.Status.زیرِ تصدیق.name
     }
 
     val verifiedCount = allMemories.count {
-        it.status == LocalMemoryStore.Status.VERIFIED.name
+        it.status == LocalMemoryStore.Status.تصدیق شدہ.name
     }
 
     val failedCount = allMemories.count {
-        it.status == LocalMemoryStore.Status.FAILED.name
+        it.status == LocalMemoryStore.Status.ناکام.name
     }
 
     val rejectedCount = allMemories.count {
-        it.status == LocalMemoryStore.Status.REJECTED.name
+        it.status == LocalMemoryStore.Status.مسترد.name
     }
 
     Column(
@@ -125,17 +125,17 @@ fun MemoryDashboardScreen(
             .padding(16.dp)
     ) {
         TextButton(onClick = onBack) {
-            Text("← BACK TO SETTINGS")
+            Text("← ترتیبات پر واپس جائیں")
         }
 
         Text(
-            text = "IDRAAK MEMORY",
+            text = "ادراک کی یادداشت",
             style = MaterialTheme.typography.headlineMedium,
             color = accentColor
         )
 
         Text(
-            text = "LOCAL MEMORY DASHBOARD",
+            text = "مقامی یادداشت",
             style = MaterialTheme.typography.labelMedium
         )
 
@@ -146,14 +146,14 @@ fun MemoryDashboardScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             MemoryCountCard(
-                title = "TOTAL",
+                title = "کل",
                 count = allMemories.size,
                 accentColor = accentColor,
                 modifier = Modifier.weight(1f)
             )
 
             MemoryCountCard(
-                title = "PENDING",
+                title = "زیرِ تصدیق",
                 count = pendingCount,
                 accentColor = accentColor,
                 modifier = Modifier.weight(1f)
@@ -167,21 +167,21 @@ fun MemoryDashboardScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             MemoryCountCard(
-                title = "VERIFIED",
+                title = "تصدیق شدہ",
                 count = verifiedCount,
                 accentColor = accentColor,
                 modifier = Modifier.weight(1f)
             )
 
             MemoryCountCard(
-                title = "FAILED",
+                title = "ناکام",
                 count = failedCount,
                 accentColor = accentColor,
                 modifier = Modifier.weight(1f)
             )
 
             MemoryCountCard(
-                title = "REJECTED",
+                title = "مسترد",
                 count = rejectedCount,
                 accentColor = accentColor,
                 modifier = Modifier.weight(1f)
@@ -201,7 +201,7 @@ fun MemoryDashboardScreen(
                 modifier = Modifier.padding(14.dp)
             ) {
                 Text(
-                    text = "ADD MEMORY KNOWLEDGE",
+                    text = "یادداشت میں معلومات شامل کریں",
                     color = accentColor,
                     style = MaterialTheme.typography.titleMedium
                 )
@@ -209,7 +209,7 @@ fun MemoryDashboardScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Choose what you want Idraak to learn:",
+                    text = "منتخب کریں کہ ادراک کو کیا سکھانا ہے:",
                     color = Color.White,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -220,47 +220,47 @@ fun MemoryDashboardScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (selectedEntryType == "CORRECTION") {
+                    if (selectedEntryType == "درستگی") {
                         Button(
                             onClick = {
-                                selectedEntryType = "CORRECTION"
+                                selectedEntryType = "درستگی"
                                 saveMessage = ""
                             },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("CORRECTION")
+                            Text("درستگی")
                         }
                     } else {
                         OutlinedButton(
                             onClick = {
-                                selectedEntryType = "CORRECTION"
+                                selectedEntryType = "درستگی"
                                 saveMessage = ""
                             },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("CORRECTION")
+                            Text("درستگی")
                         }
                     }
 
-                    if (selectedEntryType == "LEARNING") {
+                    if (selectedEntryType == "سیکھنا") {
                         Button(
                             onClick = {
-                                selectedEntryType = "LEARNING"
+                                selectedEntryType = "سیکھنا"
                                 saveMessage = ""
                             },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("LEARNING")
+                            Text("سیکھنا")
                         }
                     } else {
                         OutlinedButton(
                             onClick = {
-                                selectedEntryType = "LEARNING"
+                                selectedEntryType = "سیکھنا"
                                 saveMessage = ""
                             },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("LEARNING")
+                            Text("سیکھنا")
                         }
                     }
                 }
@@ -276,10 +276,10 @@ fun MemoryDashboardScreen(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     label = {
-                        Text("Topic / Title")
+                        Text("موضوع / عنوان")
                     },
                     placeholder = {
-                        Text("Example: Preferred language")
+                        Text("مثال: پسندیدہ زبان")
                     }
                 )
 
@@ -296,15 +296,15 @@ fun MemoryDashboardScreen(
                     maxLines = 4,
                     label = {
                         Text(
-                            if (selectedEntryType == "CORRECTION") {
-                                "Correct information"
+                            if (selectedEntryType == "درستگی") {
+                                "درست معلومات"
                             } else {
-                                "Learning / Lesson"
+                                "سبق / سیکھنے کی بات"
                             }
                         )
                     },
                     placeholder = {
-                        Text("Write the correct information here")
+                        Text("درست معلومات یہاں لکھیں")
                     }
                 )
 
@@ -317,10 +317,10 @@ fun MemoryDashboardScreen(
 
                         if (title.isBlank() || content.isBlank()) {
                             saveMessage =
-                                "Please enter both title and information."
+                                "براہِ کرم عنوان اور معلومات دونوں درج کریں۔"
                         } else {
                             val saved = if (
-                                selectedEntryType == "CORRECTION"
+                                selectedEntryType == "درستگی"
                             ) {
                                 LocalMemoryStore.saveCorrection(
                                     context = context,
@@ -339,17 +339,17 @@ fun MemoryDashboardScreen(
                                 entryTitle = ""
                                 entryContent = ""
                                 saveMessage =
-                                    "Saved successfully. Please verify it below."
+                                    "کامیابی سے محفوظ ہو گیا۔ نیچے اس کی تصدیق کریں۔"
                                 refreshKey++
                             } else {
                                 saveMessage =
-                                    "Could not save. Check the information and try again."
+                                    "محفوظ نہیں ہو سکا۔ معلومات دیکھ کر دوبارہ کوشش کریں۔"
                             }
                         }
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("SAVE AS PENDING")
+                    Text("SAVE AS زیرِ تصدیق")
                 }
 
                 if (saveMessage.isNotBlank()) {
@@ -365,7 +365,7 @@ fun MemoryDashboardScreen(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "New entries stay PENDING until you manually verify them. Unverified information is not trusted knowledge.",
+                    text = "New entries stay زیرِ تصدیق until you manually verify them. Unverified information is not trusted knowledge.",
                     color = Color.LightGray,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -382,10 +382,10 @@ fun MemoryDashboardScreen(
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             label = {
-                Text("Search local memories")
+                Text("مقامی یادداشت تلاش کریں")
             },
             placeholder = {
-                Text("Title, content, category or status")
+                Text("عنوان، معلومات، قسم یا حالت")
             }
         )
 
@@ -396,7 +396,7 @@ fun MemoryDashboardScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "SAVED RECORDS (${filteredMemories.size})",
+                text = "محفوظ اندراجات (${filteredMemories.size})",
                 style = MaterialTheme.typography.titleSmall
             )
 
@@ -405,16 +405,16 @@ fun MemoryDashboardScreen(
                     refreshKey++
                 }
             ) {
-                Text("REFRESH")
+                Text("تازہ کریں")
             }
         }
 
         if (filteredMemories.isEmpty()) {
             Text(
                 text = if (allMemories.isEmpty()) {
-                    "Abhi koi local memory saved nahi hai."
+                    "ابھی کوئی مقامی یادداشت محفوظ نہیں ہے۔"
                 } else {
-                    "Is search se koi memory nahi mili."
+                    "اس تلاش سے کوئی یادداشت نہیں ملی۔"
                 },
                 modifier = Modifier.padding(12.dp),
                 color = Color.Gray
@@ -436,7 +436,7 @@ fun MemoryDashboardScreen(
                             val updated = LocalMemoryStore.updateStatus(
                                 context = context,
                                 memoryId = memory.id,
-                                newStatus = LocalMemoryStore.Status.VERIFIED
+                                newStatus = LocalMemoryStore.Status.تصدیق شدہ
                             )
 
                             if (updated) refreshKey++
@@ -445,7 +445,7 @@ fun MemoryDashboardScreen(
                             val updated = LocalMemoryStore.updateStatus(
                                 context = context,
                                 memoryId = memory.id,
-                                newStatus = LocalMemoryStore.Status.REJECTED
+                                newStatus = LocalMemoryStore.Status.مسترد
                             )
 
                             if (updated) refreshKey++
@@ -471,7 +471,7 @@ fun MemoryDashboardScreen(
                 memoryPendingEdit = null
             },
             title = {
-                Text("Edit memory")
+                Text("یادداشت میں ترمیم")
             },
             text = {
                 Column {
@@ -480,7 +480,7 @@ fun MemoryDashboardScreen(
                         onValueChange = { editTitle = it },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        label = { Text("Topic / Title") }
+                        label = { Text("موضوع / عنوان") }
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
@@ -489,7 +489,7 @@ fun MemoryDashboardScreen(
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                         maxLines = 5,
-                        label = { Text("Correct information") }
+                        label = { Text("درست معلومات") }
                     )
                     if (editMessage.isNotBlank()) {
                         Spacer(modifier = Modifier.height(6.dp))
@@ -497,7 +497,7 @@ fun MemoryDashboardScreen(
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        "Saving an edit returns this memory to PENDING. Verify it again before Idraak trusts it.",
+                        "Saving an edit returns this memory to زیرِ تصدیق. Verify it again before Idraak trusts it.",
                         color = Color.Gray,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -516,16 +516,16 @@ fun MemoryDashboardScreen(
                             memoryPendingEdit = null
                             refreshKey++
                         } else {
-                            editMessage = "Could not save. Check the text and try again."
+                            editMessage = "محفوظ نہیں ہو سکا۔ عبارت دیکھ کر دوبارہ کوشش کریں۔"
                         }
                     }
                 ) {
-                    Text("SAVE AS PENDING")
+                    Text("SAVE AS زیرِ تصدیق")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { memoryPendingEdit = null }) {
-                    Text("CANCEL")
+                    Text("منسوخ کریں")
                 }
             }
         )
@@ -537,11 +537,11 @@ fun MemoryDashboardScreen(
                 memoryPendingDeletion = null
             },
             title = {
-                Text("Delete this memory?")
+                Text("یہ یادداشت حذف کریں؟")
             },
             text = {
                 Text(
-                    "Are you sure you want to permanently delete " +
+                    "کیا آپ واقعی اسے ہمیشہ کے لیے حذف کرنا چاہتے ہیں: " +
                     "\"${memory.title}\"? This action cannot be undone."
                 )
             },
@@ -561,7 +561,7 @@ fun MemoryDashboardScreen(
                     }
                 ) {
                     Text(
-                        text = "DELETE",
+                        text = "حذف کریں",
                         color = Color(0xFFFF7777)
                     )
                 }
@@ -572,7 +572,7 @@ fun MemoryDashboardScreen(
                         memoryPendingDeletion = null
                     }
                 ) {
-                    Text("CANCEL")
+                    Text("منسوخ کریں")
                 }
             }
         )
@@ -621,11 +621,11 @@ private fun MemoryRecordCard(
     onDelete: () -> Unit
 ) {
     val statusColor = when (memory.status) {
-        "VERIFIED" -> Color(0xFF43CFA0)
-        "PENDING" -> Color(0xFFFFC857)
-        "FAILED" -> Color(0xFFFF7777)
-        "REJECTED" -> Color(0xFFFF7777)
-        "SUCCESS" -> accentColor
+        "تصدیق شدہ" -> Color(0xFF43CFA0)
+        "زیرِ تصدیق" -> Color(0xFFFFC857)
+        "ناکام" -> Color(0xFFFF7777)
+        "مسترد" -> Color(0xFFFF7777)
+        "کامیاب" -> accentColor
         else -> Color.LightGray
     }
 
@@ -655,13 +655,13 @@ private fun MemoryRecordCard(
             Spacer(modifier = Modifier.height(5.dp))
 
             Text(
-                text = "CATEGORY: ${memory.category}",
+                text = "قسم: ${memory.category}",
                 color = accentColor,
                 style = MaterialTheme.typography.labelSmall
             )
 
             Text(
-                text = "STATUS: ${memory.status}",
+                text = "حالت: ${memory.status}",
                 color = statusColor,
                 style = MaterialTheme.typography.labelMedium
             )
@@ -684,16 +684,16 @@ private fun MemoryRecordCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            if (memory.status == "PENDING") {
+            if (memory.status == "زیرِ تصدیق") {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Button(onClick = onVerify) {
-                        Text("VERIFY")
+                        Text("تصدیق کریں")
                     }
 
                     Button(onClick = onReject) {
-                        Text("REJECT")
+                        Text("مسترد کریں")
                     }
                 }
             }
@@ -702,11 +702,11 @@ private fun MemoryRecordCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedButton(onClick = onEdit) {
-                    Text("EDIT")
+                    Text("ترمیم کریں")
                 }
                 TextButton(onClick = onDelete) {
                     Text(
-                        text = "DELETE MEMORY",
+                        text = "حذف کریں MEMORY",
                         color = Color(0xFFFF7777)
                     )
                 }
