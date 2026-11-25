@@ -327,4 +327,22 @@ class OfflineCommandRegressionTest {
         assertEquals(null, SmartSuggestionEngine.classifyRecentCommandCategory("I like music"))
     }
 
+
+    @Test
+    fun recognizesPoliteVoiceStopCommandsAcrossLanguages() {
+        assertTrue(VoiceSessionCommandHandler.isStopListeningCommand("please stop listening now"))
+        assertTrue(VoiceSessionCommandHandler.isStopListeningCommand("kindly stop listening"))
+        assertTrue(VoiceSessionCommandHandler.isStopListeningCommand("zara sunna band kar dein"))
+        assertTrue(VoiceSessionCommandHandler.isStopListeningCommand("براہ کرم سننا بند کریں"))
+        assertTrue(VoiceSessionCommandHandler.isStopListeningCommand("कृपया सुनना बंद कीजिए"))
+        assertTrue(VoiceSessionCommandHandler.isStopListeningCommand("من فضلك توقف عن الاستماع"))
+    }
+
+    @Test
+    fun politeStopParserDoesNotMatchUnrelatedRequests() {
+        assertFalse(VoiceSessionCommandHandler.isStopListeningCommand("please open YouTube"))
+        assertFalse(VoiceSessionCommandHandler.isStopListeningCommand("zara volume kam karo"))
+        assertFalse(VoiceSessionCommandHandler.isStopListeningCommand("من فضلك افتح الكاميرا"))
+    }
+
 }
