@@ -32,7 +32,7 @@ object OfflineBrain {
         val message = normalize(userMessage)
 
         if (message.isBlank()) {
-            return Decision("EMPTY", "कृपया मुझे कोई कमांड दीजिए।")
+            return Decision("EMPTY", "براہِ کرم بتائیں، آپ کیا کرنا چاہتے ہیں؟")
         }
 
         val screenControl = isScreenCommand(message)
@@ -193,7 +193,7 @@ object OfflineBrain {
 
         return Decision(
             "UNKNOWN",
-            "मैंने आपकी बात समझने की कोशिश की, लेकिन अभी इसका सही उत्तर मेरे Offline Brain में उपलब्ध नहीं है। मैं अनुमान लगाकर गलत जानकारी नहीं दूँगा।"
+            "میں آپ کی بات سمجھنے کی کوشش کر رہا ہوں۔ ذرا واضح کر دیں کہ آپ کس چیز کو کھولنا، بند کرنا، تلاش کرنا یا تبدیل کرنا چاہتے ہیں؟"
         )
     }
 
@@ -520,7 +520,7 @@ object OfflineBrain {
                         listOf(userMessage, "Waiting for confirmation")
                     )
 
-                    return "यह महत्वपूर्ण कार्रवाई है: \"$target\"। क्या आप इसे क्लिक करने की अनुमति देते हैं? पुष्टि के लिए हाँ कहें, रद्द करने के लिए नहीं कहें।"
+                    return "یہ اہم کارروائی ہے: \"$target\"۔ کیا آپ کلک کی اجازت دیتے ہیں؟ اجازت کے لیے ہاں اور منسوخ کرنے کے لیے نہیں کہیں۔"
                 }
 
                 val outcome = if (result.success) {
