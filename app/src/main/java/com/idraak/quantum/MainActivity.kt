@@ -1192,7 +1192,7 @@ fun SettingsScreen(
 
         SettingsStatusCard(
             title = "آواز کا نظام",
-            status = "آف لائن اردو آواز پہچان اور فون کی آواز",
+            status = "مقامی آواز سے مختلف زبانوں میں بات سمجھنے کی کوشش، جواب صرف اردو میں",
             detail = "صرف اردو سمجھنے کے لیے مقامی وائس ماڈل استعمال ہوتا ہے۔ جواب کے لیے فون میں آف لائن اردو آواز موجود ہونا ضروری ہے۔",
             accentColor = themeAccentColor,
         )
@@ -1207,7 +1207,7 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "ادراک صرف اردو میں آپ کی بات سنے گا۔",
+            text = "آپ کسی بھی زبان میں بات کریں؛ ادراک جواب صرف اردو میں دے گا۔",
             color = Color(0xFF9CB0CC),
             fontSize = 12.sp
         )
