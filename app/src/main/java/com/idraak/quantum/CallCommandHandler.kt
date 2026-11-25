@@ -21,8 +21,8 @@ object CallCommandHandler {
         val command = message
             .trim()
             .lowercase(Locale.ROOT)
-            .replace(Regex("[^\\p{L}\\p{M}\\p{N}\s]"), " ")
-            .replace(Regex("\s+"), " ")
+            .replace(Regex("[^\\p{L}\\p{M}\\p{N}\\s]"), " ")
+            .replace(Regex("\\s+"), " ")
             .trim()
 
         if (command.isBlank()) return false
@@ -57,13 +57,13 @@ object CallCommandHandler {
         )
 
         val hasActionWord = actionWords.any { action ->
-            Regex(
-                """(^|\s)${Regex.escape(action)}(?=\s|$)"""
-            ).containsMatchIn(command)
+            val actionPattern =
+                """(^|\s)""" + Regex.escape(action) + """(?=\s|$)"""
+            Regex(actionPattern).containsMatchIn(command)
         }
 
         val directEnglishCommand = Regex(
-            """^(please\s+)?(call|phone call)\\b"""
+            """^(please\s+)?(call|phone call)\b"""
         ).containsMatchIn(command) ||
             command == "make a call"
 
