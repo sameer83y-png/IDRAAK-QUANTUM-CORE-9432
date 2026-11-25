@@ -272,4 +272,22 @@ class OfflineCommandRegressionTest {
         assertFalse(DeviceStatusController.isBatteryStatusCommand("open camera"))
     }
 
+
+    @Test
+    fun prioritizesUnmuteOverMuteWhenCommandContainsBothWords() {
+        assertEquals("UNMUTE", com.idraak.quantum.engine.HardwareController.classifyVolumeCommand("unmute volume"))
+        assertEquals("UNMUTE", com.idraak.quantum.engine.HardwareController.classifyVolumeCommand("unmute sound!"))
+        assertEquals("UNMUTE", com.idraak.quantum.engine.HardwareController.classifyVolumeCommand("آواز دوبارہ چالو کرو۔"))
+        assertEquals("MUTE", com.idraak.quantum.engine.HardwareController.classifyVolumeCommand("mute volume"))
+    }
+
+    @Test
+    fun recognizesVolumeCommandsWithPunctuationAndRejectsConversation() {
+        assertEquals("UP", com.idraak.quantum.engine.HardwareController.classifyVolumeCommand("آواز بڑھاؤ!"))
+        assertEquals("DOWN", com.idraak.quantum.engine.HardwareController.classifyVolumeCommand("volume down."))
+        assertEquals("MAX", com.idraak.quantum.engine.HardwareController.classifyVolumeCommand("maximum volume"))
+        assertEquals("MIN", com.idraak.quantum.engine.HardwareController.classifyVolumeCommand("volume zero"))
+        assertEquals(null, com.idraak.quantum.engine.HardwareController.classifyVolumeCommand("مجھے موسیقی پسند ہے"))
+    }
+
 }
