@@ -18,6 +18,9 @@ jobs:
       - name: Get Project Files
         uses: actions/checkout@v4
 
+      - name: Record source revision
+        run: echo "Building commit $(git rev-parse HEAD)"
+
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
