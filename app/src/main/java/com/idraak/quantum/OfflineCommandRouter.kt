@@ -35,6 +35,38 @@ object OfflineCommandRouter {
             return Result(response = "कृपया कोई कमांड बोलिए।", intent = "EMPTY")
         }
 
+        // A clear refusal must take priority over call/message handlers.
+        // Otherwise phrases such as "Rahul ko call mat karo" could be
+        // mistaken for a request to open the call flow.
+        val hasExplicitNegation = listOf(
+            "don't", "dont", "do not", "never", "not",
+            "mat", "mat karo", "nahi", "nahin",
+            "मत", "मत करो", "नहीं", "नही",
+            "نہیں", "مت", "مت کرو"
+        ).any { phrase ->
+            Regex("(?<![\\\\p{L}\\\\p{M}\\\\p{N}])" + Regex.escape(phrase) + "(?![\\\\p{L}\\\\p{M}\\\\p{N}])")
+                .containsMatchIn(message.lowercase())
+        }
+        val mentionsCallAction = listOf(
+            "call", "phone call", "कॉल", "کال", "فون"
+        ).any { phrase -> message.lowercase().contains(phrase) }
+        val isMessageAction = MessageCommandHandler.tryHandle(
+            context, message, launchActivity = false
+        ) != null
+
+        if (hasExplicitNegation && (mentionsCallAction || isMessageAction)) {
+            OfflineBrain.recordExperience(
+                context = appContext,
+                intent = "USER_CANCELLED_ACTION",
+                status = "REJECTED",
+                steps = listOf("Explicit refusal detected")
+            )
+            return Result(
+                response = "ठीक है। आपने मना किया है, इसलिए कॉल या मैसेज की कोई कार्रवाई नहीं की गई।",
+                intent = "CANCELLED"
+            )
+        }
+
         if (CallCommandHandler.tryHandle(context, message, launchActivity = allowForegroundUi)) {
             return Result(
                 response = if (allowForegroundUi) "कॉन्टैक्ट चुनिए। उसके बाद Dialer खोलने से पहले पुष्टि होगी।" else "कॉल कमांड तैयार है।",
