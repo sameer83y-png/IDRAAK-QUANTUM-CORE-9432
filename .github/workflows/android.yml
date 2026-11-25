@@ -74,6 +74,20 @@ jobs:
       - name: Build Debug APK
         run: gradle :app:assembleDebug
 
+      - name: Verify APK has no network permissions
+        run: |
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          AAPT="$ANDROID_HOME/build-tools/34.0.0/aapt"
+          test -f "$APK"
+          test -x "$AAPT"
+          PERMISSIONS="$("$AAPT" dump permissions "$APK")"
+          printf '%s\n' "$PERMISSIONS"
+          if printf '%s\n' "$PERMISSIONS" | grep -Eq "android.permission.(INTERNET|ACCESS_NETWORK_STATE)"; then
+            echo "ERROR: APK still declares a network permission."
+            exit 1
+          fi
+          echo "Verified: APK declares no INTERNET or ACCESS_NETWORK_STATE permission."
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
