@@ -17,7 +17,7 @@ object MultilingualCommandNormalizer {
         val value = input.trim()
             .lowercase(Locale.ROOT)
             .replace('’', '\'')
-            .replace(Regex("\s+"), " ")
+            .replace(Regex("\\s+"), " ")
         if (value.isBlank()) return false
 
         val patterns = listOf(
