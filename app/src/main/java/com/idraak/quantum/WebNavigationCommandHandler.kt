@@ -47,9 +47,12 @@ object WebNavigationCommandHandler {
     }
 
     private fun parseRequest(command: String): Request? {
+        // Speech transcription can append punctuation to otherwise valid commands.
         val value = command.trim()
             .lowercase(Locale.ROOT)
             .replace('’', '\'')
+            .trimEnd('.', '؟', '?', '!', '۔', '،', ',')
+            .trim()
 
         if (value.isBlank()) return null
 
@@ -67,6 +70,13 @@ object WebNavigationCommandHandler {
             "یوٹیوب میں تلاش کرو ",
             "یوٹیوب پر سرچ کرو ",
             "یوٹیوب میں سرچ کرو ",
+            "یوٹیوب پر تلاش کریں ",
+            "یوٹیوب میں تلاش کریں ",
+            "یوٹیوب پر ڈھونڈو ",
+            "یوٹیوب میں ڈھونڈو ",
+            "گوگل پر تلاش کریں ",
+            "گوگل میں تلاش کرو ",
+            "گوگل پر ڈھونڈو ",
             "search google for ",
             "search on google for ",
             "google search for ",
@@ -95,7 +105,7 @@ object WebNavigationCommandHandler {
                 .firstOrNull { value.startsWith(it) }
             val youtubeTail = listOf(
                 " تلاش کرو", " تلاش کریں", " ڈھونڈو", " ڈھونڈیں",
-                " سرچ کرو", " سرچ کریں"
+                " سرچ کرو", " سرچ کریں", " ویڈیو دکھاؤ", " ویڈیو چلاؤ"
             ).firstOrNull { value.endsWith(it) }
             if (youtubeLead != null && youtubeTail != null) {
                 val query = command.trim()
@@ -162,7 +172,10 @@ object WebNavigationCommandHandler {
             .firstOrNull { value.startsWith(it) }
 
         val prefix = websitePrefix ?: openPrefix ?: return null
-        val rawAddress = command.trim().drop(prefix.length).trim()
+        val rawAddress = command.trim().drop(prefix.length)
+            .trim()
+            .trimEnd('.', '؟', '?', '!', '۔', '،', ',')
+            .trim()
         if (rawAddress.isBlank()) return null
 
         // Plain app names such as YouTube must continue through app discovery.
