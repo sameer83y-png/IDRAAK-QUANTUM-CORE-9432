@@ -97,11 +97,13 @@ object OfflinePhoneCommandHandler {
 
         val prefixes = listOf(
             "could you please open ", "please open the ", "could you open ", "please launch ",
-            "open the app ", "open app ", "open the ", "launch the app ", "launch ",
+            "open the app ", "open app ", "open the ", "open up ", "launch the app ", "launch ",
             "start the app ", "start app ", "start ", "run the app ", "run ",
-            "app open karo ", "app kholo ", "app khol do ", "open karo ", "open kar do ",
-            "khol do ", "kholo ", "chalu karo ", "ऐप खोल दो ", "ऐप खोलो ", "खोल दो ", "खोलो ",
-            "चालू कर दो ", "चालू करो ", "ایپ کھول دو ", "ایپ کھولو ", "کھول دو ", "کھولو "
+            "app open karo ", "app kholo ", "app khol do ", "zara kholo ", "zara khol do ",
+            "khol do ", "kholo ", "kholiye ", "chalu karo ", "ऐप खोल दो ", "ऐप खोलो ",
+            "जरा खोलो ", "जरा खोल दो ", "खोल दो ", "खोलो ", "खोलिए ",
+            "चालू कर दो ", "चालू करो ", "ایپ کھول دو ", "ایپ کھولو ",
+            "ذرا کھولو ", "ذرا کھول دو ", "کھول دو ", "کھولو ", "کھولیں "
         )
         for (prefix in prefixes.sortedByDescending { it.length }) {
             if (value.startsWith(prefix)) {
@@ -114,9 +116,9 @@ object OfflinePhoneCommandHandler {
             " please open", " open please", " open kar do", " open karo", " open",
             " launch karo", " start kar do", " start karo", " on kar do", " on karo",
             " chalu kar do", " chalu karo", " kholo", " khol do", " kholiye", " chalao", " chala do",
-            " ऐप खोल दो", " ऐप खोलो", " खोल देना", " खोल दीजिए", " खोल दो", " खोलो",
+            " ऐप खोल दो", " ऐप खोलो", " खोल देना", " खोल दीजिए", " खोलिए", " खोल दो", " खोलो",
             " चला देना", " चालू कर देना", " चालू कर दो", " चालू करो", " ऑन कर दो",
-            " کھول دینا", " کھول دیجیے", " کھول دو", " کھولو", " چلا دو", " چلا دینا",
+            " کھول دینا", " کھول دیجیے", " کھولیں", " کھول دو", " کھولو", " چلا دو", " چلا دینا",
             " شروع کرو", " آن کر دو"
         )
         for (suffix in suffixes.sortedByDescending { it.length }) {
