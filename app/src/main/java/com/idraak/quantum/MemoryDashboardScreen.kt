@@ -104,19 +104,19 @@ fun MemoryDashboardScreen(
     }
 
     val pendingCount = allMemories.count {
-        it.status == LocalMemoryStore.Status.زیرِ تصدیق.name
+        it.status == LocalMemoryStore.Status.PENDING.name
     }
 
     val verifiedCount = allMemories.count {
-        it.status == LocalMemoryStore.Status.تصدیق شدہ.name
+        it.status == LocalMemoryStore.Status.VERIFIED.name
     }
 
     val failedCount = allMemories.count {
-        it.status == LocalMemoryStore.Status.ناکام.name
+        it.status == LocalMemoryStore.Status.FAILED.name
     }
 
     val rejectedCount = allMemories.count {
-        it.status == LocalMemoryStore.Status.مسترد.name
+        it.status == LocalMemoryStore.Status.REJECTED.name
     }
 
     Column(
@@ -349,7 +349,7 @@ fun MemoryDashboardScreen(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("SAVE AS زیرِ تصدیق")
+                    Text("زیرِ تصدیق محفوظ کریں")
                 }
 
                 if (saveMessage.isNotBlank()) {
@@ -365,7 +365,7 @@ fun MemoryDashboardScreen(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "New entries stay زیرِ تصدیق until you manually verify them. Unverified information is not trusted knowledge.",
+                    text = "نئی معلومات آپ کی تصدیق تک زیرِ تصدیق رہیں گی۔ غیر مصدقہ معلومات کو درست نہیں مانا جائے گا۔",
                     color = Color.LightGray,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -436,7 +436,7 @@ fun MemoryDashboardScreen(
                             val updated = LocalMemoryStore.updateStatus(
                                 context = context,
                                 memoryId = memory.id,
-                                newStatus = LocalMemoryStore.Status.تصدیق شدہ
+                                newStatus = LocalMemoryStore.Status.VERIFIED
                             )
 
                             if (updated) refreshKey++
@@ -445,7 +445,7 @@ fun MemoryDashboardScreen(
                             val updated = LocalMemoryStore.updateStatus(
                                 context = context,
                                 memoryId = memory.id,
-                                newStatus = LocalMemoryStore.Status.مسترد
+                                newStatus = LocalMemoryStore.Status.REJECTED
                             )
 
                             if (updated) refreshKey++
@@ -497,7 +497,7 @@ fun MemoryDashboardScreen(
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        "Saving an edit returns this memory to زیرِ تصدیق. Verify it again before Idraak trusts it.",
+                        "ترمیم کے بعد یادداشت دوبارہ زیرِ تصدیق ہو جائے گی۔ ادراک کے اعتماد سے پہلے اس کی دوبارہ تصدیق کریں۔",
                         color = Color.Gray,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -520,7 +520,7 @@ fun MemoryDashboardScreen(
                         }
                     }
                 ) {
-                    Text("SAVE AS زیرِ تصدیق")
+                    Text("زیرِ تصدیق محفوظ کریں")
                 }
             },
             dismissButton = {
@@ -542,7 +542,7 @@ fun MemoryDashboardScreen(
             text = {
                 Text(
                     "کیا آپ واقعی اسے ہمیشہ کے لیے حذف کرنا چاہتے ہیں: " +
-                    "\"${memory.title}\"? This action cannot be undone."
+                    "\"${memory.title}\"؟ یہ عمل واپس نہیں ہو سکے گا۔"
                 )
             },
             confirmButton = {
@@ -620,12 +620,28 @@ private fun MemoryRecordCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val statusLabel = when (memory.status) {
+        "VERIFIED" -> "تصدیق شدہ"
+        "PENDING" -> "زیرِ تصدیق"
+        "FAILED" -> "ناکام"
+        "REJECTED" -> "مسترد"
+        "SUCCESS" -> "کامیاب"
+        else -> "نامعلوم"
+    }
+    val categoryLabel = when (memory.category) {
+        "USER_PREFERENCE" -> "ذاتی پسند"
+        "GENERAL_FACT" -> "عام معلومات"
+        "COMMAND" -> "حکم"
+        "EXPERIENCE" -> "تجربہ"
+        "CORRECTION" -> "درستگی"
+        "LEARNING" -> "سیکھنا"
+        else -> "دیگر"
+    }
     val statusColor = when (memory.status) {
-        "تصدیق شدہ" -> Color(0xFF43CFA0)
-        "زیرِ تصدیق" -> Color(0xFFFFC857)
-        "ناکام" -> Color(0xFFFF7777)
-        "مسترد" -> Color(0xFFFF7777)
-        "کامیاب" -> accentColor
+        "VERIFIED" -> Color(0xFF43CFA0)
+        "PENDING" -> Color(0xFFFFC857)
+        "FAILED", "REJECTED" -> Color(0xFFFF7777)
+        "SUCCESS" -> accentColor
         else -> Color.LightGray
     }
 
@@ -655,13 +671,13 @@ private fun MemoryRecordCard(
             Spacer(modifier = Modifier.height(5.dp))
 
             Text(
-                text = "قسم: ${memory.category}",
+                text = "قسم: $categoryLabel",
                 color = accentColor,
                 style = MaterialTheme.typography.labelSmall
             )
 
             Text(
-                text = "حالت: ${memory.status}",
+                text = "حالت: $statusLabel",
                 color = statusColor,
                 style = MaterialTheme.typography.labelMedium
             )
@@ -684,7 +700,7 @@ private fun MemoryRecordCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            if (memory.status == "زیرِ تصدیق") {
+            if (memory.status == "PENDING") {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -706,7 +722,7 @@ private fun MemoryRecordCard(
                 }
                 TextButton(onClick = onDelete) {
                     Text(
-                        text = "حذف کریں MEMORY",
+                        text = "یادداشت حذف کریں",
                         color = Color(0xFFFF7777)
                     )
                 }
