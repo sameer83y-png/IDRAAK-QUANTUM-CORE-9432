@@ -22,24 +22,19 @@ object VoiceSessionCommandHandler {
         if (normalized.isBlank()) return false
 
         val stopPhrases = setOf(
-            "stop listening",
-            "stop voice",
-            "stop voice chat",
-            "stop background voice",
-            "turn off voice",
-            "disable voice listening",
-            "सुनना बंद करो",
-            "सुनना बंद कर दो",
-            "आवाज बंद करो",
-            "आवाज़ बंद करो",
-            "वॉइस बंद करो",
-            "वॉइस बंद कर दो",
-            "सुनना रोक दो",
             "سننا بند کرو",
             "سننا بند کر دو",
+            "آواز سننا بند کرو",
+            "آواز سننا بند کر دو",
             "آواز بند کرو",
+            "آواز بند کر دو",
+            "ادراک سننا بند کرو",
+            "پس منظر میں سننا بند کرو",
+            "پس منظر کی آواز بند کرو",
             "وائس بند کرو",
-            "وائس بند کر دو"
+            "وائس بند کر دو",
+            "سننا روک دو",
+            "سننا روک دیں"
         )
 
         return normalized in stopPhrases
