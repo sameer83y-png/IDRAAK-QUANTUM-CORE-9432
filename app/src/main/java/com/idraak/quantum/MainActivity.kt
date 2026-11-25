@@ -335,6 +335,7 @@ fun IdraakHomeScreen() {
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.RequestPermission()
         ) { granted ->
+            PermissionRequestGate.markResult(context, Manifest.permission.CAMERA, granted)
             val pending = pendingTorchCommand
             pendingTorchCommand = null
 
@@ -346,7 +347,7 @@ fun IdraakHomeScreen() {
                     )
                 } else {
                     val response =
-                        "Camera permission नहीं मिली। टॉर्च कंट्रोल नहीं किया गया।"
+                        "Camera permission नहीं मिली। Idraak इसे बार-बार नहीं पूछेगा। अनुमति देने के लिए Android App Settings खोलें।"
 
                     messages.add(ChatMessage(response, false))
                     voiceController.speak(response)
@@ -406,15 +407,22 @@ fun IdraakHomeScreen() {
             messages.add(ChatMessage(result.response, false))
             voiceController.speak(result.response)
             voiceStatus = "BRIGHTNESS PERMISSION REQUIRED"
-            try {
-                context.startActivity(
-                    Intent(
-                        Settings.ACTION_MANAGE_WRITE_SETTINGS,
-                        Uri.parse("package:${context.packageName}")
-                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                )
-            } catch (error: Exception) {
-                voiceStatus = "COULD NOT OPEN BRIGHTNESS PERMISSION SETTINGS"
+            if (PermissionRequestGate.tryMarkSpecialSettingsOpened(context, "modify_system_settings")) {
+                try {
+                    context.startActivity(
+                        Intent(
+                            Settings.ACTION_MANAGE_WRITE_SETTINGS,
+                            Uri.parse("package:${context.packageName}")
+                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                } catch (error: Exception) {
+                    voiceStatus = "COULD NOT OPEN BRIGHTNESS PERMISSION SETTINGS"
+                }
+            } else {
+                val response = "ब्राइटनेस की विशेष अनुमति पहले दिखाई जा चुकी है। इसे Android Settings में Idraak के Modify System Settings विकल्प से चालू करें।"
+                messages.add(ChatMessage(response, false))
+                voiceController.speak(response)
+                voiceStatus = "BRIGHTNESS PERMISSION NEEDS SETTINGS"
             }
             return
         }
@@ -434,9 +442,14 @@ fun IdraakHomeScreen() {
             voiceController.speak(result.response)
             voiceStatus = "REQUESTING CAMERA PERMISSION"
 
-            cameraPermissionLauncher.launch(
-                Manifest.permission.CAMERA
-            )
+            if (PermissionRequestGate.tryMarkRequested(context, Manifest.permission.CAMERA)) {
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            } else {
+                val response = "Camera अनुमति पहले पूछी जा चुकी है। दोबारा पॉप-अप नहीं दिखाऊँगा। इसे Android App Settings में चालू करें।"
+                messages.add(ChatMessage(response, false))
+                voiceController.speak(response)
+                voiceStatus = "CAMERA PERMISSION NEEDS APP SETTINGS"
+            }
             return
         }
 
@@ -465,6 +478,7 @@ fun IdraakHomeScreen() {
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.RequestPermission()
         ) { granted ->
+            PermissionRequestGate.markResult(context, Manifest.permission.RECORD_AUDIO, granted)
             if (granted && isContinuousVoiceChat) {
                 speakDashboardSuggestions()
                 isListening = false
@@ -479,19 +493,23 @@ fun IdraakHomeScreen() {
     LaunchedEffect(microphonePermissionRequest) {
         if (microphonePermissionRequest) {
             microphonePermissionRequest = false
-            microphonePermissionLauncher.launch(
-                Manifest.permission.RECORD_AUDIO
-            )
+            if (PermissionRequestGate.tryMarkRequested(context, Manifest.permission.RECORD_AUDIO)) {
+                microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            } else {
+                isContinuousVoiceChat = false
+                val response = "Microphone अनुमति पहले पूछी जा चुकी है। दोबारा पॉप-अप नहीं दिखाऊँगा। Android App Settings में Microphone अनुमति चालू करें।"
+                voiceController.speak(response)
+                voiceStatus = "MICROPHONE PERMISSION NEEDS APP SETTINGS"
+            }
         }
     }
 
     val backgroundNotificationPermissionLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.RequestPermission()
-        ) {
-            // Android allows a foreground service to run even if
-            // notification permission is denied. The service will
-            // still appear in Android's active-apps interface.
+        ) { granted ->
+            PermissionRequestGate.markResult(context, Manifest.permission.POST_NOTIFICATIONS, granted)
+            // Android permits the foreground service even without notification permission.
             startBackgroundVoiceService()
         }
 
@@ -499,6 +517,7 @@ fun IdraakHomeScreen() {
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.RequestPermission()
         ) { granted ->
+            PermissionRequestGate.markResult(context, Manifest.permission.RECORD_AUDIO, granted)
             if (granted) {
                 val notificationGranted =
                     Build.VERSION.SDK_INT < 33 ||
@@ -511,9 +530,11 @@ fun IdraakHomeScreen() {
                     Build.VERSION.SDK_INT >= 33 &&
                     !notificationGranted
                 ) {
-                    backgroundNotificationPermissionLauncher.launch(
-                        Manifest.permission.POST_NOTIFICATIONS
-                    )
+                    if (PermissionRequestGate.tryMarkRequested(context, Manifest.permission.POST_NOTIFICATIONS)) {
+                        backgroundNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        startBackgroundVoiceService()
+                    }
                 } else {
                     startBackgroundVoiceService()
                 }
@@ -544,9 +565,13 @@ fun IdraakHomeScreen() {
             ) == PackageManager.PERMISSION_GRANTED
 
         if (!microphoneGranted) {
-            backgroundMicrophonePermissionLauncher.launch(
-                Manifest.permission.RECORD_AUDIO
-            )
+            if (PermissionRequestGate.tryMarkRequested(context, Manifest.permission.RECORD_AUDIO)) {
+                backgroundMicrophonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            } else {
+                val response = "Microphone अनुमति पहले पूछी जा चुकी है। दोबारा पॉप-अप नहीं दिखाऊँगा। Android App Settings में अनुमति चालू करें।"
+                voiceController.speak(response)
+                voiceStatus = "MICROPHONE PERMISSION NEEDS APP SETTINGS"
+            }
             return
         }
 
@@ -561,9 +586,11 @@ fun IdraakHomeScreen() {
             Build.VERSION.SDK_INT >= 33 &&
             !notificationGranted
         ) {
-            backgroundNotificationPermissionLauncher.launch(
-                Manifest.permission.POST_NOTIFICATIONS
-            )
+            if (PermissionRequestGate.tryMarkRequested(context, Manifest.permission.POST_NOTIFICATIONS)) {
+                backgroundNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                startBackgroundVoiceService()
+            }
         } else {
             startBackgroundVoiceService()
         }
