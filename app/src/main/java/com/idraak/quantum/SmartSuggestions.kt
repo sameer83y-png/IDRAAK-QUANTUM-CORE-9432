@@ -86,8 +86,7 @@ object SmartSuggestionEngine {
 
         // Use only the category of the most recent user command.
         when {
-            last.contains("camera") || last.contains("कैमरा") ||
-                last.contains("فوٹو") || last.contains("تصویر") -> {
+            last.contains("کیمرہ") || last.contains("فوٹو") || last.contains("تصویر") -> {
                 suggestions += IdraakSuggestion(
                     title = "کیمرے کی مدد",
                     detail = "کیمرہ کھولنے یا تصویر لینے کے لیے واضح حکم بولیں۔",
@@ -96,7 +95,7 @@ object SmartSuggestionEngine {
                 )
             }
 
-            last.contains("youtube") || last.contains("यूट्यूब") -> {
+            last.contains("یوٹیوب") -> {
                 suggestions += IdraakSuggestion(
                     title = "ایپ تبدیل کریں",
                     detail = "کسی دوسری نصب شدہ ایپ کو کھولنے کے لیے کہیں۔",
@@ -105,10 +104,7 @@ object SmartSuggestionEngine {
                 )
             }
 
-            last.contains("call") || last.contains("phone call") ||
-                last.contains("कॉल") || last.contains("फोन करो") ||
-                last.contains("फोन लगाओ") || last.contains("کال") ||
-                last.contains("فون کال") -> {
+            last.contains("کال") || last.contains("فون کرو") || last.contains("فون ملاؤ") -> {
                 suggestions += IdraakSuggestion(
                     title = "کال کی مدد",
                     detail = "کال کے لیے رابطہ منتخب کرنا اور فون ایپ میں تصدیق کرنا ضروری ہے۔",
@@ -117,9 +113,7 @@ object SmartSuggestionEngine {
                 )
             }
 
-            last.contains("message") || last.contains("मैसेज") ||
-                last.contains("संदेश") || last.contains("پیغام") ||
-                last.contains("میسج") -> {
+            last.contains("پیغام") || last.contains("میسج") -> {
                 suggestions += IdraakSuggestion(
                     title = "پیغام کی مدد",
                     detail = "بھیجنے سے پہلے پیغام اور وصول کنندہ کی تصدیق کریں۔",
@@ -128,12 +122,7 @@ object SmartSuggestionEngine {
                 )
             }
 
-            last.contains("volume") || last.contains("वॉल्यूम") ||
-                last.contains("आवाज़") || last.contains("आवाज") ||
-                last.contains("brightness") || last.contains("ब्राइटनेस") ||
-                last.contains("चमक") || last.contains("torch") ||
-                last.contains("टॉर्च") || last.contains("flashlight") ||
-                last.contains("روشنی") || last.contains("والیوم") -> {
+            last.contains("آواز") || last.contains("روشنی") || last.contains("والیوم") || last.contains("ٹارچ") -> {
                 suggestions += IdraakSuggestion(
                     title = "فون کنٹرول کی مدد",
                     detail = "آواز، روشنی اور ٹارچ کنٹرول کرنے کے لیے واضح حکم بولیں۔",
@@ -142,10 +131,8 @@ object SmartSuggestionEngine {
                 )
             }
 
-            last.contains("swipe") || last.contains("scroll") ||
-                last.contains("स्क्रॉल") || last.contains("स्वाइप") ||
-                last.contains("क्लिक") || last.contains("स्क्रीन") ||
-                last.contains("دباؤ") || last.contains("سوائپ") -> {
+            last.contains("اسکرول") || last.contains("سوائپ") ||
+                last.contains("کلک") || last.contains("اسکرین") || last.contains("دباؤ") -> {
                 suggestions += IdraakSuggestion(
                     title = "اسکرین کنٹرول کی مدد",
                     detail = "واپس جانے، ہوم کھولنے، سوائپ، اسکرول اور کلک کے لیے واضح حکم دیں۔",
@@ -165,8 +152,7 @@ object SmartSuggestionEngine {
                 )
             }
 
-            last.contains("open ") || last.contains("खोल") ||
-                last.contains("चालू करो") || last.contains("کھولو") -> {
+            last.contains("کھولو") || last.contains("چالو کرو") -> {
                 suggestions += IdraakSuggestion(
                     title = "ایپ کنٹرول",
                     detail = "فون میں نصب کسی ایپ کا نام لے کر اسے کھولنے کو کہیں۔",
@@ -180,7 +166,7 @@ object SmartSuggestionEngine {
                     title = "آواز کے احکام",
                     detail = "مائیکروفون کے بٹن سے ادراک کو بول کر حکم دیں۔",
                     command = "آپ کیا کیا کر سکتے ہیں؟",
-                    category = "वॉइस सहायता"
+                    category = "آواز کی مدد"
                 )
             }
         }
