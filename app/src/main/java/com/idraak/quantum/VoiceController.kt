@@ -19,6 +19,7 @@ import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.abs
+import kotlinx.coroutines.runBlocking
 
 /**
  * Urdu-only offline voice controller.
@@ -52,7 +53,7 @@ class VoiceController(
         VoskModelStore.VoskLanguage.URDU
 
     fun setRecognitionLanguage(
-        language: VoskModelStore.VoskLanguage,
+        @Suppress("UNUSED_PARAMETER") language: VoskModelStore.VoskLanguage,
         resumeListening: Boolean = false
     ) {
         preferences.edit().putString(LANGUAGE_KEY, VoskModelStore.VoskLanguage.URDU.name).apply()
@@ -134,7 +135,7 @@ class VoiceController(
         try {
             if (loadedModel == null) {
                 onStatusChanged("اردو آف لائن ماڈل لوڈ ہو رہا ہے")
-                loadedModel = Whisper.loadModelFromAsset(appContext, MODEL_ASSET)
+                loadedModel = runBlocking { Whisper.loadModelFromAsset(appContext, MODEL_ASSET) }
             }
             if (isShutdown || !isListening) return
 
@@ -193,11 +194,13 @@ class VoiceController(
             wav = File(appContext.cacheDir, "idraak_urdu_${SystemClock.elapsedRealtime()}.wav")
             writeWav(wav, pcm.toByteArray())
             onStatusChanged("اردو آواز سمجھ رہا ہوں")
-            val result = Whisper.transcribe(
-                loadedModel ?: throw IllegalStateException("Urdu model not loaded"),
-                wav.absolutePath,
-                WhisperConfig(language = "ur")
-            ).text.trim()
+            val result = runBlocking {
+                Whisper.transcribe(
+                    loadedModel ?: throw IllegalStateException("Urdu model not loaded"),
+                    wav.absolutePath,
+                    WhisperConfig(language = "ur")
+                ).text.trim()
+            }
 
             if (isShutdown || !isListening) return
             if (result.isNotBlank()) {
