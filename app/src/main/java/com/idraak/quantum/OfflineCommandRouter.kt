@@ -40,13 +40,13 @@ object OfflineCommandRouter {
         // mistaken for a request to open the call flow.
         val paddedMessage = " ${message.lowercase().trim()} "
         val hasExplicitNegation = listOf(
-            "don't", "dont", "do not", "never", "not",
+            "don't", "dont", "do not", "never", "not", "no",
             "mat", "mat karo", "nahi", "nahin",
             "मत", "मत करो", "नहीं", "नही",
             "نہیں", "مت", "مت کرو"
         ).any { phrase -> paddedMessage.contains(" $phrase ") }
         val mentionsCallAction = listOf(
-            "call", "phone call", "कॉल", "کال", "فون"
+            "call", "phone", "phone call", "फोन", "कॉल", "کال", "فون"
         ).any { phrase -> message.lowercase().contains(phrase) }
         val isMessageAction = MessageCommandHandler.tryHandle(
             context, message, launchActivity = false
