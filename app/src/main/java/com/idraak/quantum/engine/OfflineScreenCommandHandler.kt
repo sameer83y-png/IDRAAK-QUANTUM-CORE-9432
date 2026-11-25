@@ -26,6 +26,38 @@ object OfflineScreenCommandHandler {
             )
         }
 
+        // Read only the currently visible accessibility text; nothing is stored or transmitted.
+        if (matches(
+                command,
+                "read screen", "read the screen", "what is on screen", "what's on the screen",
+                "screen par kya hai", "screen par kya likha hai",
+                "اسکرین پڑھو", "اسکرین پر کیا ہے", "اسکرین پر کیا لکھا ہے",
+                "یہاں کیا لکھا ہے", "پڑھ کر سناؤ",
+                "اقرأ الشاشة", "ماذا على الشاشة", "ماذا يظهر على الشاشة"
+            )
+        ) {
+            if (!ScreenControlBridge.isServiceConnected()) {
+                return Result(false, "اسکرین پڑھنے کے لیے ادراک کی رسائی کی اجازت فعال کریں۔", "SERVICE_DISABLED")
+            }
+            val visibleText = ScreenControlBridge.readVisibleScreenText()
+            return if (visibleText.isNullOrBlank()) {
+                Result(false, "اسکرین سے پڑھنے کے قابل متن دستیاب نہیں۔", "SCREEN_READ_EMPTY")
+            } else {
+                Result(true, "اسکرین پر یہ متن نظر آ رہا ہے: $visibleText", "SCREEN_READ")
+            }
+        }
+
+        // Enter dictated text only in the currently focused editable field.
+        // This never presses Send, Submit, Pay, Delete, or any other action button.
+        val textToEnter = extractTextToEnter(userCommand)
+        if (textToEnter != null) {
+            return if (ScreenControlBridge.typeTextInFocusedField(textToEnter)) {
+                Result(true, "متن موجودہ منتخب خانے میں درج کر دیا گیا ہے۔ بھیجنے یا جمع کرنے سے پہلے خود جائزہ لیں۔", "TYPE_TEXT")
+            } else {
+                Result(false, "متن درج نہیں ہوا۔ پہلے مطلوبہ ایپ میں متن لکھنے والا خانہ منتخب کریں۔", "TYPE_TEXT_FAILED")
+            }
+        }
+
         // Back navigation
         if (matches(
                 command,
@@ -291,6 +323,19 @@ object OfflineScreenCommandHandler {
                 "ACTION_ERROR"
             )
         }
+    }
+
+    private fun extractTextToEnter(rawCommand: String): String? {
+        val raw = rawCommand.trim()
+        val prefixes = listOf(
+            "enter text ", "type text ", "type ", "write ",
+            "لکھو ", "لکھ دیں ", "لکھ دو ", "متن لکھو ", "یہ لکھو ",
+            "اس خانے میں لکھو ", "اكتب النص ", "اكتب "
+        )
+        val prefix = prefixes.firstOrNull { raw.startsWith(it, ignoreCase = true) }
+            ?: return null
+        val text = raw.drop(prefix.length).trim()
+        return text.takeIf { it.isNotBlank() && it.length <= 2000 }
     }
 
     private fun extractClickTarget(
