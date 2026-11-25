@@ -194,6 +194,9 @@ class VoiceController(
             activeRecorder = null
             if (!isListening || isShutdown) return
             if (!speechStarted || totalSamples < minimumSpeech) {
+                // Release the listening state before notifying the UI. Otherwise
+                // continuous voice mode cannot start the next capture.
+                isListening = false
                 onStatusChanged("آواز واضح نہیں آئی، دوبارہ بولیں")
                 onSpeechFinished()
                 return
@@ -220,9 +223,12 @@ class VoiceController(
                     onStatusChanged("آپ کی بات سمجھ لی")
                     onSpeechResult(result)
                 } else {
+                    // A duplicate transcript is still the end of this capture.
+                    isListening = false
                     onSpeechFinished()
                 }
             } else {
+                isListening = false
                 onStatusChanged("بات سمجھ نہیں آئی، ذرا دوبارہ کہیں")
                 onSpeechFinished()
             }
