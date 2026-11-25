@@ -43,6 +43,7 @@ class CameraCaptureActivity : ComponentActivity() {
 
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            PermissionRequestGate.markResult(this, Manifest.permission.CAMERA, granted)
             if (granted) {
                 startCamera()
             } else {
@@ -122,8 +123,12 @@ class CameraCaptureActivity : ComponentActivity() {
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             startCamera()
-        } else {
+        } else if (PermissionRequestGate.tryMarkRequested(this, Manifest.permission.CAMERA)) {
             permissionLauncher.launch(Manifest.permission.CAMERA)
+        } else {
+            statusView.text = "Camera अनुमति पहले पूछी जा चुकी है। Android App Settings में इसे चालू करें।"
+            Toast.makeText(this, "Camera permission के लिए Android App Settings खोलें।", Toast.LENGTH_LONG).show()
+            finish()
         }
     }
 
