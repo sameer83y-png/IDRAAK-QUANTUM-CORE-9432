@@ -105,8 +105,10 @@ object SmartSuggestionEngine {
                 )
             }
 
-            last.contains("call") || last.contains("कॉल") ||
-                last.contains("फोन") || last.contains("کال") -> {
+            last.contains("call") || last.contains("phone call") ||
+                last.contains("कॉल") || last.contains("फोन करो") ||
+                last.contains("फोन लगाओ") || last.contains("کال") ||
+                last.contains("فون کال") -> {
                 suggestions += IdraakSuggestion(
                     title = "कॉल सहायता",
                     detail = "कॉल के लिए संपर्क चुनना और डायलर में पुष्टि करना जरूरी है।",
@@ -123,6 +125,53 @@ object SmartSuggestionEngine {
                     detail = "भेजने से पहले संदेश और प्राप्तकर्ता की पुष्टि करें।",
                     command = "मदद करो",
                     category = "हाल की कमांड"
+                )
+            }
+
+            last.contains("volume") || last.contains("वॉल्यूम") ||
+                last.contains("आवाज़") || last.contains("आवाज") ||
+                last.contains("brightness") || last.contains("ब्राइटनेस") ||
+                last.contains("चमक") || last.contains("torch") ||
+                last.contains("टॉर्च") || last.contains("flashlight") ||
+                last.contains("روشنی") || last.contains("والیوم") -> {
+                suggestions += IdraakSuggestion(
+                    title = "फोन कंट्रोल सहायता",
+                    detail = "वॉल्यूम, ब्राइटनेस और टॉर्च जैसे कंट्रोल के लिए साफ कमांड बोलें।",
+                    command = "मदद करो",
+                    category = "डिवाइस कंट्रोल"
+                )
+            }
+
+            last.contains("swipe") || last.contains("scroll") ||
+                last.contains("स्क्रॉल") || last.contains("स्वाइप") ||
+                last.contains("क्लिक") || last.contains("स्क्रीन") ||
+                last.contains("دباؤ") || last.contains("سوائپ") -> {
+                suggestions += IdraakSuggestion(
+                    title = "स्क्रीन कंट्रोल सहायता",
+                    detail = "Back, Home, Swipe, Scroll और स्क्रीन पर क्लिक के लिए स्पष्ट कमांड दें।",
+                    command = "मदद करो",
+                    category = "स्क्रीन कंट्रोल"
+                )
+            }
+
+            last.contains("remember") || last.contains("याद रखना") ||
+                last.contains("याद रखो") || last.contains("memory") ||
+                last.contains("मेमोरी") || last.contains("یاد رکھنا") -> {
+                suggestions += IdraakSuggestion(
+                    title = "लोकल मेमोरी सहायता",
+                    detail = "नई जानकारी PENDING सेव होती है; भरोसेमंद बनाने के लिए Memory Dashboard में Verify करें।",
+                    command = "मदद करो",
+                    category = "मेमोरी"
+                )
+            }
+
+            last.contains("open ") || last.contains("खोल") ||
+                last.contains("चालू करो") || last.contains("کھولو") -> {
+                suggestions += IdraakSuggestion(
+                    title = "ऐप कंट्रोल",
+                    detail = "फोन में इंस्टॉल किसी दूसरे ऐप का नाम लेकर उसे खोलने को कहें।",
+                    command = "मदद करो",
+                    category = "ऐप कंट्रोल"
                 )
             }
 

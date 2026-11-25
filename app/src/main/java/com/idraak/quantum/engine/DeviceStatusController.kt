@@ -21,7 +21,9 @@ object DeviceStatusController {
         val value = command.trim().lowercase(Locale.ROOT)
         val phrases = listOf(
             "battery", "battery status", "battery level", "how much battery",
-            "phone charge", "charging status", "is phone charging",
+            "phone charge", "charging status", "charge status",
+            "is phone charging", "charging status", "चार्जिंग स्टेटस",
+            "चार्जिंग की स्थिति", "फोन चार्ज हो रहा है", "چارجنگ اسٹیٹس",
             "बैटरी", "बैटरी कितनी", "बैटरी कितनी है", "चार्ज कितना",
             "फोन कितना चार्ज", "चार्जिंग हो रही", "बैटरी स्टेटस",
             "بیٹری", "چارج کتنا", "بیٹری کتنی"
