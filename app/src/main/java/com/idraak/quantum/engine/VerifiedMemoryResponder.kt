@@ -128,7 +128,7 @@ object VerifiedMemoryResponder {
                 .firstOrNull()
 
             matchingMemory?.let { memory ->
-                "मेरी Verified Memory के अनुसार: ${memory.content}"
+                "میری تصدیق شدہ یادداشت کے مطابق: ${memory.content}"
             }
 
         } catch (_: Exception) {
