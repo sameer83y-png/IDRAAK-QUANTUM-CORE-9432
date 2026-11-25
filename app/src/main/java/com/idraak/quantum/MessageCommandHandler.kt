@@ -20,12 +20,12 @@ object MessageCommandHandler {
     fun tryHandle(context: Context, command: String, launchActivity: Boolean = true): String? {
         val request = extractRequest(command) ?: return null
         if (request.body.isBlank()) {
-            return "मैसेज का टेक्स्ट बताइए। उदाहरण: राहुल को WhatsApp पर मैसेज भेजो कि मैं घर आ रहा हूँ।"
+            return "پیغام کا متن بتائیں۔ مثال: احمد کو واٹس ایپ پر پیغام بھیجیں کہ میں گھر آ رہا ہوں۔"
         }
 
         if (!launchActivity) {
-            val destination = request.targetPackage?.let { "चुने हुए ऐप" } ?: "SMS या उपलब्ध मैसेजिंग ऐप"
-            return "मैसेज तैयार है। Idraak खोलकर पुष्टि करें और $destination में प्राप्तकर्ता चुनें।"
+            val destination = request.targetPackage?.let { "منتخب ایپ" } ?: "ایس ایم ایس یا دستیاب پیغام رسانی ایپ"
+            return "پیغام تیار ہے۔ ادراک کھول کر تصدیق کریں اور $destination میں وصول کنندہ منتخب کریں۔"
         }
 
         return try {
@@ -37,10 +37,10 @@ object MessageCommandHandler {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)
-            val destination = request.targetPackage?.let { "चुने हुए ऐप" } ?: "SMS या उपलब्ध मैसेजिंग ऐप"
-            "मैसेज तैयार है। टेक्स्ट की पुष्टि करें और $destination में प्राप्तकर्ता चुनें।"
+            val destination = request.targetPackage?.let { "منتخب ایپ" } ?: "ایس ایم ایس یا دستیاب پیغام رسانی ایپ"
+            "پیغام تیار ہے۔ متن کی تصدیق کریں اور $destination میں وصول کنندہ منتخب کریں۔"
         } catch (_: Exception) {
-            "मैसेज स्क्रीन नहीं खुल सकी। कृपया Idraak को दोबारा खोलकर कोशिश करें।"
+            "پیغام کی اسکرین نہیں کھل سکی۔ ادراک دوبارہ کھول کر کوشش کریں۔"
         }
     }
 
