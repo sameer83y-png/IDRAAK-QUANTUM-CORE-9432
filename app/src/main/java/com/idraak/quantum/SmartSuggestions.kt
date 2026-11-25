@@ -25,7 +25,7 @@ data class IdraakSuggestion(
     val title: String,
     val detail: String,
     val command: String,
-    val category: String = "सामान्य सहायता"
+    val category: String = "عام مدد"
 )
 
 /**
@@ -47,40 +47,40 @@ object SmartSuggestionEngine {
 
         if (battery != null && battery.first <= 25 && !battery.second) {
             suggestions += IdraakSuggestion(
-                title = "बैटरी कम है",
-                detail = "बैटरी की स्थिति जाँच लें।",
-                command = "बैटरी कितनी है",
-                category = "डिवाइस स्थिति"
+                title = "بیٹری کم ہے",
+                detail = "بیٹری کی حالت دیکھ لیں۔",
+                command = "بیٹری کتنی ہے؟",
+                category = "فون کی حالت"
             )
         } else if (battery != null && battery.second) {
             suggestions += IdraakSuggestion(
-                title = "फोन चार्ज हो रहा है",
-                detail = "चाहें तो चार्जिंग की स्थिति जाँचें।",
-                command = "चार्जिंग स्टेटस बताओ",
-                category = "डिवाइस स्थिति"
+                title = "فون چارج ہو رہا ہے",
+                detail = "چاہیں تو چارج ہونے کی حالت معلوم کریں۔",
+                command = "چارج ہونے کی حالت بتاؤ",
+                category = "فون کی حالت"
             )
         }
 
         if (hour in 5..11) {
             suggestions += IdraakSuggestion(
-                title = "सुबह की शुरुआत",
-                detail = "आज की तारीख और समय जानें।",
-                command = "आज की तारीख बताओ",
-                category = "समय और दिन"
+                title = "صبح کی ابتدا",
+                detail = "آج کی تاریخ اور وقت معلوم کریں۔",
+                command = "آج کی تاریخ بتاؤ",
+                category = "وقت اور تاریخ"
             )
         } else if (hour in 12..17) {
             suggestions += IdraakSuggestion(
-                title = "दिन का समय",
-                detail = "अभी का समय जानें।",
-                command = "अभी समय बताओ",
-                category = "समय और दिन"
+                title = "دن کا وقت",
+                detail = "موجودہ وقت معلوم کریں۔",
+                command = "ابھی وقت بتاؤ",
+                category = "وقت اور تاریخ"
             )
         } else {
             suggestions += IdraakSuggestion(
-                title = "आज का दिन",
-                detail = "आज की तारीख देख सकते हैं।",
-                command = "आज की तारीख बताओ",
-                category = "समय और दिन"
+                title = "آج کا دن",
+                detail = "آج کی تاریخ معلوم کر سکتے ہیں۔",
+                command = "آج کی تاریخ بتاؤ",
+                category = "وقت اور تاریخ"
             )
         }
 
@@ -89,19 +89,19 @@ object SmartSuggestionEngine {
             last.contains("camera") || last.contains("कैमरा") ||
                 last.contains("فوٹو") || last.contains("تصویر") -> {
                 suggestions += IdraakSuggestion(
-                    title = "कैमरा सहायता",
-                    detail = "कैमरा खोलने या फोटो लेने के लिए स्पष्ट वॉइस कमांड दें।",
-                    command = "मदद करो",
-                    category = "हाल की कमांड"
+                    title = "کیمرے کی مدد",
+                    detail = "کیمرہ کھولنے یا تصویر لینے کے لیے واضح حکم بولیں۔",
+                    command = "مدد کرو",
+                    category = "حالیہ حکم"
                 )
             }
 
             last.contains("youtube") || last.contains("यूट्यूब") -> {
                 suggestions += IdraakSuggestion(
-                    title = "ऐप बदलें",
-                    detail = "किसी दूसरे इंस्टॉल किए ऐप को खोलने के लिए कहें।",
-                    command = "मदद करो",
-                    category = "हाल की कमांड"
+                    title = "ایپ تبدیل کریں",
+                    detail = "کسی دوسری نصب شدہ ایپ کو کھولنے کے لیے کہیں۔",
+                    command = "مدد کرو",
+                    category = "حالیہ حکم"
                 )
             }
 
@@ -110,10 +110,10 @@ object SmartSuggestionEngine {
                 last.contains("फोन लगाओ") || last.contains("کال") ||
                 last.contains("فون کال") -> {
                 suggestions += IdraakSuggestion(
-                    title = "कॉल सहायता",
-                    detail = "कॉल के लिए संपर्क चुनना और डायलर में पुष्टि करना जरूरी है।",
-                    command = "मदद करो",
-                    category = "हाल की कमांड"
+                    title = "کال کی مدد",
+                    detail = "کال کے لیے رابطہ منتخب کرنا اور فون ایپ میں تصدیق کرنا ضروری ہے۔",
+                    command = "مدد کرو",
+                    category = "حالیہ حکم"
                 )
             }
 
@@ -121,10 +121,10 @@ object SmartSuggestionEngine {
                 last.contains("संदेश") || last.contains("پیغام") ||
                 last.contains("میسج") -> {
                 suggestions += IdraakSuggestion(
-                    title = "मैसेज सहायता",
-                    detail = "भेजने से पहले संदेश और प्राप्तकर्ता की पुष्टि करें।",
-                    command = "मदद करो",
-                    category = "हाल की कमांड"
+                    title = "پیغام کی مدد",
+                    detail = "بھیجنے سے پہلے پیغام اور وصول کنندہ کی تصدیق کریں۔",
+                    command = "مدد کرو",
+                    category = "حالیہ حکم"
                 )
             }
 
@@ -135,10 +135,10 @@ object SmartSuggestionEngine {
                 last.contains("टॉर्च") || last.contains("flashlight") ||
                 last.contains("روشنی") || last.contains("والیوم") -> {
                 suggestions += IdraakSuggestion(
-                    title = "फोन कंट्रोल सहायता",
-                    detail = "वॉल्यूम, ब्राइटनेस और टॉर्च जैसे कंट्रोल के लिए साफ कमांड बोलें।",
-                    command = "मदद करो",
-                    category = "डिवाइस कंट्रोल"
+                    title = "فون کنٹرول کی مدد",
+                    detail = "آواز، روشنی اور ٹارچ کنٹرول کرنے کے لیے واضح حکم بولیں۔",
+                    command = "مدد کرو",
+                    category = "فون کنٹرول"
                 )
             }
 
@@ -147,39 +147,39 @@ object SmartSuggestionEngine {
                 last.contains("क्लिक") || last.contains("स्क्रीन") ||
                 last.contains("دباؤ") || last.contains("سوائپ") -> {
                 suggestions += IdraakSuggestion(
-                    title = "स्क्रीन कंट्रोल सहायता",
-                    detail = "Back, Home, Swipe, Scroll और स्क्रीन पर क्लिक के लिए स्पष्ट कमांड दें।",
-                    command = "मदद करो",
-                    category = "स्क्रीन कंट्रोल"
+                    title = "اسکرین کنٹرول کی مدد",
+                    detail = "واپس جانے، ہوم کھولنے، سوائپ، اسکرول اور کلک کے لیے واضح حکم دیں۔",
+                    command = "مدد کرو",
+                    category = "اسکرین کنٹرول"
                 )
             }
 
             last.contains("remember") || last.contains("याद रखना") ||
                 last.contains("याद रखो") || last.contains("memory") ||
-                last.contains("मेमोरी") || last.contains("یاد رکھنا") -> {
+                last.contains("یادداشت") || last.contains("یاد رکھنا") -> {
                 suggestions += IdraakSuggestion(
-                    title = "लोकल मेमोरी सहायता",
-                    detail = "नई जानकारी PENDING सेव होती है; भरोसेमंद बनाने के लिए Memory Dashboard में Verify करें।",
-                    command = "मदद करो",
-                    category = "मेमोरी"
+                    title = "مقامی یادداشت کی مدد",
+                    detail = "نئی معلومات تصدیق تک زیرِ جانچ رہتی ہیں؛ اسے درست ثابت کرنے کے لیے یادداشت میں تصدیق کریں۔",
+                    command = "مدد کرو",
+                    category = "یادداشت"
                 )
             }
 
             last.contains("open ") || last.contains("खोल") ||
                 last.contains("चालू करो") || last.contains("کھولو") -> {
                 suggestions += IdraakSuggestion(
-                    title = "ऐप कंट्रोल",
-                    detail = "फोन में इंस्टॉल किसी दूसरे ऐप का नाम लेकर उसे खोलने को कहें।",
-                    command = "मदद करो",
-                    category = "ऐप कंट्रोल"
+                    title = "ایپ کنٹرول",
+                    detail = "فون میں نصب کسی ایپ کا نام لے کر اسے کھولنے کو کہیں۔",
+                    command = "مدد کرو",
+                    category = "ایپ کنٹرول"
                 )
             }
 
             !voiceActive -> {
                 suggestions += IdraakSuggestion(
-                    title = "वॉइस कमांड",
-                    detail = "माइक बटन से Idraak को बोलकर कमांड दें।",
-                    command = "तुम क्या-क्या कर सकते हो",
+                    title = "آواز کے احکام",
+                    detail = "مائیکروفون کے بٹن سے ادراک کو بول کر حکم دیں۔",
+                    command = "آپ کیا کیا کر سکتے ہیں؟",
                     category = "वॉइस सहायता"
                 )
             }
@@ -187,10 +187,10 @@ object SmartSuggestionEngine {
 
         if (suggestions.isEmpty()) {
             suggestions += IdraakSuggestion(
-                title = "Idraak सहायता",
-                detail = "उपलब्ध ऑफलाइन कमांड जानें।",
-                command = "मदद करो",
-                category = "सामान्य सहायता"
+                title = "ادراک کی مدد",
+                detail = "دستیاب آف لائن احکام معلوم کریں۔",
+                command = "مدد کرو",
+                category = "عام مدد"
             )
         }
 
@@ -235,7 +235,7 @@ fun SmartSuggestionsPanel(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "SMART SUGGESTIONS • परिस्थिति के अनुसार",
+                text = "سمجھ دار تجاویز • موجودہ صورتِ حال کے مطابق",
                 color = Color(0xFF65C8FF),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
@@ -278,7 +278,7 @@ fun SmartSuggestionsPanel(
                             TextButton(
                                 onClick = { onSuggestionSelected(suggestion.command) }
                             ) {
-                                Text("चुनें", color = Color(0xFF65C8FF))
+                                Text("منتخب کریں", color = Color(0xFF65C8FF))
                             }
                         }
                     }
