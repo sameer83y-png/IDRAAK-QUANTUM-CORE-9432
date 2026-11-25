@@ -59,8 +59,25 @@ object OfflineCommandRouter {
         val isMessageAction = MessageCommandHandler.tryHandle(
             context, message, launchActivity = false
         ) != null
+        val actionVerbs = listOf(
+            "open ", "launch ", "start ", "run ", "call", "phone call",
+            "send ", "message", "text ", "take ", "photo", "click ",
+            "tap ", "press ", "swipe ", "scroll ", "back", "home",
+            "notification", "lock", "power menu", "quick settings",
+            "volume", "brightness", "torch", "flashlight",
+            "खोल", "चालू", "कॉल", "भेज", "मैसेज", "संदेश", "फोटो",
+            "तस्वीर", "खींच", "क्लिक", "दब", "स्वाइप", "स्क्रॉल",
+            "पीछे", "होम", "नोटिफिकेशन", "लॉक", "पावर", "वॉल्यूम",
+            "आवाज़", "आवाज", "ब्राइटनेस", "चमक", "टॉर्च", "फ्लैशलाइट",
+            "کھول", "کال", "بھیج", "میسج", "پیغام", "تصویر", "کلک",
+            "دب", "سوائپ", "اسکرول", "واپس", "ہوم", "نوٹیفکیشن",
+            "لاک", "پاور", "والیوم", "آواز", "روشنی"
+        )
+        val mentionsOtherAction = actionVerbs.any {
+            normalizedRefusalText.contains(it)
+        }
 
-        if (hasExplicitNegation && (mentionsCallAction || isMessageAction)) {
+        if (hasExplicitNegation && (mentionsCallAction || isMessageAction || mentionsOtherAction)) {
             OfflineBrain.recordExperience(
                 context = appContext,
                 intent = "USER_CANCELLED_ACTION",
