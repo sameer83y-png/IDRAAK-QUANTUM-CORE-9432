@@ -620,7 +620,7 @@ object OfflineBrain {
     ) {
         if (intent.isBlank()) return
 
-        saveLegacyExperience(context, intent, status, steps)
+        saveLegacyExperience(context, intent, status)
 
         val normalizedStatus = status
             .trim()
@@ -665,8 +665,7 @@ object OfflineBrain {
     private fun saveLegacyExperience(
         context: Context,
         intent: String,
-        status: String,
-        steps: List<String>
+        status: String
     ) {
         try {
             val memories = readMemories(context)
@@ -675,7 +674,6 @@ object OfflineBrain {
                 put("intent", intent)
                 put("status", status)
                 put("timestamp", System.currentTimeMillis())
-                put("steps", JSONArray(steps))
             }
 
             memories.put(record)
@@ -710,7 +708,23 @@ object OfflineBrain {
             if (saved.isNullOrBlank()) {
                 JSONArray()
             } else {
-                JSONArray(saved)
+                val records = JSONArray(saved)
+                var removedPrivateDetails = false
+                for (index in 0 until records.length()) {
+                    val record = records.optJSONObject(index) ?: continue
+                    if (record.has("steps")) {
+                        record.remove("steps")
+                        removedPrivateDetails = true
+                    }
+                }
+                if (removedPrivateDetails) {
+                    context.applicationContext
+                        .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                        .edit()
+                        .putString(MEMORY_KEY, records.toString())
+                        .apply()
+                }
+                records
             }
         } catch (_: Exception) {
             JSONArray()
