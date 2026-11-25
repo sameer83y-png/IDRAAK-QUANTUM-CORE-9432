@@ -29,8 +29,11 @@ object OfflineScreenCommandHandler {
         // Back navigation
         if (matches(
                 command,
-                "back", "go back", "press back",
-                "पीछे जाओ", "वापस जाओ", "बैक दबाओ", "پیچھے جاؤ", "واپس جاؤ", "بیک دباؤ"
+                "back", "go back", "press back", "navigate back", "previous screen",
+                "पीछे जाओ", "पीछे आओ", "वापस जाओ", "वापस आओ", "बैक दबाओ",
+                "पिछली स्क्रीन पर जाओ",
+                "پیچھے جاؤ", "واپس جاؤ", "واپس آؤ", "پچھلی اسکرین پر جاؤ", "بیک دباؤ",
+                "ارجع", "ارجع للخلف", "عد للخلف", "رجوع"
             )
         ) {
             return perform("BACK") {
@@ -41,8 +44,10 @@ object OfflineScreenCommandHandler {
         // Home navigation
         if (matches(
                 command,
-                "go home", "open home", "home screen",
-                "होम खोलो", "होम पर जाओ", "घर जाओ", "ہوم کھولو", "ہوم پر جاؤ", "گھر جاؤ"
+                "go home", "open home", "home screen", "go to home screen",
+                "होम खोलो", "होम पर जाओ", "होम पर आओ", "घर जाओ", "मुख्य स्क्रीन खोलो",
+                "ہوم کھولو", "ہوم پر جاؤ", "ہوم پر آؤ", "گھر جاؤ", "مرکزی اسکرین کھولو",
+                "افتح الصفحة الرئيسية", "اذهب إلى الصفحة الرئيسية", "الشاشة الرئيسية"
             )
         ) {
             return perform("HOME") {
@@ -54,8 +59,10 @@ object OfflineScreenCommandHandler {
         if (matches(
                 command,
                 "swipe up", "swipe upward",
-                "ऊपर स्वाइप", "ऊपर स्वाइप करो",
-                "स्वाइप ऊपर", "स्वाइप ऊपर करो", "اوپر سوائپ", "اوپر سوائپ کرو"
+                "ऊपर स्वाइप", "ऊपर स्वाइप करो", "ऊपर की तरफ स्वाइप करो",
+                "स्वाइप ऊपर", "स्वाइप ऊपर करो",
+                "اوپر سوائپ", "اوپر سوائپ کرو", "اوپر کی طرف سوائپ کرو",
+                "مرر للأعلى", "اسحب للأعلى", "اسحب إلى الأعلى"
             )
         ) {
             return perform("SWIPE_UP") {
@@ -67,8 +74,10 @@ object OfflineScreenCommandHandler {
         if (matches(
                 command,
                 "swipe down", "swipe downward",
-                "नीचे स्वाइप", "नीचे स्वाइप करो",
-                "स्वाइप नीचे", "स्वाइप नीचे करो", "نیچے سوائپ", "نیچے سوائپ کرو"
+                "नीचे स्वाइप", "नीचे स्वाइप करो", "नीचे की तरफ स्वाइप करो",
+                "स्वाइप नीचे", "स्वाइप नीचे करो",
+                "نیچے سوائپ", "نیچے سوائپ کرو", "نیچے کی طرف سوائپ کرو",
+                "مرر للأسفل", "اسحب للأسفل", "اسحب إلى الأسفل"
             )
         ) {
             return perform("SWIPE_DOWN") {
@@ -82,7 +91,9 @@ object OfflineScreenCommandHandler {
                 "swipe left", "swipe to left",
                 "left swipe", "बाएं स्वाइप",
                 "बाएं स्वाइप करो", "बाईं तरफ स्वाइप करो",
-                "स्वाइप बाएं", "بائیں سوائپ", "بائیں طرف سوائپ کرو"
+                "स्वाइप बाएं",
+                "بائیں سوائپ", "بائیں طرف سوائپ کرو", "بائیں جانب سوائپ کرو",
+                "مرر لليسار", "اسحب لليسار", "اسحب إلى اليسار"
             )
         ) {
             return perform("SWIPE_LEFT") {
@@ -96,7 +107,9 @@ object OfflineScreenCommandHandler {
                 "swipe right", "swipe to right",
                 "right swipe", "दाएं स्वाइप",
                 "दाएं स्वाइप करो", "दाईं तरफ स्वाइप करो",
-                "स्वाइप दाएं", "دائیں سوائپ", "دائیں طرف سوائپ کرو"
+                "स्वाइप दाएं",
+                "دائیں سوائپ", "دائیں طرف سوائپ کرو", "دائیں جانب سوائپ کرو",
+                "مرر لليمين", "اسحب لليمين", "اسحب إلى اليمين"
             )
         ) {
             return perform("SWIPE_RIGHT") {
@@ -108,10 +121,9 @@ object OfflineScreenCommandHandler {
         if (matches(
                 command,
                 "scroll down",
-                "नीचे स्क्रॉल करो",
-                "स्क्रॉल नीचे करो",
-                "नीचे जाओ",
-                "नीचे करो", "نیچے اسکرول کرو", "نیچے جاؤ"
+                "नीचे स्क्रॉल करो", "स्क्रॉल नीचे करो", "नीचे जाओ", "नीचे करो",
+                "نیچے اسکرول کرو", "نیچے جاؤ", "نیچے کی طرف اسکرول کرو",
+                "مرر لأسفل", "انزل لأسفل", "انزل إلى الأسفل"
             )
         ) {
             return perform("SCROLL_DOWN") {
@@ -123,10 +135,9 @@ object OfflineScreenCommandHandler {
         if (matches(
                 command,
                 "scroll up",
-                "ऊपर स्क्रॉल करो",
-                "स्क्रॉल ऊपर करो",
-                "ऊपर जाओ",
-                "ऊपर करो", "اوپر اسکرول کرو", "اوپر جاؤ"
+                "ऊपर स्क्रॉल करो", "स्क्रॉल ऊपर करो", "ऊपर जाओ", "ऊपर करो",
+                "اوپر اسکرول کرو", "اوپر جاؤ", "اوپر کی طرف اسکرول کرو",
+                "مرر لأعلى", "اصعد لأعلى", "اصعد إلى الأعلى"
             )
         ) {
             return perform("SCROLL_UP") {
@@ -138,10 +149,10 @@ object OfflineScreenCommandHandler {
         if (matches(
                 command,
                 "open notifications",
-                "show notifications",
-                "notification panel",
-                "नोटिफिकेशन खोलो",
-                "नोटिफिकेशन दिखाओ", "نوٹیفکیشن کھولو", "نوٹیفکیشن دکھاؤ"
+                "show notifications", "notification panel",
+                "नोटिफिकेशन खोलो", "नोटिफिकेशन दिखाओ",
+                "نوٹیفکیشن کھولو", "نوٹیفکیشن دکھاؤ", "اطلاعات کھولو",
+                "افتح الإشعارات", "اعرض الإشعارات", "لوحة الإشعارات"
             )
         ) {
             return perform("NOTIFICATIONS") {
@@ -152,7 +163,8 @@ object OfflineScreenCommandHandler {
         if (matches(command,
                 "lock screen", "lock the screen",
                 "स्क्रीन लॉक करो", "फोन लॉक करो", "मोबाइल लॉक करो",
-                "اسکرین لاک کرو", "فون لاک کرو"
+                "اسکرین لاک کرو", "فون لاک کرو", "موبائل لاک کرو",
+                "اقفل الشاشة", "قفل الشاشة", "اقفل الهاتف"
             )
         ) {
             return perform("LOCK_SCREEN") { ScreenControlBridge.lockScreen() }
@@ -161,7 +173,8 @@ object OfflineScreenCommandHandler {
         if (matches(command,
                 "open quick settings", "show quick settings", "quick settings panel",
                 "क्विक सेटिंग खोलो", "क्विक सेटिंग्स खोलो",
-                "فوری سیٹنگز کھولو", "کوئیک سیٹنگز دکھاؤ"
+                "فوری سیٹنگز کھولو", "کوئیک سیٹنگز دکھاؤ",
+                "افتح الإعدادات السريعة", "اعرض الإعدادات السريعة"
             )
         ) {
             return perform("QUICK_SETTINGS") { ScreenControlBridge.openQuickSettings() }
@@ -170,7 +183,8 @@ object OfflineScreenCommandHandler {
         if (matches(command,
                 "open recent apps", "show recent apps", "recent apps",
                 "हाल के ऐप खोलो", "हालिया ऐप दिखाओ",
-                "حالیہ ایپس کھولو", "حالیہ ایپس دکھاؤ"
+                "حالیہ ایپس کھولو", "حالیہ ایپس دکھاؤ",
+                "افتح التطبيقات الأخيرة", "اعرض التطبيقات الأخيرة"
             )
         ) {
             return perform("RECENT_APPS") { ScreenControlBridge.openRecentApps() }
@@ -179,7 +193,8 @@ object OfflineScreenCommandHandler {
         if (matches(command,
                 "open power menu", "show power menu", "power menu",
                 "पावर मेन्यू खोलो", "पावर मेनू दिखाओ",
-                "پاور مینو کھولو", "پاور مینو دکھاؤ"
+                "پاور مینو کھولو", "پاور مینو دکھاؤ",
+                "افتح قائمة الطاقة", "قائمة الطاقة"
             )
         ) {
             return perform("POWER_MENU") { ScreenControlBridge.openPowerMenu() }
@@ -283,17 +298,10 @@ object OfflineScreenCommandHandler {
     ): String? {
 
         val prefixes = listOf(
-            "click on ",
-            "click ",
-            "tap on ",
-            "tap ",
-            "press ",
-            "क्लिक करो ",
-            "दबाओ ",
-            "کلک کرو ",
-            "کلک کریں ",
-            "دباؤ ",
-            "دبائیں "
+            "click on ", "click ", "tap on ", "tap ", "press ",
+            "क्लिक करो ", "दबाओ ",
+            "کلک کرو ", "کلک کریں ", "دباؤ ", "دبائیں ",
+            "انقر على ", "اضغط على ", "انقر ", "اضغط ", "المس "
         )
 
         for (prefix in prefixes) {
@@ -330,6 +338,9 @@ object OfflineScreenCommandHandler {
             "purchase", "buy", "pay", "confirm",
             "transfer", "send money", "place order",
             "share", "post", "publish",
+            "إرسال", "ارسل", "أرسل", "احذف", "حذف",
+            "شراء", "اشتر", "ادفع", "دفع", "أكد", "تأكيد",
+            "تحويل", "حوّل", "شارك", "انشر", "نشر",
             "भेजो", "भेजें", "डिलीट", "हटाओ",
             "खरीदो", "पेमेंट", "भुगतान",
             "पुष्टि", "ट्रांसफर", "शेयर", "पोस्ट", "प्रकाशित", "साझा",
