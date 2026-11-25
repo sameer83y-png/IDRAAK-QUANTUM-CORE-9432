@@ -86,7 +86,7 @@ object OfflinePhoneCommandHandler {
         }
     }
 
-    private fun extractAppName(command: String): String {
+    internal fun extractAppName(command: String): String {
         var value = normalize(command)
         val conversationalPrefixes = listOf(
             "bhai ", "yaar ", "please ", "kindly ", "zara ",
@@ -103,7 +103,8 @@ object OfflinePhoneCommandHandler {
             "khol do ", "kholo ", "kholiye ", "chalu karo ", "ऐप खोल दो ", "ऐप खोलो ",
             "जरा खोलो ", "जरा खोल दो ", "खोल दो ", "खोलो ", "खोलिए ",
             "चालू कर दो ", "चालू करो ", "ایپ کھول دو ", "ایپ کھولو ",
-            "ذرا کھولو ", "ذرا کھول دو ", "کھول دو ", "کھولو ", "کھولیں ", "کھول کر رکھو ", "کھول کے رکھو ", "کھول کر دکھاؤ ", "کھول کے دکھاؤ "
+            "ذرا کھولو ", "ذرا کھول دو ", "کھول دو ", "کھولو ", "کھولیں ", "کھول کر رکھو ", "کھول کے رکھو ", "کھول کر دکھاؤ ", "کھول کے دکھاؤ ",
+            "چالو کر دو ", "چالو کرو ", "چلا دو ", "چلاؤ "
         )
         for (prefix in prefixes.sortedByDescending { it.length }) {
             if (value.startsWith(prefix)) {
@@ -119,7 +120,9 @@ object OfflinePhoneCommandHandler {
             " ऐप खोल दो", " ऐप खोलो", " खोल देना", " खोल दीजिए", " खोलिए", " खोल दो", " खोलो",
             " चला देना", " चालू कर देना", " चालू कर दो", " चालू करो", " ऑन कर दो",
             " کھول دینا", " کھول دیجیے", " کھولیں", " کھول دو", " کھولو", " کھول کر رکھو", " کھول کے رکھو", " کھول کر رکھ دو", " کھول کے رکھ دو", " کھول کر دکھاؤ", " کھول کے دکھاؤ", " چلا دو", " چلا دینا",
-            " شروع کرو", " آن کر دو"
+            " چلا کر دکھاؤ", " چلا کے دکھاؤ", " چلا کر رکھو", " چلا کے رکھو",
+            " چالو کر کے رکھو", " چالو کرکے رکھو", " چالو کر دو", " چالو کرو",
+            " شروع کر دو", " شروع کرو", " شروع کریں", " آن کر دو", " آن کرو"
         )
         for (suffix in suffixes.sortedByDescending { it.length }) {
             if (value.endsWith(suffix)) {
