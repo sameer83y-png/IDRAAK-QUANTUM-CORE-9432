@@ -648,7 +648,7 @@ private fun MemoryRecordCard(
     val dateText = remember(memory.createdAt) {
         SimpleDateFormat(
             "dd MMM yyyy, hh:mm a",
-            Locale.getDefault()
+            Locale("ur", "PK")
         ).format(Date(memory.createdAt))
     }
 
