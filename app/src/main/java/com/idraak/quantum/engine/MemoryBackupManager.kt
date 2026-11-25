@@ -45,9 +45,10 @@ object MemoryBackupManager {
             )
             cipher.updateAAD((AAD_PREFIX + FORMAT_VERSION).toByteArray(StandardCharsets.UTF_8))
 
-            plainBytes = LocalMemoryStore.exportForBackup(context)
+            val clearBytes = LocalMemoryStore.exportForBackup(context)
                 .toByteArray(StandardCharsets.UTF_8)
-            val encrypted = cipher.doFinal(plainBytes)
+            plainBytes = clearBytes
+            val encrypted = cipher.doFinal(clearBytes)
 
             val result = JSONObject().apply {
                 put("format", "IDRAAK_MEMORY_BACKUP")
@@ -112,8 +113,9 @@ object MemoryBackupManager {
                 GCMParameterSpec(128, iv)
             )
             cipher.updateAAD((AAD_PREFIX + FORMAT_VERSION).toByteArray(StandardCharsets.UTF_8))
-            decryptedBytes = cipher.doFinal(encrypted)
-            val plainText = String(decryptedBytes, StandardCharsets.UTF_8)
+            val clearBytes = cipher.doFinal(encrypted)
+            decryptedBytes = clearBytes
+            val plainText = String(clearBytes, StandardCharsets.UTF_8)
 
             // LocalMemoryStore validates every record before replacing existing data.
             return LocalMemoryStore.restoreFromBackup(context, plainText)
