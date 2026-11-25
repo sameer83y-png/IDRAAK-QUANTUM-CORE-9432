@@ -30,11 +30,15 @@ object CallCommandHandler {
         // Phone power, lock, and silent-mode commands are not call requests.
         // Exclude them before the broad Hindi/Urdu "phone + action" matcher.
         val isPhoneControlCommand = listOf(
-            "फोन बंद", "फोन लॉक", "फोन साइलेंट",
-            "मोबाइल बंद", "मोबाइल लॉक",
-            "phone off", "turn off phone", "switch off phone",
-            "lock phone", "silent phone",
-            "فون بند", "فون لاک"
+            "फोन बंद", "फोन लॉक", "फोन साइलेंट", "फोन चालू", "फोन म्यूट",
+            "मोबाइल बंद", "मोबाइल लॉक", "मोबाइल चालू", "मोबाइल साइलेंट",
+            "phone off", "phone on", "turn off phone", "switch off phone",
+            "turn on phone", "switch on phone", "lock phone", "silent phone",
+            "phone silent", "put phone on silent", "mobile off", "mobile on",
+            "فون بند", "فون لاک", "فون چالو", "فون آن", "فون خاموش",
+            "فون خاموش کرو", "فون خاموش کردو", "فون سائلنٹ",
+            "موبائل بند", "موبائل لاک", "موبائل چالو", "موبائل آن",
+            "موبائل خاموش", "موبائل سائلنٹ"
         ).any { command.startsWith(it) }
 
         if (isPhoneControlCommand) return false
