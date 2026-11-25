@@ -312,9 +312,9 @@ fun IdraakHomeScreen() {
             lastUserMessage = messages.lastOrNull { it.isUser }?.text.orEmpty()
         )
         val spokenSummary = if (suggestions.isNotEmpty()) {
-            "ادراک کی تجاویز۔ " + suggestions.joinToString(separator = "। ") { suggestion ->
+            "ادراک کی تجاویز۔ " + suggestions.joinToString(separator = "۔ ") { suggestion ->
                 "${suggestion.title}: ${suggestion.detail}"
-            } + "। आप इनमें से कोई काम बोलकर बता सकते हैं।"
+            } + "۔ آپ ان میں سے کوئی کام بول کر بتا سکتے ہیں۔"
         } else {
             "ادراک تیار ہے۔ آپ بول کر حکم دے سکتے ہیں۔"
         }
