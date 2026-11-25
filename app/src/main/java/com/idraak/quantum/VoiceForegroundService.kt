@@ -47,7 +47,7 @@ class VoiceForegroundService : Service() {
                     voiceController?.cancelListening()
                     voiceController?.speak(response)
                 } else {
-                    sendStatus("Background voice is not active for spoken response")
+                    sendStatus("پس منظر میں آواز سننے کا نظام فعال نہیں ہے")
                 }
             }
 
@@ -67,7 +67,7 @@ class VoiceForegroundService : Service() {
                         resumeListening = true
                     )
                 } else if (language == null) {
-                    sendStatus("Unsupported offline voice language")
+                    sendStatus("یہ آف لائن زبان دستیاب نہیں")
                 }
             }
 
@@ -89,7 +89,7 @@ class VoiceForegroundService : Service() {
             ) == PackageManager.PERMISSION_GRANTED
 
         if (!microphoneGranted) {
-            sendStatus("Microphone permission required")
+            sendStatus("مائیکروفون کی اجازت درکار ہے")
             stopSelf()
             return
         }
@@ -112,7 +112,7 @@ class VoiceForegroundService : Service() {
 
             serviceActive = true
             isRunning = true
-            sendStatus("Background voice service starting")
+            sendStatus("پس منظر میں آواز سننا شروع ہو رہا ہے")
 
             voiceController = VoiceController(
                 context = applicationContext,
@@ -140,12 +140,12 @@ class VoiceForegroundService : Service() {
                 voiceController?.startListening() == true
 
             if (!started) {
-                sendStatus("Could not start offline listening")
+                sendStatus("آف لائن سننا شروع نہیں ہو سکا")
             }
 
         } catch (error: Exception) {
             sendStatus(
-                "Background voice error: " +
+                "پس منظر کی آواز میں خرابی: " +
                     (error.localizedMessage ?: "Unknown error")
             )
             stopVoiceService()
@@ -167,7 +167,7 @@ class VoiceForegroundService : Service() {
 
         if (VoiceSessionCommandHandler.isStopListeningCommand(command)) {
             stopAfterSpeech = true
-            val response = "ठीक है। Idraak की background voice listening बंद की जा रही है।"
+            val response = "ٹھیک ہے، ادراک پس منظر میں سننا بند کر رہا ہے۔"
             sendResponse(response)
             voiceController?.speak(response)
             return
@@ -181,7 +181,7 @@ class VoiceForegroundService : Service() {
             )
         } catch (error: Exception) {
             OfflineCommandRouter.Result(
-                response = "कमांड पूरी नहीं हो सकी। " +
+                response = "حکم مکمل نہیں ہو سکا۔ " +
                     (error.localizedMessage ?: "Unknown error"),
                 intent = "ERROR"
             )
@@ -191,7 +191,7 @@ class VoiceForegroundService : Service() {
 
         if (result.requiresForegroundUi) {
             showForegroundCommandAction(command)
-            val response = "कमांड तैयार है। Idraak के नोटिफिकेशन में OPEN & RUN दबाकर इसे आगे बढ़ाइए।"
+            val response = "حکم تیار ہے۔ جاری رکھنے کے لیے ادراک کی اطلاع میں کھولنے کا اختیار دبائیں۔"
             sendResponse(response)
             voiceController?.speak(response)
             return
@@ -202,11 +202,11 @@ class VoiceForegroundService : Service() {
         val response = when {
             result.requiresBrightnessPermission ->
                 result.response +
-                    " ब्राइटनेस की अनुमति देने के लिए Idraak ऐप खोलिए, फिर यही कमांड दोबारा बोलिए।"
+                    " روشنی کی اجازت دینے کے لیے ادراک کھولیں، پھر یہی حکم دوبارہ کہیں۔"
 
             result.requiresCameraPermission ->
                 result.response +
-                    " टॉर्च की अनुमति देने के लिए Idraak ऐप खोलिए, फिर यही कमांड दोबारा बोलिए।"
+                    " ٹارچ کی اجازت دینے کے لیے ادراک کھولیں، پھر یہی حکم دوبارہ کہیں۔"
 
             else -> result.response
         }
@@ -223,9 +223,9 @@ class VoiceForegroundService : Service() {
                 voiceController?.startListening() == true
 
             if (started) {
-                sendStatus("Background offline listening active")
+                sendStatus("پس منظر میں آف لائن سننا فعال ہے")
             } else {
-                sendStatus("Background listening could not restart")
+                sendStatus("پس منظر میں سننا دوبارہ شروع نہیں ہو سکا")
             }
         } catch (error: Exception) {
             sendStatus(
@@ -249,7 +249,7 @@ class VoiceForegroundService : Service() {
         voiceController = null
 
         if (wasActive) {
-            sendStatus("Background voice service stopped")
+            sendStatus("پس منظر میں آواز سننا بند ہو گیا")
         }
 
         // Always stop the Service, even if startForeground failed before
