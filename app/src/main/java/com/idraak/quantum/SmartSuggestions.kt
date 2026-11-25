@@ -60,6 +60,37 @@ object SmartSuggestionEngine {
         }
     }
 
+    internal fun classifyRecentCommandCategory(command: String): String? {
+        val value = command.trim().lowercase()
+            .replace(Regex("[^\\p{L}\\p{M}\\p{N}\\s]"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        if (value.isBlank()) return null
+
+        fun has(vararg phrases: String) = phrases.any { value.contains(it) }
+
+        return when {
+            has("کیمرہ", "فوٹو", "تصویر", "camera", "photo", "picture",
+                "कैमरा", "फोटो", "तस्वीर", "camera kholo", "tasveer", "photo lo") -> "CAMERA"
+            has("یوٹیوب", "youtube", "यूट्यूब") -> "YOUTUBE"
+            has("کال", "فون کرو", "فون ملاؤ", "call", "phone karo",
+                "कॉल", "फोन करो", "फोन मिलाओ") -> "CALL"
+            has("پیغام", "میسج", "message", "sms", "text message",
+                "संदेश", "मैसेज", "संदेश भेजो") -> "MESSAGE"
+            has("آواز", "روشنی", "والیوم", "ٹارچ", "volume", "brightness",
+                "flashlight", "torch", "sound", "awaz", "roshni",
+                "आवाज", "रोशनी", "वॉल्यूम", "टॉर्च") -> "HARDWARE"
+            has("اسکرول", "سوائپ", "کلک", "اسکرین", "دباؤ", "scroll",
+                "swipe", "click", "tap", "screen", "स्क्रॉल", "स्वाइप",
+                "क्लिक", "स्क्रीन", "दबाओ") -> "SCREEN"
+            has("یاد رکھنا", "یاد رکھو", "یادداشت", "memory", "remember",
+                "याद रखो", "याद रखना", "याददाश्त") -> "MEMORY"
+            has("کھولو", "چالو کرو", "open", "launch", "start app",
+                "खोलो", "खोल दो", "चालू करो", "app kholo") -> "APP"
+            else -> null
+        }
+    }
+
     fun build(
         context: Context,
         voiceActive: Boolean,
@@ -68,7 +99,7 @@ object SmartSuggestionEngine {
         val suggestions = mutableListOf<IdraakSuggestion>()
         val battery = readBattery(context)
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-        val last = lastUserMessage.trim().lowercase()
+        val recentCategory = classifyRecentCommandCategory(lastUserMessage)
         val recentExperiences = try {
             OfflineBrain.getRecentExperiences(context.applicationContext, limit = 8)
         } catch (_: Exception) {
@@ -115,83 +146,57 @@ object SmartSuggestionEngine {
             )
         }
 
-        // Use only the category of the most recent user command.
-        when {
-            last.contains("کیمرہ") || last.contains("فوٹو") || last.contains("تصویر") -> {
-                suggestions += IdraakSuggestion(
-                    title = "کیمرے کی مدد",
-                    detail = "کیمرہ کھولنے یا تصویر لینے کے لیے واضح حکم بولیں۔",
-                    command = "مدد کرو",
-                    category = "حالیہ حکم"
-                )
-            }
-
-            last.contains("یوٹیوب") -> {
-                suggestions += IdraakSuggestion(
-                    title = "ایپ تبدیل کریں",
-                    detail = "کسی دوسری نصب شدہ ایپ کو کھولنے کے لیے کہیں۔",
-                    command = "مدد کرو",
-                    category = "حالیہ حکم"
-                )
-            }
-
-            last.contains("کال") || last.contains("فون کرو") || last.contains("فون ملاؤ") -> {
-                suggestions += IdraakSuggestion(
-                    title = "کال کی مدد",
-                    detail = "کال کے لیے رابطہ منتخب کرنا اور فون ایپ میں تصدیق کرنا ضروری ہے۔",
-                    command = "مدد کرو",
-                    category = "حالیہ حکم"
-                )
-            }
-
-            last.contains("پیغام") || last.contains("میسج") -> {
-                suggestions += IdraakSuggestion(
-                    title = "پیغام کی مدد",
-                    detail = "بھیجنے سے پہلے پیغام اور وصول کنندہ کی تصدیق کریں۔",
-                    command = "مدد کرو",
-                    category = "حالیہ حکم"
-                )
-            }
-
-            last.contains("آواز") || last.contains("روشنی") || last.contains("والیوم") || last.contains("ٹارچ") -> {
-                suggestions += IdraakSuggestion(
-                    title = "فون کنٹرول کی مدد",
-                    detail = "آواز، روشنی اور ٹارچ کنٹرول کرنے کے لیے واضح حکم بولیں۔",
-                    command = "مدد کرو",
-                    category = "فون کنٹرول"
-                )
-            }
-
-            last.contains("اسکرول") || last.contains("سوائپ") ||
-                last.contains("کلک") || last.contains("اسکرین") || last.contains("دباؤ") -> {
-                suggestions += IdraakSuggestion(
-                    title = "اسکرین کنٹرول کی مدد",
-                    detail = "واپس جانے، ہوم کھولنے، سوائپ، اسکرول اور کلک کے لیے واضح حکم دیں۔",
-                    command = "مدد کرو",
-                    category = "اسکرین کنٹرول"
-                )
-            }
-
-            last.contains("یاد رکھنا") || last.contains("یاد رکھو") ||
-                last.contains("یادداشت") -> {
-                suggestions += IdraakSuggestion(
-                    title = "مقامی یادداشت کی مدد",
-                    detail = "نئی معلومات تصدیق تک زیرِ جانچ رہتی ہیں؛ اسے درست ثابت کرنے کے لیے یادداشت میں تصدیق کریں۔",
-                    command = "مدد کرو",
-                    category = "یادداشت"
-                )
-            }
-
-            last.contains("کھولو") || last.contains("چالو کرو") -> {
-                suggestions += IdraakSuggestion(
-                    title = "ایپ کنٹرول",
-                    detail = "فون میں نصب کسی ایپ کا نام لے کر اسے کھولنے کو کہیں۔",
-                    command = "مدد کرو",
-                    category = "ایپ کنٹرول"
-                )
-            }
-
-            !voiceActive -> {
+        // Use the latest command's category across Urdu, Hindi, English and Roman Urdu.
+        when (recentCategory) {
+            "CAMERA" -> suggestions += IdraakSuggestion(
+                title = "کیمرے کی مدد",
+                detail = "کیمرہ کھولنے یا تصویر لینے کے لیے واضح حکم بولیں۔",
+                command = "مدد کرو",
+                category = "حالیہ حکم"
+            )
+            "YOUTUBE" -> suggestions += IdraakSuggestion(
+                title = "ایپ تبدیل کریں",
+                detail = "کسی دوسری نصب شدہ ایپ کو کھولنے کے لیے کہیں۔",
+                command = "مدد کرو",
+                category = "حالیہ حکم"
+            )
+            "CALL" -> suggestions += IdraakSuggestion(
+                title = "کال کی مدد",
+                detail = "کال کے لیے رابطہ منتخب کرنا اور فون ایپ میں تصدیق کرنا ضروری ہے۔",
+                command = "مدد کرو",
+                category = "حالیہ حکم"
+            )
+            "MESSAGE" -> suggestions += IdraakSuggestion(
+                title = "پیغام کی مدد",
+                detail = "بھیجنے سے پہلے پیغام اور وصول کنندہ کی تصدیق کریں۔",
+                command = "مدد کرو",
+                category = "حالیہ حکم"
+            )
+            "HARDWARE" -> suggestions += IdraakSuggestion(
+                title = "فون کنٹرول کی مدد",
+                detail = "آواز، روشنی اور ٹارچ کنٹرول کرنے کے لیے واضح حکم بولیں۔",
+                command = "مدد کرو",
+                category = "فون کنٹرول"
+            )
+            "SCREEN" -> suggestions += IdraakSuggestion(
+                title = "اسکرین کنٹرول کی مدد",
+                detail = "واپس جانے، ہوم کھولنے، سوائپ، اسکرول اور کلک کے لیے واضح حکم دیں۔",
+                command = "مدد کرو",
+                category = "اسکرین کنٹرول"
+            )
+            "MEMORY" -> suggestions += IdraakSuggestion(
+                title = "مقامی یادداشت کی مدد",
+                detail = "نئی معلومات تصدیق تک زیرِ جانچ رہتی ہیں؛ اسے درست ثابت کرنے کے لیے یادداشت میں تصدیق کریں۔",
+                command = "مدد کرو",
+                category = "یادداشت"
+            )
+            "APP" -> suggestions += IdraakSuggestion(
+                title = "ایپ کنٹرول",
+                detail = "فون میں نصب کسی ایپ کا نام لے کر اسے کھولنے کو کہیں۔",
+                command = "مدد کرو",
+                category = "ایپ کنٹرول"
+            )
+            null -> if (!voiceActive) {
                 suggestions += IdraakSuggestion(
                     title = "آواز کے احکام",
                     detail = "مائیکروفون کے بٹن سے ادراک کو بول کر حکم دیں۔",
