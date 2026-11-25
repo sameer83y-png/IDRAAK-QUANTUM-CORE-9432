@@ -258,7 +258,7 @@ object OfflineCommandRouter {
         } catch (error: Exception) {
             Result(
                 response = "آف لائن حکم مکمل نہیں ہو سکا: " +
-                    (error.localizedMessage ?: "Unknown error"),
+                    (error.localizedMessage ?: "نامعلوم خرابی"),
                 intent = decision.intent
             )
         }
@@ -296,7 +296,7 @@ object OfflineCommandRouter {
         } catch (error: Exception) {
             Result(
                 response = "ٹارچ کنٹرول میں مسئلہ پیش آیا: " +
-                    (error.localizedMessage ?: "Unknown error"),
+                    (error.localizedMessage ?: "نامعلوم خرابی"),
                 intent = "FLASHLIGHT"
             )
         }
