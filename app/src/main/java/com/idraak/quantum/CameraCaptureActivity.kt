@@ -31,7 +31,7 @@ import java.util.Locale
 /**
  * Visible in-app camera screen.
  * Voice-triggered mode captures once automatically after preview starts.
- * Manual mode is available only for the "open camera" command.
+ * Manual mode is available only for the "کیمرہ کھولیں" command.
  */
 class CameraCaptureActivity : ComponentActivity() {
 
@@ -47,10 +47,10 @@ class CameraCaptureActivity : ComponentActivity() {
             if (granted) {
                 startCamera()
             } else {
-                statusView.text = "Camera permission नहीं मिली।"
+                statusView.text = "کیمرے کی اجازت نہیں ملی۔"
                 Toast.makeText(
                     this,
-                    "फोटो लेने के लिए Camera permission जरूरी है।",
+                    "تصویر لینے کے لیے کیمرے کی اجازت ضروری ہے۔",
                     Toast.LENGTH_LONG
                 ).show()
                 finish()
@@ -67,10 +67,10 @@ class CameraCaptureActivity : ComponentActivity() {
             if (granted) {
                 performPhotoCapture()
             } else {
-                statusView.text = "Android 9 में फोटो सेव करने के लिए Storage permission जरूरी है।"
+                statusView.text = "Android 9 میں تصویر محفوظ کرنے کے لیے اسٹوریج کی اجازت ضروری ہے۔"
                 Toast.makeText(
                     this,
-                    "App Settings में Storage permission चालू करें।",
+                    "ایپ کی ترتیبات میں اسٹوریج کی اجازت فعال کریں۔",
                     Toast.LENGTH_LONG
                 ).show()
                 finish()
@@ -97,9 +97,9 @@ class CameraCaptureActivity : ComponentActivity() {
             setPadding(24, 18, 24, 18)
             setBackgroundColor(0xAA101820.toInt())
             text = if (autoCapture) {
-                "Idraak कैमरा शुरू हो रहा है..."
+                "ادراک کا کیمرہ شروع ہو رہا ہے..."
             } else {
-                "कैमरा तैयार हो रहा है..."
+                "کیمرہ تیار ہو رہا ہے..."
             }
         }
 
@@ -123,7 +123,7 @@ class CameraCaptureActivity : ComponentActivity() {
 
         if (!autoCapture) {
             val captureButton = Button(this).apply {
-                text = "TAKE PHOTO"
+                text = "تصویر لیں"
                 setOnClickListener { capturePhoto() }
             }
             val buttonParams = FrameLayout.LayoutParams(
@@ -146,8 +146,8 @@ class CameraCaptureActivity : ComponentActivity() {
         } else if (PermissionRequestGate.tryMarkRequested(this, Manifest.permission.CAMERA)) {
             permissionLauncher.launch(Manifest.permission.CAMERA)
         } else {
-            statusView.text = "Camera अनुमति पहले पूछी जा चुकी है। Android App Settings में इसे चालू करें।"
-            Toast.makeText(this, "Camera permission के लिए Android App Settings खोलें।", Toast.LENGTH_LONG).show()
+            statusView.text = "کیمرے کی اجازت پہلے مانگی جا چکی ہے۔ فون کی ایپ ترتیبات میں اسے فعال کریں۔"
+            Toast.makeText(this, "کیمرے کی اجازت کے لیے فون کی ایپ ترتیبات کھولیں۔", Toast.LENGTH_LONG).show()
             finish()
         }
     }
@@ -179,9 +179,9 @@ class CameraCaptureActivity : ComponentActivity() {
 
                 imageCapture = captureUseCase
                 statusView.text = if (autoCapture) {
-                    "फोटो अपने-आप ली जा रही है..."
+                    "تصویر خود لی جا رہی ہے..."
                 } else {
-                    "कैमरा तैयार है। फोटो लेने के लिए TAKE PHOTO दबाएँ।"
+                    "کیمرہ تیار ہے۔ تصویر لینے کے لیے تصویر لیں کا بٹن دبائیں۔"
                 }
 
                 if (autoCapture) {
@@ -191,10 +191,10 @@ class CameraCaptureActivity : ComponentActivity() {
                     )
                 }
             } catch (error: Exception) {
-                statusView.text = "कैमरा शुरू नहीं हो सका।"
+                statusView.text = "کیمرہ شروع نہیں ہو سکا۔"
                 Toast.makeText(
                     this,
-                    "Camera error: " + (error.localizedMessage ?: "Unknown error"),
+                    "کیمرے میں خرابی: " + (error.localizedMessage ?: "Unknown error"),
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -221,10 +221,10 @@ class CameraCaptureActivity : ComponentActivity() {
                     Manifest.permission.WRITE_EXTERNAL_STORAGE
                 )
             } else {
-                statusView.text = "Storage अनुमति पहले पूछी जा चुकी है। Android App Settings में इसे चालू करें।"
+                statusView.text = "اسٹوریج کی اجازت پہلے مانگی جا چکی ہے۔ فون کی ایپ ترتیبات میں اسے فعال کریں۔"
                 Toast.makeText(
                     this,
-                    "Android 9 में फोटो सेव करने के लिए App Settings में Storage permission चालू करें।",
+                    "Android 9 میں تصویر محفوظ کرنے کے لیے ایپ کی ترتیبات میں اسٹوریج کی اجازت فعال کریں۔",
                     Toast.LENGTH_LONG
                 ).show()
                 finish()
@@ -240,12 +240,12 @@ class CameraCaptureActivity : ComponentActivity() {
 
         val captureUseCase = imageCapture
         if (captureUseCase == null) {
-            statusView.text = "कैमरा अभी तैयार नहीं है।"
+            statusView.text = "کیمرہ ابھی تیار نہیں ہے۔"
             return
         }
 
         captureStarted = true
-        statusView.text = "फोटो सेव की जा रही है..."
+        statusView.text = "تصویر محفوظ کی جا رہی ہے..."
 
         val timestamp = SimpleDateFormat(
             "yyyyMMdd_HHmmss",
@@ -276,10 +276,10 @@ class CameraCaptureActivity : ComponentActivity() {
                 override fun onImageSaved(
                     outputFileResults: ImageCapture.OutputFileResults
                 ) {
-                    statusView.text = "फोटो Gallery के Pictures/Idraak फोल्डर में सेव हो गई।"
+                    statusView.text = "تصویر گیلری کے Pictures/Idraak فولڈر میں محفوظ ہو گئی۔"
                     Toast.makeText(
                         this@CameraCaptureActivity,
-                        "फोटो सफलतापूर्वक सेव हो गई।",
+                        "تصویر کامیابی سے محفوظ ہو گئی۔",
                         Toast.LENGTH_LONG
                     ).show()
 
@@ -295,10 +295,10 @@ class CameraCaptureActivity : ComponentActivity() {
 
                 override fun onError(exception: ImageCaptureException) {
                     captureStarted = false
-                    statusView.text = "फोटो सेव नहीं हुई। दोबारा कोशिश करें।"
+                    statusView.text = "تصویر محفوظ نہیں ہوئی۔ دوبارہ کوشش کریں۔"
                     Toast.makeText(
                         this@CameraCaptureActivity,
-                        "Photo error: " + (exception.localizedMessage ?: "Unknown error"),
+                        "تصویر محفوظ کرنے میں خرابی: " + (exception.localizedMessage ?: "Unknown error"),
                         Toast.LENGTH_LONG
                     ).show()
                     if (autoCapture) {
