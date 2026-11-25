@@ -119,14 +119,38 @@ object OfflinePhoneCommandHandler {
 
     private fun aliasesFor(target: String): Set<String> {
         return mapOf(
-            "यूट्यूब" to setOf("youtube"), "یوٹیوب" to setOf("youtube"),
-            "व्हाट्सएप" to setOf("whatsapp"), "व्हाट्सऐप" to setOf("whatsapp"),
-            "واٹس ایپ" to setOf("whatsapp"), "क्रोम" to setOf("chrome"),
-            "کروم" to setOf("chrome"), "इंस्टाग्राम" to setOf("instagram"),
-            "فیس بک" to setOf("facebook"), "फेसबुक" to setOf("facebook"),
-            "जीमेल" to setOf("gmail"), "गूगल मैप" to setOf("maps", "google maps"),
-            "गूगल मैप्स" to setOf("maps", "google maps"), "कैमरा" to setOf("camera"),
-            "सेटिंग" to setOf("settings"), "सेटिंग्स" to setOf("settings")
+            // YouTube
+            "यूट्यूब" to setOf("youtube"),
+            "یوٹیوب" to setOf("youtube"),
+
+            // WhatsApp
+            "व्हाट्सएप" to setOf("whatsapp"),
+            "व्हाट्सऐप" to setOf("whatsapp"),
+            "واٹس ایپ" to setOf("whatsapp"),
+
+            // Chrome
+            "क्रोम" to setOf("chrome"),
+            "کروم" to setOf("chrome"),
+
+            // Instagram and Facebook
+            "इंस्टाग्राम" to setOf("instagram"),
+            "انسٹاگرام" to setOf("instagram"),
+            "فیس بک" to setOf("facebook"),
+            "फेसबुक" to setOf("facebook"),
+
+            // Gmail and Maps
+            "जीमेल" to setOf("gmail"),
+            "جی میل" to setOf("gmail"),
+            "गूगल मैप" to setOf("maps", "google maps"),
+            "गूगल मैप्स" to setOf("maps", "google maps"),
+            "گوگل میپس" to setOf("maps", "google maps"),
+
+            // Camera and Settings
+            "कैमरा" to setOf("camera"),
+            "کیمرہ" to setOf("camera"),
+            "सेटिंग" to setOf("settings"),
+            "सेटिंग्स" to setOf("settings"),
+            "سیٹنگز" to setOf("settings")
         )[target].orEmpty()
     }
 
