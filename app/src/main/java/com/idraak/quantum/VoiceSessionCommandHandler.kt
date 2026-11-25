@@ -116,7 +116,7 @@ object VoiceSessionCommandHandler {
             "कृपया ", "ज़रा ", "जरा ",
             "من فضلك ", "رجاء ", "لو سمحت "
         )
-        return prefixes.firstOrNull { startsWith(it) }
+        return prefixes.sortedByDescending { it.length }.firstOrNull { startsWith(it) }
             ?.let { removePrefix(it).trim() }
             ?: this
     }
