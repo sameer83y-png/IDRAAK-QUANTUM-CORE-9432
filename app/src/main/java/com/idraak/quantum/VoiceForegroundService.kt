@@ -19,6 +19,9 @@ class VoiceForegroundService : Service() {
     @Volatile
     private var serviceActive = false
 
+    @Volatile
+    private var stopAfterSpeech = false
+
     private var voiceController: VoiceController? = null
 
     override fun onCreate() {
@@ -113,7 +116,11 @@ class VoiceForegroundService : Service() {
 
                 onSpeechFinished = {
                     if (serviceActive) {
-                        restartListening()
+                        if (stopAfterSpeech) {
+                            stopVoiceService()
+                        } else {
+                            restartListening()
+                        }
                     }
                 }
             )
@@ -146,6 +153,14 @@ class VoiceForegroundService : Service() {
 
         voiceController?.cancelListening()
         sendCommand(command)
+
+        if (VoiceSessionCommandHandler.isStopListeningCommand(command)) {
+            stopAfterSpeech = true
+            val response = "ठीक है। Idraak की background voice listening बंद की जा रही है।"
+            sendResponse(response)
+            voiceController?.speak(response)
+            return
+        }
 
         val result = try {
             OfflineCommandRouter.process(
@@ -210,7 +225,9 @@ class VoiceForegroundService : Service() {
     }
 
     private fun stopVoiceService() {
+        if (!serviceActive) return
         serviceActive = false
+        stopAfterSpeech = false
 
         try {
             voiceController?.shutdown()
