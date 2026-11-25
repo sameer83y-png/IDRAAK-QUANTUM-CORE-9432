@@ -362,4 +362,21 @@ class OfflineCommandRegressionTest {
         )
     }
 
+
+    @Test
+    fun offlineBrainRecognizesAppLaunchCommandsAddressedToIdraak() {
+        assertEquals(
+            "OPEN_APP",
+            com.idraak.quantum.engine.OfflineBrain.understand("Idraak, please open YouTube").intent
+        )
+        assertEquals(
+            "OPEN_APP",
+            com.idraak.quantum.engine.OfflineBrain.understand("ادراک، ذرا یوٹیوب کھول دو").intent
+        )
+        assertEquals(
+            "OPEN_APP",
+            com.idraak.quantum.engine.OfflineBrain.understand("इद्राक, कृपया यूट्यूब खोलो").intent
+        )
+    }
+
 }
