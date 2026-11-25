@@ -43,6 +43,28 @@ object CallCommandHandler {
 
         if (isPhoneControlCommand) return false
 
+        // Also reject phone-setting requests where the control word appears
+        // after extra words, e.g. "फोन की आवाज बंद करो" or "فون کا والیوم کم کرو".
+        val hasPhoneDeviceWord = listOf(
+            "फोन", "मोबाइल", "phone", "mobile", "فون", "موبائل"
+        ).any { word ->
+            Regex("""(^|\\s)""" + Regex.escape(word) + """(?=\\s|$)""")
+                .containsMatchIn(command)
+        }
+        val phoneControlTerms = listOf(
+            "बंद", "लॉक", "साइलेंट", "म्यूट", "चालू",
+            "आवाज़", "आवाज", "वॉल्यूम", "कम", "ज्यादा",
+            "خاموش", "بند", "لاک", "سائلنٹ", "آواز",
+            "والیوم", "کم", "زیادہ",
+            "off", "on", "silent", "mute", "volume", "lock"
+        )
+        val hasPhoneControlTerm = phoneControlTerms.any { word ->
+            Regex("""(^|\\s)""" + Regex.escape(word) + """(?=\\s|$)""")
+                .containsMatchIn(command)
+        }
+
+        if (hasPhoneDeviceWord && hasPhoneControlTerm) return false
+
         // "फोन" alone is not enough: phrases such as
         // "फोन बंद करो" must never open the call flow.
         val hasCallWord = Regex(
