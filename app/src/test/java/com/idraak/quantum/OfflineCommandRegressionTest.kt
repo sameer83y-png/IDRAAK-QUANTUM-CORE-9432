@@ -37,6 +37,20 @@ class OfflineCommandRegressionTest {
     }
 
     @Test
+    fun recognizesUrduQuietPhraseWithAssistantName() {
+        assertTrue(
+            VoiceSessionCommandHandler.isStopListeningCommand("ادراک، خاموش ہو جاؤ!")
+        )
+    }
+
+    @Test
+    fun recognizesUrduQuietPhraseWithoutAssistantName() {
+        assertTrue(
+            VoiceSessionCommandHandler.isStopListeningCommand("خاموش ہو جائیں۔")
+        )
+    }
+
+    @Test
     fun doesNotTreatBareStopAsVoiceStopCommand() {
         assertFalse(VoiceSessionCommandHandler.isStopListeningCommand("بس"))
     }
