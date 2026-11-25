@@ -1,6 +1,7 @@
 package com.idraak.quantum.engine
 
 import android.content.Context
+import com.idraak.quantum.WebNavigationCommandHandler
 import java.util.Locale
 
 /**
@@ -33,7 +34,7 @@ object LearnedCommandStore {
         val decision = OfflineBrain.understand(action)
         val allowed = decision.intent in setOf(
             "OPEN_APP", "FLASHLIGHT", "SCREEN_CONTROL", "TIME", "DATE"
-        )
+        ) || WebNavigationCommandHandler.isNavigationCommand(action)
         if (!allowed) {
             return "یہ کام ابھی محفوظ مقامی حکم کے طور پر شامل نہیں کیا جا سکتا۔ پہلے کوئی واضح اور دستیاب اردو حکم بتائیں۔"
         }
