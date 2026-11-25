@@ -143,6 +143,13 @@ class VoiceController(
                 SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
             )
             if (minBuffer <= 0) throw IllegalStateException("Audio input is not supported")
+            if (ContextCompat.checkSelfPermission(
+                    appContext,
+                    android.Manifest.permission.RECORD_AUDIO
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                throw SecurityException("مائیکروفون کی اجازت دستیاب نہیں ہے")
+            }
             recorder = AudioRecord(
                 MediaRecorder.AudioSource.MIC, SAMPLE_RATE,
                 AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT,
