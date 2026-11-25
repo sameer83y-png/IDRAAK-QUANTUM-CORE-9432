@@ -108,7 +108,10 @@ object WebNavigationCommandHandler {
                 " سرچ کرو", " سرچ کریں", " ویڈیو دکھاؤ", " ویڈیو چلاؤ"
             ).firstOrNull { value.endsWith(it) }
             if (youtubeLead != null && youtubeTail != null) {
-                val query = command.trim()
+                val cleanCommand = command.trim()
+                    .trimEnd('.', '؟', '?', '!', '۔', '،', ',')
+                    .trim()
+                val query = cleanCommand
                     .drop(youtubeLead.length)
                     .dropLast(youtubeTail.length)
                     .trim()
