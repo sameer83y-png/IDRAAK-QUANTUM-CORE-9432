@@ -71,6 +71,17 @@ jobs:
           test -f app/src/main/assets/vosk/en-in/conf/model.conf
           echo "Hindi and Indian English models are ready."
 
+      - name: Download multilingual Whisper Small model for Urdu
+        run: |
+          mkdir -p app/src/main/assets/models
+          curl -fL --retry 3 \\
+            https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin \\
+            -o app/src/main/assets/models/ggml-small.bin
+          test -s app/src/main/assets/models/ggml-small.bin
+          MODEL_SIZE=$(stat -c%s app/src/main/assets/models/ggml-small.bin)
+          test "$MODEL_SIZE" -gt 400000000
+          echo "Whisper Small model downloaded: $MODEL_SIZE bytes"
+
       - name: Build Debug APK
         run: gradle :app:assembleDebug
 
