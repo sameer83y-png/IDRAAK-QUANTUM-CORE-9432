@@ -290,4 +290,22 @@ class OfflineCommandRegressionTest {
         assertEquals(null, com.idraak.quantum.engine.HardwareController.classifyVolumeCommand("مجھے موسیقی پسند ہے"))
     }
 
+
+    @Test
+    fun recognizesExplicitVoiceStopCommandsAcrossLanguages() {
+        assertTrue(VoiceSessionCommandHandler.isStopListeningCommand("stop listening"))
+        assertTrue(VoiceSessionCommandHandler.isStopListeningCommand("Idraak, stop listening now!"))
+        assertTrue(VoiceSessionCommandHandler.isStopListeningCommand("sunna band karo"))
+        assertTrue(VoiceSessionCommandHandler.isStopListeningCommand("सुनना बंद कर दो"))
+        assertTrue(VoiceSessionCommandHandler.isStopListeningCommand("توقف عن الاستماع"))
+        assertTrue(VoiceSessionCommandHandler.isStopListeningCommand("ادراک سننا بند کریں"))
+    }
+
+    @Test
+    fun doesNotTreatBareMultilingualStopWordsAsVoiceStopCommands() {
+        assertFalse(VoiceSessionCommandHandler.isStopListeningCommand("stop"))
+        assertFalse(VoiceSessionCommandHandler.isStopListeningCommand("بس"))
+        assertFalse(VoiceSessionCommandHandler.isStopListeningCommand("رک جاؤ"))
+    }
+
 }
