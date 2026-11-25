@@ -521,31 +521,32 @@ fun IdraakHomeScreen() {
                 )
             }
 
-            mainHandler.post {
-                val finalResult = if (preparedResult.requiresForegroundUi) {
-                    try {
-                        OfflineCommandRouter.process(
-                            context = context.applicationContext,
-                            command = message,
-                            allowForegroundUi = true,
-                            onProgress = { progress ->
-                                mainHandler.post {
-                                    messages.add(ChatMessage(progress, false))
-                                    voiceController.speakQueued(progress)
-                                    voiceStatus = progress
-                                }
+            val finalResult = if (preparedResult.requiresForegroundUi) {
+                try {
+                    OfflineCommandRouter.process(
+                        context = context.applicationContext,
+                        command = message,
+                        allowForegroundUi = true,
+                        onProgress = { progress ->
+                            mainHandler.post {
+                                messages.add(ChatMessage(progress, false))
+                                voiceController.speakQueued(progress)
+                                voiceStatus = progress
                             }
-                        )
-                    } catch (error: Exception) {
-                        OfflineCommandRouter.Result(
-                            response = "آف لائن حکم مکمل نہیں ہو سکا: " +
-                                (error.localizedMessage ?: "نامعلوم خرابی"),
-                            intent = "ERROR"
-                        )
-                    }
-                } else {
-                    preparedResult
+                        }
+                    )
+                } catch (error: Exception) {
+                    OfflineCommandRouter.Result(
+                        response = "آف لائن حکم مکمل نہیں ہو سکا: " +
+                            (error.localizedMessage ?: "نامعلوم خرابی"),
+                        intent = "ERROR"
+                    )
                 }
+            } else {
+                preparedResult
+            }
+
+            mainHandler.post {
                 handleCommandResult(message, finalResult)
             }
         }
