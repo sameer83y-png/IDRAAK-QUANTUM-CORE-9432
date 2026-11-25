@@ -166,20 +166,45 @@ class VoiceController(
 
             if (status == TextToSpeech.SUCCESS) {
 
-                val result = textToSpeech?.setLanguage(
-                    Locale.getDefault()
-                )
+                // Select only a voice that Android marks as offline.
+                // A network-required TTS voice must never be used by Idraak.
+                val preferredLocale = Locale.getDefault()
+                val offlineVoice = textToSpeech?.voices
+                    .orEmpty()
+                    .filter { voice ->
+                        !voice.isNetworkConnectionRequired &&
+                            voice.locale.language.equals(
+                                preferredLocale.language,
+                                ignoreCase = true
+                            )
+                    }
+                    .maxByOrNull { voice ->
+                        if (
+                            voice.locale.country.equals(
+                                preferredLocale.country,
+                                ignoreCase = true
+                            )
+                        ) 1 else 0
+                    }
 
-                if (
-                    result == TextToSpeech.LANG_MISSING_DATA ||
-                    result == TextToSpeech.LANG_NOT_SUPPORTED
-                ) {
-                    textToSpeech?.setLanguage(Locale.US)
+                val voiceResult = if (offlineVoice != null) {
+                    textToSpeech?.setVoice(offlineVoice)
+                } else {
+                    TextToSpeech.ERROR
                 }
 
-                textToSpeech?.setSpeechRate(getSpeechRate())
-                isTtsReady = true
-                onStatusChanged("Voice output ready")
+                if (voiceResult == TextToSpeech.SUCCESS) {
+                    textToSpeech?.setSpeechRate(getSpeechRate())
+                    isTtsReady = true
+                    onStatusChanged("Offline voice output ready")
+                } else {
+                    isTtsReady = false
+                    onStatusChanged(
+                        "Offline voice data unavailable. Install an offline TTS voice for ${preferredLocale.displayLanguage} in Android settings."
+                    )
+                    // Do not fall back to a network-required voice.
+                    onSpeechFinished()
+                }
 
             } else {
                 isTtsReady = false
