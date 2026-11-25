@@ -48,7 +48,7 @@ object DeviceStatusController {
             Result(true, "آپ کے فون کی بیٹری $percent فیصد ہے۔ $chargingText")
         } catch (error: Exception) {
             Result(false, "بیٹری کی معلومات میں مسئلہ: " +
-                (error.localizedMessage ?: "Unknown error"))
+                (error.localizedMessage ?: "نامعلوم خرابی"))
         }
     }
 }
