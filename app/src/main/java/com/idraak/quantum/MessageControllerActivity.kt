@@ -11,11 +11,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import com.idraak.quantum.engine.CallController
 
 /**
- * Safe local message composition:
- * - The user chooses SMS or another installed sharing app (such as WhatsApp).
- * - SMS recipient is selected with Android's contact picker and confirmed.
- * - WhatsApp/share text is handed to Android's app chooser.
- * - Idraak never sends a message silently.
+ * Offline message hand-off for SMS and any installed app that accepts text sharing.
+ *
+ * Android and third-party apps control their own recipient and send flows. Idraak
+ * never attempts to bypass those app controls or silently send a message.
  */
 class MessageControllerActivity : ComponentActivity() {
 
@@ -60,11 +59,11 @@ class MessageControllerActivity : ComponentActivity() {
 
     private fun showDeliveryChoice() {
         AlertDialog.Builder(this)
-            .setTitle("मैसेज किस ऐप से तैयार करना है?")
-            .setItems(arrayOf("SMS", "WhatsApp / दूसरा ऐप")) { _, which ->
+            .setTitle("मैसेज किस तरीके से भेजना है?")
+            .setItems(arrayOf("SMS", "कोई समर्थित दूसरा ऐप")) { _, which ->
                 when (which) {
                     0 -> openContactPicker()
-                    1 -> openShareChooser()
+                    1 -> showShareConfirmation()
                     else -> finish()
                 }
             }
@@ -93,7 +92,7 @@ class MessageControllerActivity : ComponentActivity() {
             "मैसेज:",
             messageBody,
             "",
-            "हाँ चुनने पर SMS ऐप खुलेगा। मैसेज भेजने के लिए आपको वहाँ Send दबाना होगा।"
+            "पुष्टि के बाद SMS ऐप खुलेगा। भेजने का अंतिम नियंत्रण SMS ऐप में रहेगा।"
         ).joinToString("\n")
 
         AlertDialog.Builder(this)
@@ -101,6 +100,26 @@ class MessageControllerActivity : ComponentActivity() {
             .setMessage(confirmationText)
             .setPositiveButton("हाँ, SMS ऐप खोलो") { _, _ ->
                 openSmsComposer(number)
+            }
+            .setNegativeButton("रद्द करें") { _, _ ->
+                showMessage("मैसेज रद्द कर दिया गया।")
+                finish()
+            }
+            .setOnCancelListener { finish() }
+            .setCancelable(true)
+            .show()
+    }
+
+    private fun showShareConfirmation() {
+        AlertDialog.Builder(this)
+            .setTitle("मैसेज की पुष्टि")
+            .setMessage(
+                "यह मैसेज समर्थित ऐप में साझा करने के लिए खुलेगा:\n\n" +
+                    messageBody +
+                    "\n\nआगे बढ़ने पर Android उपलब्ध ऐप दिखाएगा। प्राप्तकर्ता चुनना और भेजना उस ऐप के नियंत्रण में रहेगा।"
+            )
+            .setPositiveButton("हाँ, ऐप चुनो") { _, _ ->
+                openShareChooser()
             }
             .setNegativeButton("रद्द करें") { _, _ ->
                 showMessage("मैसेज रद्द कर दिया गया।")
@@ -130,19 +149,24 @@ class MessageControllerActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * ACTION_SEND discovers installed apps that declare support for plain-text
+     * sharing. This can include messaging apps, but each app decides what it
+     * does with the shared text and whether a recipient/send action is available.
+     */
     private fun openShareChooser() {
         try {
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
                 putExtra(Intent.EXTRA_TEXT, messageBody)
             }
-            startActivity(Intent.createChooser(shareIntent, "मैसेज भेजने के लिए ऐप चुनें"))
+            startActivity(Intent.createChooser(shareIntent, "मैसेज के लिए समर्थित ऐप चुनें"))
             finish()
         } catch (_: ActivityNotFoundException) {
-            showMessage("मैसेज शेयर करने के लिए कोई ऐप उपलब्ध नहीं है।")
+            showMessage("इस मैसेज के लिए कोई समर्थित ऐप उपलब्ध नहीं है।")
             finish()
         } catch (_: Exception) {
-            showMessage("शेयर स्क्रीन नहीं खुल सकी।")
+            showMessage("ऐप चुनने की स्क्रीन नहीं खुल सकी।")
             finish()
         }
     }
