@@ -3,20 +3,25 @@ package com.idraak.quantum
 import java.util.Locale
 
 /**
- * Converts a carefully bounded set of common multilingual command phrases
- * into the Urdu command vocabulary already understood by Idraak's offline
- * handlers. App names, contact names and search terms are preserved.
- *
- * Speech transcription can be multilingual; command coverage grows through
- * explicit phrase rules and verified user-taught aliases.
+ * Converts a bounded set of common multilingual command phrases into the
+ * Urdu command vocabulary understood by Idraak's offline handlers.
+ * App names, contact names and search terms are preserved.
  */
 object MultilingualCommandNormalizer {
 
     fun normalize(input: String): String {
-        var value = input.trim().lowercase(Locale.ROOT)
+        val original = input.trim()
+        var value = original.lowercase(Locale.ROOT)
             .replace('’', '\'')
             .replace(Regex("\\s+"), " ")
         if (value.isBlank()) return input
+
+        // Handle combined YouTube-open + search requests before generic app opening.
+        // The resulting Urdu phrase is understood by WebNavigationCommandHandler.
+        val youtubeQuery = extractYoutubeSearchQuery(original)
+        if (!youtubeQuery.isNullOrBlank()) {
+            return "یوٹیوب پر $youtubeQuery تلاش کرو"
+        }
 
         // Preserve clear refusals: they must never become executable requests.
         val refusalPrefixes = listOf(
@@ -96,13 +101,36 @@ object MultilingualCommandNormalizer {
         val prefix = openPrefixes.sortedByDescending { it.length }
             .firstOrNull { value.startsWith(it) }
         if (prefix != null) {
-            val target = input.trim().drop(prefix.length).trim()
+            val target = original.drop(prefix.length).trim()
             if (target.isNotBlank() && !target.contains("://") &&
                 !target.matches(Regex("(?i).*[a-z0-9-]+\\.[a-z]{2,}.*"))) {
                 return "کھولو $target"
             }
         }
 
-        return input.trim()
+        return original
     }
+
+    private fun extractYoutubeSearchQuery(input: String): String? {
+        val patterns = listOf(
+            Regex("""^open\\s+(?:the\\s+)?youtube\\s+and\\s+search\\s+(?:for\\s+)?(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^search\\s+(.+?)\\s+on\\s+youtube$""", RegexOption.IGNORE_CASE),
+            Regex("""^find\\s+(.+?)\\s+on\\s+youtube$""", RegexOption.IGNORE_CASE),
+            Regex("""^youtube\\s+khol(?:o|na)\\s+aur\\s+(.+?)\\s+(?:search|dhoondho|dhundo)\\s+(?:karo)?$""", RegexOption.IGNORE_CASE),
+            Regex("""^यूट्यूब\\s+खोलो\\s+और\\s+(.+?)\\s+(?:खोजो|ढूंढो|सर्च\\s+करो)$"""),
+            Regex("""^یوٹیوب\\s+کھولو\\s+اور\\s+(.+?)\\s+(?:تلاش\\s+کرو|ڈھونڈو|سرچ\\s+کرو)$""")
+        )
+
+        for (pattern in patterns) {
+            val match = pattern.matchEntire(input.trim()) ?: continue
+            val query = match.groupValues.getOrNull(1)
+                ?.trim()
+                ?.trimEnd('.', '؟', '?', '!', '۔')
+                ?.trim()
+            if (query.isNotNullOrBlank()) return query
+        }
+        return null
+    }
+
+    private fun String?.isNotNullOrBlank(): Boolean = !this.isNullOrBlank()
 }
