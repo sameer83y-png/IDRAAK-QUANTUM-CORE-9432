@@ -49,14 +49,14 @@ class VoiceController(
 
     init { initializeTextToSpeech() }
 
-    fun getRecognitionLanguage(): VoskModelStore.VoskLanguage =
-        VoskModelStore.VoskLanguage.URDU
+    fun getRecognitionLanguage(): UrduVoiceLanguage =
+        UrduVoiceLanguage.URDU
 
     fun setRecognitionLanguage(
-        @Suppress("UNUSED_PARAMETER") language: VoskModelStore.VoskLanguage,
+        @Suppress("UNUSED_PARAMETER") language: UrduVoiceLanguage,
         resumeListening: Boolean = false
     ) {
-        preferences.edit().putString(LANGUAGE_KEY, VoskModelStore.VoskLanguage.URDU.name).apply()
+        preferences.edit().putString(LANGUAGE_KEY, UrduVoiceLanguage.URDU.name).apply()
         onStatusChanged("اردو کی آواز پہچاننے کا نظام منتخب ہے")
         if (resumeListening) {
             cancelListening()
