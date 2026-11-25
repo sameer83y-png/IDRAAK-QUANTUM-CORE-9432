@@ -40,6 +40,7 @@ class VoiceController(
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private var textToSpeech: TextToSpeech? = null
     @Volatile private var isTtsReady = false
+    @Volatile private var isTtsInitializationComplete = false
     @Volatile private var pendingSpeech: String? = null
     @Volatile private var isShutdown = false
     @Volatile private var isListening = false
@@ -69,6 +70,9 @@ class VoiceController(
         textToSpeech = TextToSpeech(appContext) { status ->
             if (isShutdown) return@TextToSpeech
             if (status != TextToSpeech.SUCCESS) {
+                isTtsInitializationComplete = true
+                isTtsReady = false
+                pendingSpeech = null
                 onStatusChanged("اردو آواز کا نظام شروع نہیں ہو سکا")
                 onSpeechFinished()
                 return@TextToSpeech
@@ -77,11 +81,14 @@ class VoiceController(
                 .filter { it.locale.language.equals("ur", true) && !it.isNetworkConnectionRequired }
                 .maxByOrNull { if (it.locale.country.equals("PK", true)) 1 else 0 }
             if (urduVoice == null || textToSpeech?.setVoice(urduVoice) != TextToSpeech.SUCCESS) {
+                isTtsInitializationComplete = true
                 isTtsReady = false
+                pendingSpeech = null
                 onStatusChanged("اردو کی آف لائن آواز دستیاب نہیں۔ فون میں اردو TTS voice data نصب کریں۔")
                 onSpeechFinished()
                 return@TextToSpeech
             }
+            isTtsInitializationComplete = true
             isTtsReady = true
             textToSpeech?.setSpeechRate(getSpeechRate())
             onStatusChanged("اردو آواز تیار ہے")
@@ -298,8 +305,14 @@ class VoiceController(
         if (isShutdown || text.isBlank()) return
         val tts = textToSpeech
         if (tts == null || !isTtsReady) {
-            pendingSpeech = text
-            onStatusChanged("اردو آواز تیار ہو رہی ہے")
+            if (isTtsInitializationComplete) {
+                pendingSpeech = null
+                onStatusChanged("اردو کی آف لائن آواز دستیاب نہیں۔ فون میں اردو TTS voice data نصب کریں۔")
+                onSpeechFinished()
+            } else {
+                pendingSpeech = text
+                onStatusChanged("اردو آواز تیار ہو رہی ہے")
+            }
             return
         }
         tts.setSpeechRate(getSpeechRate())
