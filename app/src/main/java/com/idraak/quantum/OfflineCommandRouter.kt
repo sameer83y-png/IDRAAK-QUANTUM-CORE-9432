@@ -57,13 +57,13 @@ object OfflineCommandRouter {
         // every conversational sentence ending in "na" as a refusal.
         val hasNegationBeforeAction =
             Regex(
-                """(^|\\s)(na|naa|ना|نہ)\\s+(call|open|send|bhejo|bhejna|kholo|kholna|chalao|click|tap|press|कॉल|खोलो|खोलना|भेजो|भेजना|दबाओ|क्लिक|کال|کھولو|بھیجو|بھیجنا|دباؤ)(?=\\s|$)"""
+                """(^|\s)(na|naa|ना|نہ)\s+(call|open|send|bhejo|bhejna|kholo|kholna|chalao|click|tap|press|कॉल|खोलो|खोलना|भेजो|भेजना|दबाओ|क्लिक|کال|کھولو|بھیجو|بھیجنا|دباؤ)(?=\s|$)"""
             ).containsMatchIn(normalizedRefusalText) ||
             Regex(
-                """(^|\\s)(call|open|send|bhejo|kholo|click|tap|press|कॉल|खोलो|भेजो|दबाओ|کال|کھولو|بھیجو)\\s+(na|naa|ना|نہ)\\s+(karo|karna|kar do|bhejo|bhejna|kholo|kholna|करो|करना|कर दो|भेजो|भेजना|खोलो|खोलना|دباؤ|کرو|بھیجو)(?=\\s|$)"""
+                """(^|\s)(call|open|send|bhejo|kholo|click|tap|press|कॉल|खोलो|भेजो|दबाओ|کال|کھولو|بھیجو)\s+(na|naa|ना|نہ)\s+(karo|karna|kar do|bhejo|bhejna|kholo|kholna|करो|करना|कर दो|भेजो|भेजना|खोलो|खोलना|دباؤ|کرو|بھیجو)(?=\s|$)"""
             ).containsMatchIn(normalizedRefusalText) ||
             Regex(
-                """(^|\\s)(call|open|send|bhejo|kholo|कॉल|खोलो|भेजो|کال|کھولو|بھیجو)\\s+(na|naa|ना|نہ)(?=\\s|$)"""
+                """(^|\s)(call|open|send|bhejo|kholo|कॉल|खोलो|भेजो|کال|کھولو|بھیجو)\s+(na|naa|ना|نہ)(?=\s|$)"""
             ).containsMatchIn(normalizedRefusalText)
         val mentionsCallAction = listOf(
             "call", "phone", "phone call", "फोन", "कॉल", "کال", "فون"
