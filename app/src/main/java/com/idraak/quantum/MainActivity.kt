@@ -1136,7 +1136,7 @@ fun SettingsScreen(
         SettingsStatusCard(
             title = "LOCAL EXPERIENCE MEMORY",
             status = "$memoryCount RECORDS SAVED",
-            detail = "Experiences are stored locally on this device. This is an initial memory foundation, not yet a complete long-term learning system."
+            detail = "Voice commands can explicitly save facts and preferences to encrypted local memory. New entries remain PENDING until you verify them in Memory Dashboard."
         )
 
         SettingsStatusCard(

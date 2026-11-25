@@ -408,6 +408,14 @@ object OfflineBrain {
             pendingClick = null
         }
 
+        // Explicit voice memory capture: new facts remain PENDING until verified.
+        MemoryCommandHandler.handle(
+            context.applicationContext,
+            userMessage
+        )?.let { memoryResponse ->
+            return memoryResponse
+        }
+
         // Handle explicit user corrections before normal command detection.
         // Corrections are saved as PENDING and require user verification.
         MemoryFeedbackHandler.handle(
