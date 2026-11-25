@@ -5,36 +5,41 @@ import android.content.Intent
 
 /**
  * Detects offline message-composition commands and opens the local message flow.
- * Text is handed to Android's app chooser; recipient selection and sending remain
- * under the chosen messaging app's own controls.
+ * Recipient selection and final sending remain inside Android or the chosen app.
  */
 object MessageCommandHandler {
 
+    private data class MessageRequest(
+        val body: String,
+        val targetPackage: String?
+    )
+
     fun tryHandle(context: Context, command: String): String? {
-        val body = extractMessageBody(command) ?: return null
-        if (body.isBlank()) {
-            return "मैसेज किसे और क्या भेजना है, यह बताइए। उदाहरण: राहुल को मैसेज भेजो कि मैं घर आ रहा हूँ।"
+        val request = extractRequest(command) ?: return null
+        if (request.body.isBlank()) {
+            return "मैसेज का टेक्स्ट बताइए। उदाहरण: राहुल को WhatsApp पर मैसेज भेजो कि मैं घर आ रहा हूँ।"
         }
 
         return try {
             val intent = Intent(context, MessageControllerActivity::class.java).apply {
-                putExtra(MessageControllerActivity.EXTRA_MESSAGE_BODY, body)
+                putExtra(MessageControllerActivity.EXTRA_MESSAGE_BODY, request.body)
+                request.targetPackage?.let {
+                    putExtra(MessageControllerActivity.EXTRA_TARGET_PACKAGE, it)
+                }
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)
-            "मैसेज तैयार है। पहले टेक्स्ट की पुष्टि करें, फिर SMS या उपलब्ध मैसेजिंग ऐप चुनें।"
+            val destination = request.targetPackage?.let { "चुने हुए ऐप" } ?: "SMS या उपलब्ध मैसेजिंग ऐप"
+            "मैसेज तैयार है। टेक्स्ट की पुष्टि करें और $destination में प्राप्तकर्ता चुनें।"
         } catch (_: Exception) {
             "मैसेज स्क्रीन नहीं खुल सकी। कृपया Idraak को दोबारा खोलकर कोशिश करें।"
         }
     }
 
     /**
-     * Returns null only when this is not a message command.
-     * An empty string means the user asked to send a message but did not dictate
-     * its body yet, so the router can ask for the missing information instead
-     * of silently treating the command as unknown.
+     * null = not a message command; empty body = message command with missing text.
      */
-    private fun extractMessageBody(command: String): String? {
+    private fun extractRequest(command: String): MessageRequest? {
         val value = command.trim()
         val lower = value.lowercase()
 
@@ -72,6 +77,21 @@ object MessageCommandHandler {
         if (prefix != null) body = body.drop(prefix.length).trim()
 
         body = body.trim().trim(':', '-', '،', ',', '.', ' ')
-        return body
+
+        val targetPackage = when {
+            listOf("whatsapp", "व्हाट्सएप", "واٹس ایپ").any { lower.contains(it) } ->
+                "com.whatsapp"
+            listOf("instagram", "انسٹاگرام").any { lower.contains(it) } ->
+                "com.instagram.android"
+            listOf("messenger", "मैसेंजर").any { lower.contains(it) } ->
+                "com.facebook.orca"
+            listOf("facebook", "फेसबुक").any { lower.contains(it) } ->
+                "com.facebook.katana"
+            lower.contains("telegram") -> "org.telegram.messenger"
+            lower.contains("signal") -> "org.thoughtcrime.securesms"
+            else -> null
+        }
+
+        return MessageRequest(body = body, targetPackage = targetPackage)
     }
 }
