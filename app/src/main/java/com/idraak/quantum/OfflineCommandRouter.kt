@@ -28,7 +28,12 @@ object OfflineCommandRouter {
         val intent: String = "UNKNOWN"
     )
 
-    fun process(context: Context, command: String, allowForegroundUi: Boolean = true): Result {
+    fun process(
+        context: Context,
+        command: String,
+        allowForegroundUi: Boolean = true,
+        onProgress: ((String) -> Unit)? = null
+    ): Result {
         val appContext = context.applicationContext
         val originalMessage = command.trim()
         // Detect common multilingual phrasing, then route through the existing Urdu handlers.
@@ -44,14 +49,26 @@ object OfflineCommandRouter {
         // are treated as separators, so ordinary Urdu "اور" does not split a phrase.
         val sequenceParts = splitSequentialCommands(originalMessage)
         if (sequenceParts.size in 2..4) {
+            // Preflight must not execute any part of a sequence. MainActivity
+            // re-enters once with foreground UI allowed, avoiding duplicate actions.
+            if (!allowForegroundUi) {
+                return Result(
+                    response = "ترتیب وار کام کے ${sequenceParts.size} مرحلے تیار ہیں۔",
+                    requiresForegroundUi = true,
+                    intent = "SEQUENCE_READY"
+                )
+            }
+
             val completedSteps = mutableListOf<String>()
             for ((index, step) in sequenceParts.withIndex()) {
+                onProgress?.invoke("مرحلہ ${index + 1} شروع ہو رہا ہے۔")
                 val stepResult = process(
                     context = appContext,
                     command = step,
                     allowForegroundUi = allowForegroundUi
                 )
                 completedSteps += "${index + 1}. ${stepResult.response}"
+                onProgress?.invoke("مرحلہ ${index + 1} مکمل ہوا۔ ${stepResult.response}")
 
                 val mustStop = stepResult.requiresCameraPermission ||
                     stepResult.requiresBrightnessPermission ||
