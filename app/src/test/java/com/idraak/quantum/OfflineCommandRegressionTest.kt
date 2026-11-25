@@ -182,6 +182,37 @@ class OfflineCommandRegressionTest {
     }
 
     @Test
+    fun suggestsRecoveryAfterLatestCommandNeedsClarification() {
+        val suggestion = SmartSuggestionEngine.recoverySuggestion(
+            listOf("OPEN_APP: SUCCESS", "UNRECOGNIZED_UTTERANCE: NEEDS_CLARIFICATION")
+        )
+        assertEquals("حکم مزید واضح کریں", suggestion?.title)
+        assertEquals("توجہ طلب", suggestion?.category)
+        assertEquals("مدد کرو", suggestion?.command)
+    }
+
+    @Test
+    fun suggestsRecoveryAfterLatestCommandFails() {
+        val suggestion = SmartSuggestionEngine.recoverySuggestion(
+            listOf("OPEN_APP: SUCCESS", "SCREEN_CONTROL: FAILED")
+        )
+        assertEquals("پچھلا کام مکمل نہیں ہوا", suggestion?.title)
+    }
+
+    @Test
+    fun doesNotShowRecoverySuggestionAfterSuccessfulLatestCommand() {
+        val suggestion = SmartSuggestionEngine.recoverySuggestion(
+            listOf("SCREEN_CONTROL: FAILED", "OPEN_APP: SUCCESS")
+        )
+        assertEquals(null, suggestion)
+    }
+
+    @Test
+    fun doesNotShowRecoverySuggestionWithoutHistory() {
+        assertEquals(null, SmartSuggestionEngine.recoverySuggestion(emptyList()))
+    }
+
+    @Test
     fun doesNotTreatBareStopAsVoiceStopCommand() {
         assertFalse(VoiceSessionCommandHandler.isStopListeningCommand("بس"))
     }

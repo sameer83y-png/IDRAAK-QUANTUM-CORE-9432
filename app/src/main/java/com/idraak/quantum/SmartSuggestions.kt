@@ -29,11 +29,35 @@ data class IdraakSuggestion(
 )
 
 /**
- * Builds suggestions from local device state and the category of the latest
- * command only. It does not request permissions, inspect private content,
- * or use the network.
+ * Builds suggestions from local device state, recent command outcomes and the
+ * category of the latest command. It does not inspect private content or use
+ * the network.
  */
 object SmartSuggestionEngine {
+
+    internal fun recoverySuggestion(recentExperiences: List<String>): IdraakSuggestion? {
+        val latestStatus = recentExperiences.lastOrNull()
+            ?.substringAfterLast(':')
+            ?.trim()
+            ?.uppercase()
+            ?: return null
+
+        return when (latestStatus) {
+            "FAILED" -> IdraakSuggestion(
+                title = "پچھلا کام مکمل نہیں ہوا",
+                detail = "پچھلے حکم میں مسئلہ آیا تھا۔ مدد دیکھ کر حکم دوبارہ واضح کریں۔",
+                command = "مدد کرو",
+                category = "توجہ طلب"
+            )
+            "NEEDS_CLARIFICATION" -> IdraakSuggestion(
+                title = "حکم مزید واضح کریں",
+                detail = "پچھلی بات پوری طرح واضح نہیں ہوئی۔ ایک وقت میں ایک کام بتائیں۔",
+                command = "مدد کرو",
+                category = "توجہ طلب"
+            )
+            else -> null
+        }
+    }
 
     fun build(
         context: Context,
@@ -44,6 +68,12 @@ object SmartSuggestionEngine {
         val battery = readBattery(context)
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         val last = lastUserMessage.trim().lowercase()
+        val recentExperiences = try {
+            OfflineBrain.getRecentExperiences(context.applicationContext, limit = 8)
+        } catch (_: Exception) {
+            emptyList()
+        }
+        recoverySuggestion(recentExperiences)?.let { suggestions += it }
 
         if (battery != null && battery.first <= 25 && !battery.second) {
             suggestions += IdraakSuggestion(
