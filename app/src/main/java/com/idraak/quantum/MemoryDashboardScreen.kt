@@ -663,7 +663,11 @@ private fun MemoryRecordCard(
             modifier = Modifier.padding(14.dp)
         ) {
             Text(
-                text = memory.title,
+                text = if (memory.title.startsWith("command_alias:")) {
+                    "حکم کی ترکیب: " + memory.title.removePrefix("command_alias:")
+                } else {
+                    memory.title
+                },
                 color = Color.White,
                 style = MaterialTheme.typography.titleMedium
             )
