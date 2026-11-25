@@ -6,6 +6,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import com.idraak.quantum.engine.OfflinePhoneCommandHandler
 import com.idraak.quantum.engine.MemoryFeedbackHandler
+import com.idraak.quantum.engine.DeviceStatusController
 
 class OfflineCommandRegressionTest {
 
@@ -253,6 +254,22 @@ class OfflineCommandRegressionTest {
     fun doesNotTreatNormalConversationAsCorrection() {
         assertFalse(MemoryFeedbackHandler.isCorrectionRequest("مجھے یوٹیوب پسند ہے"))
         assertFalse(MemoryFeedbackHandler.isCorrectionRequest("یہ بہت اچھا ہے"))
+    }
+
+    @Test
+    fun recognizesBatteryQuestionsAcrossSupportedLanguages() {
+        assertTrue(DeviceStatusController.isBatteryStatusCommand("battery kitni hai"))
+        assertTrue(DeviceStatusController.isBatteryStatusCommand("charger laga hai ya nahi"))
+        assertTrue(DeviceStatusController.isBatteryStatusCommand("فون کی بیٹری کتنے فیصد ہے"))
+        assertTrue(DeviceStatusController.isBatteryStatusCommand("चार्जर लगा है या नहीं"))
+        assertTrue(DeviceStatusController.isBatteryStatusCommand("كم نسبة البطارية"))
+    }
+
+    @Test
+    fun doesNotTreatUnrelatedConversationAsBatteryQuestion() {
+        assertFalse(DeviceStatusController.isBatteryStatusCommand("مجھے یوٹیوب پسند ہے"))
+        assertFalse(DeviceStatusController.isBatteryStatusCommand("آج موسم اچھا ہے"))
+        assertFalse(DeviceStatusController.isBatteryStatusCommand("open camera"))
     }
 
 }
