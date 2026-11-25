@@ -236,7 +236,7 @@ class VoiceForegroundService : Service() {
     }
 
     private fun stopVoiceService() {
-        if (!serviceActive) return
+        val wasActive = serviceActive
         serviceActive = false
         isRunning = false
         stopAfterSpeech = false
@@ -247,7 +247,13 @@ class VoiceForegroundService : Service() {
         }
 
         voiceController = null
-        sendStatus("Background voice service stopped")
+
+        if (wasActive) {
+            sendStatus("Background voice service stopped")
+        }
+
+        // Always stop the Service, even if startForeground failed before
+        // serviceActive became true or STOP arrived during initialization.
         stopForeground(true)
         stopSelf()
     }
