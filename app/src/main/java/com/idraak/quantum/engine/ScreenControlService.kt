@@ -305,6 +305,22 @@ class ScreenControlService : AccessibilityService() {
     internal fun openNotifications(): Boolean {
         return performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS)
     }
+
+    internal fun lockDeviceScreen(): Boolean {
+        return performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN)
+    }
+
+    internal fun openQuickSettingsPanel(): Boolean {
+        return performGlobalAction(GLOBAL_ACTION_QUICK_SETTINGS)
+    }
+
+    internal fun openRecentAppsOverview(): Boolean {
+        return performGlobalAction(GLOBAL_ACTION_RECENTS)
+    }
+
+    internal fun openSystemPowerMenu(): Boolean {
+        return performGlobalAction(GLOBAL_ACTION_POWER_DIALOG)
+    }
 }
 
 object ScreenControlBridge {
@@ -373,5 +389,21 @@ object ScreenControlBridge {
 
     fun openNotifications(): Boolean {
         return activeService?.openNotifications() ?: false
+    }
+
+    fun lockScreen(): Boolean {
+        return activeService?.lockDeviceScreen() ?: false
+    }
+
+    fun openQuickSettings(): Boolean {
+        return activeService?.openQuickSettingsPanel() ?: false
+    }
+
+    fun openRecentApps(): Boolean {
+        return activeService?.openRecentAppsOverview() ?: false
+    }
+
+    fun openPowerMenu(): Boolean {
+        return activeService?.openSystemPowerMenu() ?: false
     }
 }

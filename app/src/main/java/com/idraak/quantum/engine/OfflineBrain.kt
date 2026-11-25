@@ -290,7 +290,19 @@ object OfflineBrain {
             "open notifications", "show notifications",
             "notification panel",
             "नोटिफिकेशन खोलो", "नोटिफिकेशन दिखाओ",
-            "نوٹیفکیشن کھولو", "نوٹیفکیشن دکھاؤ"
+            "نوٹیفکیشن کھولو", "نوٹیفکیشن دکھاؤ",
+            "lock screen", "lock the screen",
+            "स्क्रीन लॉक करो", "फोन लॉक करो", "मोबाइल लॉक करो",
+            "اسکرین لاک کرو", "فون لاک کرو",
+            "open quick settings", "show quick settings", "quick settings panel",
+            "क्विक सेटिंग खोलो", "क्विक सेटिंग्स खोलो",
+            "فوری سیٹنگز کھولو", "کوئیک سیٹنگز دکھاؤ",
+            "open recent apps", "show recent apps", "recent apps",
+            "हाल के ऐप खोलो", "हालिया ऐप दिखाओ",
+            "حالیہ ایپس کھولو", "حالیہ ایپس دکھاؤ",
+            "open power menu", "show power menu", "power menu",
+            "पावर मेन्यू खोलो", "पावर मेनू दिखाओ",
+            "پاور مینو کھولو", "پاور مینو دکھاؤ"
         )
 
         if (exactCommands.any { message == normalize(it) }) {
@@ -542,7 +554,15 @@ object OfflineBrain {
             "بائیں سوائپ کرو" to "swipe left",
             "دائیں سوائپ کرو" to "swipe right",
             "نوٹیفکیشن کھولو" to "open notifications",
-            "نوٹیفکیشن دکھاؤ" to "show notifications"
+            "نوٹیفکیشن دکھاؤ" to "show notifications",
+            "اسکرین لاک کرو" to "lock screen",
+            "فون لاک کرو" to "lock screen",
+            "فوری سیٹنگز کھولو" to "open quick settings",
+            "کوئیک سیٹنگز دکھاؤ" to "show quick settings",
+            "حالیہ ایپس کھولو" to "open recent apps",
+            "حالیہ ایپس دکھاؤ" to "show recent apps",
+            "پاور مینو کھولو" to "open power menu",
+            "پاور مینو دکھاؤ" to "show power menu"
         )
 
         aliases[value]?.let { return it }

@@ -149,6 +149,42 @@ object OfflineScreenCommandHandler {
             }
         }
 
+        if (matches(command,
+                "lock screen", "lock the screen",
+                "स्क्रीन लॉक करो", "फोन लॉक करो", "मोबाइल लॉक करो",
+                "اسکرین لاک کرو", "فون لاک کرو"
+            )
+        ) {
+            return perform("LOCK_SCREEN") { ScreenControlBridge.lockScreen() }
+        }
+
+        if (matches(command,
+                "open quick settings", "show quick settings", "quick settings panel",
+                "क्विक सेटिंग खोलो", "क्विक सेटिंग्स खोलो",
+                "فوری سیٹنگز کھولو", "کوئیک سیٹنگز دکھاؤ"
+            )
+        ) {
+            return perform("QUICK_SETTINGS") { ScreenControlBridge.openQuickSettings() }
+        }
+
+        if (matches(command,
+                "open recent apps", "show recent apps", "recent apps",
+                "हाल के ऐप खोलो", "हालिया ऐप दिखाओ",
+                "حالیہ ایپس کھولو", "حالیہ ایپس دکھاؤ"
+            )
+        ) {
+            return perform("RECENT_APPS") { ScreenControlBridge.openRecentApps() }
+        }
+
+        if (matches(command,
+                "open power menu", "show power menu", "power menu",
+                "पावर मेन्यू खोलो", "पावर मेनू दिखाओ",
+                "پاور مینو کھولو", "پاور مینو دکھاؤ"
+            )
+        ) {
+            return perform("POWER_MENU") { ScreenControlBridge.openPowerMenu() }
+        }
+
         // Find requested text to click
         val targetText = extractClickTarget(command)
 
