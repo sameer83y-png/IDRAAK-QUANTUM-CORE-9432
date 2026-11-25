@@ -312,7 +312,7 @@ fun IdraakHomeScreen() {
             lastUserMessage = messages.lastOrNull { it.isUser }?.text.orEmpty()
         )
         val spokenSummary = if (suggestions.isNotEmpty()) {
-            "Idraak के सुझाव। " + suggestions.joinToString(separator = "। ") { suggestion ->
+            "ادراک کی تجاویز۔ " + suggestions.joinToString(separator = "। ") { suggestion ->
                 "${suggestion.title}: ${suggestion.detail}"
             } + "। आप इनमें से कोई काम बोलकर बता सकते हैं।"
         } else {
@@ -791,7 +791,7 @@ fun IdraakHomeScreen() {
 
                             voiceController.setRecognitionLanguage(
                                 language,
-                                resumeسن رہا ہوں = resumeForegroundVoiceChat
+                                resumeListening = resumeForegroundVoiceChat
                             )
 
                             if (resumeForegroundVoiceChat) {
@@ -1154,7 +1154,7 @@ fun SettingsScreen(
     ) {
         TextButton(onClick = onBack) {
             Text(
-                "← BACK TO ادراک",
+                "← ادراک پر واپس جائیں",
                 color = themeAccentColor
             )
         }
@@ -1311,7 +1311,7 @@ fun SettingsScreen(
                 accessibilitySettingsError = null
                 try {
                     context.startActivity(
-                        Intent(Settings.ACTION_ACCESSIBILITY_ترتیبات)
+                        Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
                     )
                 } catch (_: Exception) {
                     accessibilitySettingsError =
