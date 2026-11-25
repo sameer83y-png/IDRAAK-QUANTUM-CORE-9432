@@ -21,8 +21,8 @@ object CallCommandHandler {
         val command = message
             .trim()
             .lowercase(Locale.ROOT)
-            .replace(Regex("[^\\p{L}\\p{M}\\p{N}\\s]"), " ")
-            .replace(Regex("\\s+"), " ")
+            .replace(Regex("[^\\p{L}\\p{M}\\p{N}\s]"), " ")
+            .replace(Regex("\s+"), " ")
             .trim()
 
         if (command.isBlank()) return false
@@ -30,11 +30,11 @@ object CallCommandHandler {
         // "फोन" alone is not enough: phrases such as
         // "फोन बंद करो" must never open the call flow.
         val hasCallWord = Regex(
-            """(^|\\s)(call|कॉल|کال|فون)(?=\\s|$)"""
+            """(^|\s)(call|कॉल|کال|فون)(?=\s|$)"""
         ).containsMatchIn(command)
 
         val hasHindiPhoneCallPhrase = Regex(
-            """(^|\\s)फोन\\s+(करो|कर दो|लगाओ|लगा दो|मिलाओ|मिला दो|करें|लगाइए)(?=\\s|$)"""
+            """(^|\s)फोन\s+(करो|कर दो|लगाओ|लगा दो|मिलाओ|मिला दो|करें|लगाइए)(?=\s|$)"""
         ).containsMatchIn(command)
 
         val actionWords = listOf(
@@ -58,12 +58,12 @@ object CallCommandHandler {
 
         val hasActionWord = actionWords.any { action ->
             Regex(
-                """(^|\\s)${Regex.escape(action)}(?=\\s|$)"""
+                """(^|\s)${Regex.escape(action)}(?=\s|$)"""
             ).containsMatchIn(command)
         }
 
         val directEnglishCommand = Regex(
-            """^(please\\s+)?(call|phone call)\\b"""
+            """^(please\s+)?(call|phone call)\\b"""
         ).containsMatchIn(command) ||
             command == "make a call"
 
