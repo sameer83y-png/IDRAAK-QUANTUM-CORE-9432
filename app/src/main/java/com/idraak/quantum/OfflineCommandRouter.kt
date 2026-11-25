@@ -7,6 +7,7 @@ import androidx.core.content.ContextCompat
 import com.idraak.quantum.engine.CameraController
 import com.idraak.quantum.engine.DeviceStatusController
 import com.idraak.quantum.engine.HardwareController
+import com.idraak.quantum.engine.LearnedCommandStore
 import com.idraak.quantum.engine.OfflineBrain
 import com.idraak.quantum.engine.OfflineScreenCommandHandler
 
@@ -29,7 +30,9 @@ object OfflineCommandRouter {
 
     fun process(context: Context, command: String, allowForegroundUi: Boolean = true): Result {
         val appContext = context.applicationContext
-        val message = command.trim()
+        val originalMessage = command.trim()
+        val message = LearnedCommandStore.resolve(appContext, originalMessage)
+            ?: originalMessage
 
         if (message.isBlank()) {
             return Result(response = "براہِ کرم اپنا حکم بتائیں۔", intent = "EMPTY")
