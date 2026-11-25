@@ -148,12 +148,14 @@ fun MemoryDashboardScreen(
             MemoryCountCard(
                 title = "TOTAL",
                 count = allMemories.size,
+                accentColor = accentColor,
                 modifier = Modifier.weight(1f)
             )
 
             MemoryCountCard(
                 title = "PENDING",
                 count = pendingCount,
+                accentColor = accentColor,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -167,18 +169,21 @@ fun MemoryDashboardScreen(
             MemoryCountCard(
                 title = "VERIFIED",
                 count = verifiedCount,
+                accentColor = accentColor,
                 modifier = Modifier.weight(1f)
             )
 
             MemoryCountCard(
                 title = "FAILED",
                 count = failedCount,
+                accentColor = accentColor,
                 modifier = Modifier.weight(1f)
             )
 
             MemoryCountCard(
                 title = "REJECTED",
                 count = rejectedCount,
+                accentColor = accentColor,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -578,6 +583,7 @@ fun MemoryDashboardScreen(
 private fun MemoryCountCard(
     title: String,
     count: Int,
+    accentColor: Color,
     modifier: Modifier = Modifier
 ) {
     Card(
