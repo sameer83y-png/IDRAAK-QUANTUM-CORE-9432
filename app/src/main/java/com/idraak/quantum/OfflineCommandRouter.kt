@@ -52,13 +52,13 @@ object OfflineCommandRouter {
         }
         val hasNegationBeforeAction =
             Regex(
-                """(^|\\s)(مت|نہ)s+(کال|کھولو|بھیجو|تلاش|دباؤ|چلاؤ)(?=\\s|$)"""
+                """(^|\s)(مت|نہ)\s+(کال|کھولو|بھیجو|تلاش|دباؤ|چلاؤ)(?=\s|$)"""
             ).containsMatchIn(normalizedRefusalText) ||
             Regex(
-                """(^|\\s)(کال|کھولو|بھیجو|تلاش|دباؤ)s+(مت|نہ)s+(کرو|کر دو|بھیجو|کھولو)(?=\\s|$)"""
+                """(^|\s)(کال|کھولو|بھیجو|تلاش|دباؤ)\s+(مت|نہ)\s+(کرو|کر دو|بھیجو|کھولو)(?=\s|$)"""
             ).containsMatchIn(normalizedRefusalText) ||
             Regex(
-                """(^|\\s)(کال|کھولو|بھیجو)s+(مت|نہ)(?=\\s|$)"""
+                """(^|\s)(کال|کھولو|بھیجو)\s+(مت|نہ)(?=\s|$)"""
             ).containsMatchIn(normalizedRefusalText)
         val mentionsCallAction = listOf(
             "کال", "فون"
