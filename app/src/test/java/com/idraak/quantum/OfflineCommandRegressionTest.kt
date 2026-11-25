@@ -159,6 +159,22 @@ class OfflineCommandRegressionTest {
         assertTrue(MultilingualCommandNormalizer.isExplicitRefusal("لا تتصل بأحمد"))
     }
 
+
+    @Test
+    fun recognizesShortHindiDoNotOpenPhrase() {
+        assertTrue(MultilingualCommandNormalizer.isExplicitRefusal("मत खोलो यूट्यूब"))
+    }
+
+    @Test
+    fun recognizesShortUrduDoNotOpenPhrase() {
+        assertTrue(MultilingualCommandNormalizer.isExplicitRefusal("مت کھولو یوٹیوب"))
+    }
+
+    @Test
+    fun recognizesRomanUrduDoNotOpenPhrase() {
+        assertTrue(MultilingualCommandNormalizer.isExplicitRefusal("mat kholo YouTube"))
+    }
+
     @Test
     fun doesNotTreatNormalCommandAsRefusal() {
         assertFalse(MultilingualCommandNormalizer.isExplicitRefusal("یوٹیوب کھولو"))
