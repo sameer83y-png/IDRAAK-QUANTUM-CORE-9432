@@ -323,7 +323,7 @@ class VoiceForegroundService : Service() {
                 if (pendingCommand.isNullOrBlank()) {
                     "Offline voice control is active. Tap STOP to end listening."
                 } else {
-                    "कमांड तैयार है। आगे बढ़ने के लिए OPEN & RUN दबाइए।"
+                    "حکم تیار ہے۔ اسے جاری رکھنے کے لیے ادراک کی اطلاع میں کھولنے کا اختیار دبائیں۔"
                 }
             )
             .setContentIntent(openAppPendingIntent)
