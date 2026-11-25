@@ -55,7 +55,7 @@ class CallControllerActivity : ComponentActivity() {
         } catch (error: Exception) {
             showMessage(
                 "رابطہ منتخب کرنے کی اسکرین نہیں کھل سکی: " +
-                    (error.localizedMessage ?: "Unknown error")
+                    (error.localizedMessage ?: "نامعلوم خرابی")
             )
             finish()
         }
