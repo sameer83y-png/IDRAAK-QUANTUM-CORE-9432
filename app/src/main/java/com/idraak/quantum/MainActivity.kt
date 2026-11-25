@@ -1080,8 +1080,8 @@ fun IdraakHomeScreen() {
 fun SettingsScreen(
     onBack: () -> Unit,
     onOpenMemory: () -> Unit,
-    selectedVoiceLanguage: VoskModelStore.VoskLanguage,
-    onVoiceLanguageSelected: (VoskModelStore.VoskLanguage) -> Unit,
+    selectedVoiceLanguage: UrduVoiceLanguage,
+    onVoiceLanguageSelected: (UrduVoiceLanguage) -> Unit,
     selectedSpeechRate: Float,
     onSpeechRateChanged: (Float) -> Unit,
     selectedTheme: IdraakTheme,
@@ -1216,7 +1216,7 @@ fun SettingsScreen(
 
         Button(
             onClick = {
-                onVoiceLanguageSelected(VoskModelStore.VoskLanguage.URDU)
+                onVoiceLanguageSelected(UrduVoiceLanguage.URDU)
             },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
