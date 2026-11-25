@@ -38,13 +38,21 @@ object OfflineCommandRouter {
         // A clear refusal must take priority over call/message handlers.
         // Otherwise phrases such as "Rahul ko call mat karo" could be
         // mistaken for a request to open the call flow.
-        val paddedMessage = " ${message.lowercase().trim()} "
+        val normalizedRefusalText = message
+            .lowercase()
+            .replace('’', '\'')
+            .replace(Regex("[^\\p{L}\\p{M}\\p{N}'\\s]"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
         val hasExplicitNegation = listOf(
-            "don't", "dont", "do not", "never", "not", "no",
+            "don't", "don t", "dont", "do not", "never", "not", "no",
             "mat", "mat karo", "nahi", "nahin",
             "मत", "मत करो", "नहीं", "नही",
             "نہیں", "مت", "مت کرو"
-        ).any { phrase -> paddedMessage.contains(" $phrase ") }
+        ).any { phrase ->
+            Regex("(^|\\\\s)" + Regex.escape(phrase) + "(?=\\\\s|$)")
+                .containsMatchIn(normalizedRefusalText)
+        }
         val mentionsCallAction = listOf(
             "call", "phone", "phone call", "फोन", "कॉल", "کال", "فون"
         ).any { phrase -> message.lowercase().contains(phrase) }
