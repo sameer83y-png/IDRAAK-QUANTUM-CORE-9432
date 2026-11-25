@@ -77,18 +77,52 @@ object SmartSuggestionEngine {
             )
         }
 
-        if (last.contains("youtube") || last.contains("यूट्यूब")) {
-            suggestions += IdraakSuggestion(
-                title = "दूसरा ऐप खोलें",
-                detail = "किसी दूसरे इंस्टॉल किए ऐप का नाम बोलें।",
-                command = "मदद करो"
-            )
-        } else if (!voiceActive) {
-            suggestions += IdraakSuggestion(
-                title = "वॉइस कमांड",
-                detail = "माइक बटन से Idraak को बोलकर कमांड दें।",
-                command = "तुम क्या-क्या कर सकते हो"
-            )
+        // Use only the category of the most recent user command. Do not
+        // inspect contacts, message contents, app usage history, or screen text.
+        when {
+            last.contains("camera") || last.contains("कैमरा") ||
+                last.contains("فوٹو") || last.contains("تصویر") -> {
+                suggestions += IdraakSuggestion(
+                    title = "कैमरा सहायता",
+                    detail = "चाहें तो Idraak से कैमरा खोलने को कहें।",
+                    command = "कैमरा खोलो"
+                )
+            }
+
+            last.contains("youtube") || last.contains("यूट्यूब") -> {
+                suggestions += IdraakSuggestion(
+                    title = "ऐप बदलें",
+                    detail = "किसी दूसरे इंस्टॉल किए ऐप को खोलने के लिए कहें।",
+                    command = "मदद करो"
+                )
+            }
+
+            last.contains("call") || last.contains("कॉल") ||
+                last.contains("फोन") || last.contains("کال") -> {
+                suggestions += IdraakSuggestion(
+                    title = "कॉल सहायता",
+                    detail = "कॉल के लिए संपर्क चुनना और डायलर में पुष्टि करना जरूरी है।",
+                    command = "मदद करो"
+                )
+            }
+
+            last.contains("message") || last.contains("मैसेज") ||
+                last.contains("संदेश") || last.contains("پیغام") ||
+                last.contains("میسج") -> {
+                suggestions += IdraakSuggestion(
+                    title = "मैसेज सहायता",
+                    detail = "भेजने से पहले संदेश और प्राप्तकर्ता की पुष्टि करें।",
+                    command = "मदद करो"
+                )
+            }
+
+            !voiceActive -> {
+                suggestions += IdraakSuggestion(
+                    title = "वॉइस कमांड",
+                    detail = "माइक बटन से Idraak को बोलकर कमांड दें।",
+                    command = "तुम क्या-क्या कर सकते हो"
+                )
+            }
         }
 
         if (suggestions.isEmpty()) {
