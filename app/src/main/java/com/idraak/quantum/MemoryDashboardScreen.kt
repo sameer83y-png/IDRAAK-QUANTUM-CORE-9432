@@ -53,6 +53,14 @@ fun MemoryDashboardScreen(
         mutableStateOf<LocalMemoryStore.MemoryRecord?>(null)
     }
 
+    var memoryPendingEdit by remember {
+        mutableStateOf<LocalMemoryStore.MemoryRecord?>(null)
+    }
+
+    var editTitle by remember { mutableStateOf("") }
+    var editContent by remember { mutableStateOf("") }
+    var editMessage by remember { mutableStateOf("") }
+
     var selectedEntryType by remember {
         mutableStateOf("CORRECTION")
     }
@@ -435,6 +443,12 @@ fun MemoryDashboardScreen(
 
                             if (updated) refreshKey++
                         },
+                        onEdit = {
+                            memoryPendingEdit = memory
+                            editTitle = memory.title
+                            editContent = memory.content
+                            editMessage = ""
+                        },
                         onDelete = {
                             memoryPendingDeletion = memory
                         }
@@ -442,6 +456,72 @@ fun MemoryDashboardScreen(
                 }
             }
         }
+    }
+
+    memoryPendingEdit?.let { memory ->
+        AlertDialog(
+            onDismissRequest = {
+                memoryPendingEdit = null
+            },
+            title = {
+                Text("Edit memory")
+            },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = editTitle,
+                        onValueChange = { editTitle = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        label = { Text("Topic / Title") }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = editContent,
+                        onValueChange = { editContent = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                        maxLines = 5,
+                        label = { Text("Correct information") }
+                    )
+                    if (editMessage.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(editMessage, color = Color(0xFFFFC857))
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        "Saving an edit returns this memory to PENDING. Verify it again before Idraak trusts it.",
+                        color = Color.Gray,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val updated = LocalMemoryStore.update(
+                            context = context,
+                            memoryId = memory.id,
+                            title = editTitle,
+                            content = editContent
+                        )
+                        if (updated) {
+                            memoryPendingEdit = null
+                            refreshKey++
+                        } else {
+                            editMessage = "Could not save. Check the text and try again."
+                        }
+                    }
+                ) {
+                    Text("SAVE AS PENDING")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { memoryPendingEdit = null }) {
+                    Text("CANCEL")
+                }
+            }
+        )
     }
 
     memoryPendingDeletion?.let { memory ->
@@ -528,6 +608,7 @@ private fun MemoryRecordCard(
     memory: LocalMemoryStore.MemoryRecord,
     onVerify: () -> Unit,
     onReject: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     val statusColor = when (memory.status) {
@@ -608,11 +689,18 @@ private fun MemoryRecordCard(
                 }
             }
 
-            TextButton(onClick = onDelete) {
-                Text(
-                    text = "DELETE MEMORY",
-                    color = Color(0xFFFF7777)
-                )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(onClick = onEdit) {
+                    Text("EDIT")
+                }
+                TextButton(onClick = onDelete) {
+                    Text(
+                        text = "DELETE MEMORY",
+                        color = Color(0xFFFF7777)
+                    )
+                }
             }
         }
     }
