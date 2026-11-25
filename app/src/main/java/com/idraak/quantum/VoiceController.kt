@@ -19,6 +19,7 @@ import java.io.FileOutputStream
 import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 import kotlinx.coroutines.runBlocking
 
@@ -38,6 +39,7 @@ class VoiceController(
     private val preferences = appContext.getSharedPreferences(
         LANGUAGE_PREFERENCES, Context.MODE_PRIVATE
     )
+    private val modelLifecycleLock = Any()
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private val transcriptionExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private var textToSpeech: TextToSpeech? = null
@@ -147,7 +149,21 @@ class VoiceController(
         try {
             if (loadedModel == null) {
                 onStatusChanged("آف لائن آواز کا ماڈل لوڈ ہو رہا ہے")
-                loadedModel = runBlocking { Whisper.loadModelFromAsset(appContext, MODEL_ASSET) }
+                val newlyLoadedModel = runBlocking {
+                    Whisper.loadModelFromAsset(appContext, MODEL_ASSET)
+                }
+                val modelAccepted = synchronized(modelLifecycleLock) {
+                    if (isShutdown) {
+                        false
+                    } else {
+                        loadedModel = newlyLoadedModel
+                        true
+                    }
+                }
+                if (!modelAccepted) {
+                    Whisper.releaseModel(newlyLoadedModel)
+                    return
+                }
             }
             if (isShutdown || !isListening) return
 
@@ -240,7 +256,12 @@ class VoiceController(
             onSpeechFinished()
             val transcriptionFile = wav
             wav = null
-            transcriptionExecutor.execute {
+            synchronized(modelLifecycleLock) {
+                if (isShutdown) {
+                    transcriptionFile.delete()
+                    return
+                }
+                transcriptionExecutor.execute {
                 try {
                     val result = runBlocking {
                         Whisper.transcribe(
@@ -267,6 +288,7 @@ class VoiceController(
                     }
                 } finally {
                     transcriptionFile.delete()
+                }
                 }
             }
         } catch (error: Exception) {
@@ -363,28 +385,51 @@ class VoiceController(
 
     @Synchronized
     fun shutdown() {
-        if (isShutdown) return
-        isShutdown = true
+        val modelToRelease = synchronized(modelLifecycleLock) {
+            if (isShutdown) return
+            isShutdown = true
+            val model = loadedModel
+            loadedModel = null
+            transcriptionExecutor.shutdown()
+            model
+        }
         isListening = false
         try { activeRecorder?.stop() } catch (_: Exception) {}
         try { activeEchoCanceler?.release() } catch (_: Exception) {}
         activeEchoCanceler = null
         activeRecorder = null
-        val modelToRelease = loadedModel
-        loadedModel = null
-        try {
-            if (modelToRelease != null) {
-                executor.execute {
-                    try { Whisper.releaseModel(modelToRelease) } catch (_: Exception) {}
+        executor.shutdownNow()
+
+        // Whisper's native model must outlive every in-flight transcription.
+        // Wait off the UI/service thread, then release it exactly once.
+        if (modelToRelease != null) {
+            Thread({
+                var interrupted = false
+                while (!executor.isTerminated) {
+                    try {
+                        executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)
+                    } catch (_: InterruptedException) {
+                        interrupted = true
+                    }
                 }
+                while (!transcriptionExecutor.isTerminated) {
+                    try {
+                        transcriptionExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)
+                    } catch (_: InterruptedException) {
+                        interrupted = true
+                    }
+                }
+                try {
+                    Whisper.releaseModel(modelToRelease)
+                } catch (_: Exception) {
+                }
+                if (interrupted) Thread.currentThread().interrupt()
+            }, "IdraakWhisperCleanup").apply {
+                isDaemon = true
+                start()
             }
-            executor.shutdown()
-            transcriptionExecutor.shutdown()
-        } catch (_: Exception) {
-            try { modelToRelease?.let { Whisper.releaseModel(it) } } catch (_: Exception) {}
-            executor.shutdown()
-            transcriptionExecutor.shutdownNow()
         }
+
         textToSpeech?.stop()
         textToSpeech?.shutdown()
         textToSpeech = null
