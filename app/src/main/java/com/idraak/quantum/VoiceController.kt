@@ -142,6 +142,7 @@ class VoiceController(
 
     private fun captureAndTranscribe() {
         var recorder: AudioRecord? = null
+        var echoCanceler: AcousticEchoCanceler? = null
         var wav: File? = null
         try {
             if (loadedModel == null) {
@@ -170,11 +171,12 @@ class VoiceController(
                 throw IllegalStateException("Microphone could not be initialized")
             }
             activeRecorder = recorder
-            activeEchoCanceler = if (AcousticEchoCanceler.isAvailable()) {
+            echoCanceler = if (AcousticEchoCanceler.isAvailable()) {
                 AcousticEchoCanceler.create(recorder.audioSessionId)?.also { effect ->
                     if (!effect.enabled) effect.enabled = true
                 }
             } else null
+            activeEchoCanceler = echoCanceler
             recorder.startRecording()
 
             val pcm = java.io.ByteArrayOutputStream()
@@ -277,8 +279,8 @@ class VoiceController(
             try { recorder?.let { if (it.recordingState == AudioRecord.RECORDSTATE_RECORDING) it.stop() } } catch (_: Exception) {}
             try { recorder?.release() } catch (_: Exception) {}
             activeRecorder = null
-            try { activeEchoCanceler?.release() } catch (_: Exception) {}
-            activeEchoCanceler = null
+            try { echoCanceler?.release() } catch (_: Exception) {}
+            if (activeEchoCanceler === echoCanceler) activeEchoCanceler = null
             wav?.delete()
         }
     }
