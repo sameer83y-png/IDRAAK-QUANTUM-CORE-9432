@@ -33,63 +33,111 @@ object HardwareController {
      * Controls the phone media volume using Android's AudioManager.
      * Commands are local and never require network access.
      */
-    fun executeVolumeCommand(
-        context: Context,
-        command: String
-    ): Result? {
-        val value = command.trim().lowercase(Locale.ROOT)
+    internal fun classifyVolumeCommand(command: String): String? {
+        val value = normalizeCommand(command)
+        if (value.isBlank()) return null
+
+        // Check restore/unmute before mute: "unmute volume" contains "mute volume".
+        return when {
+            containsAny(value,
+                "unmute volume", "unmute sound", "sound on", "आवाज चालू करो",
+                "वॉल्यूम अनम्यूट", "awaz chalu karo", "awaaz on karo",
+                "آواز کھولو", "والیوم اَن میوٹ کرو", "آواز بحال کرو",
+                "خاموشی ختم کرو", "آواز دوبارہ چالو کرو", "آواز پھر سے کھولو",
+                "ألغ كتم الصوت", "أعد الصوت", "شغل الصوت"
+            ) -> "UNMUTE"
+
+            containsAny(value,
+                "mute volume", "mute sound", "आवाज बंद करो", "वॉल्यूम म्यूट करो",
+                "आवाज़ म्यूट", "awaz mute karo", "awaaz band karo",
+                "آواز خاموش کرو", "والیوم میوٹ کرو", "آواز بند کر دو",
+                "خاموش کر دو", "ساری آواز بند کرو", "آواز بالکل بند کرو",
+                "اكتم الصوت", "كتم الصوت", "اجعل الصوت صامتا"
+            ) -> "MUTE"
+
+            containsAny(value,
+                "maximum volume", "volume full", "आवाज फुल करो", "वॉल्यूम फुल करो",
+                "volume maximum karo", "awaz full karo", "آواز پوری کرو",
+                "والیوم فل کرو", "آواز زیادہ سے زیادہ کرو",
+                "ارفع الصوت للحد الأقصى", "أقصى مستوى للصوت", "اجعل الصوت بأقصى مستوى"
+            ) -> "MAX"
+
+            containsAny(value,
+                "minimum volume", "volume zero", "आवाज बिल्कुल कम करो",
+                "volume zero karo", "awaz bilkul kam karo", "آواز بالکل کم کرو",
+                "آواز صفر کرو", "اخفض الصوت إلى الصفر", "اجعل الصوت صفرا", "الصوت عند الصفر"
+            ) -> "MIN"
+
+            containsAny(value,
+                "volume up", "increase volume", "आवाज बढ़ाओ", "वॉल्यूम बढ़ाओ",
+                "आवाज़ तेज करो", "volume badhao", "volume tez karo", "awaz badhao",
+                "awaaz tez karo", "آواز بڑھاؤ", "والیوم بڑھاؤ", "آواز تیز کرو",
+                "آواز اونچی کرو", "آواز بڑھا دو", "آواز اونچی کر دو", "ذرا آواز بڑھاؤ",
+                "ذرا آواز بڑھا دو", "آواز تیز کر دو", "ارفع الصوت", "زد الصوت",
+                "علي الصوت", "ارفع مستوى الصوت"
+            ) -> "UP"
+
+            containsAny(value,
+                "volume down", "decrease volume", "आवाज कम करो", "वॉल्यूम कम करो",
+                "आवाज़ धीमी करो", "volume kam karo", "awaz kam karo", "awaaz dheemi karo",
+                "آواز کم کرو", "والیوم کم کرو", "آواز آہستہ کرو", "آواز کم کر دو",
+                "آواز ہلکی کرو", "آواز دھیمی کر دو", "ذرا آواز کم کرو",
+                "اخفض الصوت", "خفض الصوت", "قلل الصوت", "اخفض مستوى الصوت"
+            ) -> "DOWN"
+
+            else -> null
+        }
+    }
+
+    private fun containsAny(value: String, vararg phrases: String): Boolean =
+        phrases.any { value.contains(normalizeCommand(it)) }
+
+    private fun normalizeCommand(value: String): String =
+        value.trim()
+            .lowercase(Locale.ROOT)
+            .replace(Regex("[^\\p{L}\\p{M}\\p{N}\\s]"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+
+    /**
+     * Controls the phone media volume using Android's AudioManager.
+     * Commands are local and never require network access.
+     */
+    fun executeVolumeCommand(context: Context, command: String): Result? {
+        val action = classifyVolumeCommand(command) ?: return null
         val audioManager = context.applicationContext
             .getSystemService(Context.AUDIO_SERVICE) as? AudioManager
             ?: return Result(false, "فون کا آواز کنٹرول دستیاب نہیں۔")
 
         val stream = AudioManager.STREAM_MUSIC
-        val current = audioManager.getStreamVolume(stream)
         val maximum = audioManager.getStreamMaxVolume(stream)
 
         return try {
-            when {
-                listOf("volume up", "increase volume", "आवाज बढ़ाओ", "वॉल्यूम बढ़ाओ", "आवाज़ तेज करो", "volume badhao", "volume tez karo", "awaz badhao", "awaaz tez karo", "آواز بڑھاؤ", "والیوم بڑھاؤ", "آواز تیز کرو", "آواز اونچی کرو", "آواز بڑھا دو", "آواز اونچی کر دو", "ذرا آواز بڑھاؤ", "ذرا آواز بڑھا دو", "آواز تیز کر دو",
-                    "ارفع الصوت", "زد الصوت", "علي الصوت", "ارفع مستوى الصوت")
-                    .any { value.contains(it) } -> {
+            when (action) {
+                "UP" -> {
                     audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_RAISE, 0)
                     Result(true, "میڈیا کی آواز بڑھا دی گئی ہے۔")
                 }
-
-                listOf("volume down", "decrease volume", "आवाज कम करो", "वॉल्यूम कम करो", "आवाज़ धीमी करो", "volume kam karo", "awaz kam karo", "awaaz dheemi karo", "آواز کم کرو", "والیوم کم کرو", "آواز آہستہ کرو", "آواز کم کر دو", "آواز ہلکی کرو", "آواز دھیمی کر دو", "ذرا آواز کم کرو",
-                    "اخفض الصوت", "خفض الصوت", "قلل الصوت", "اخفض مستوى الصوت")
-                    .any { value.contains(it) } -> {
+                "DOWN" -> {
                     audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_LOWER, 0)
                     Result(true, "میڈیا کی آواز کم کر دی گئی ہے۔")
                 }
-
-                listOf("mute volume", "mute sound", "आवाज बंद करो", "वॉल्यूम म्यूट करो", "आवाज़ म्यूट", "awaz mute karo", "awaaz band karo", "آواز خاموش کرو", "والیوم میوٹ کرو", "آواز بند کر دو", "خاموش کر دو", "ساری آواز بند کرو", "آواز بالکل بند کرو",
-                    "اكتم الصوت", "كتم الصوت", "اجعل الصوت صامتا")
-                    .any { value.contains(it) } -> {
+                "MUTE" -> {
                     audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_MUTE, 0)
                     Result(true, "میڈیا کی آواز خاموش کر دی گئی ہے۔")
                 }
-
-                listOf("unmute volume", "sound on", "आवाज चालू करो", "वॉल्यूम अनम्यूट", "awaz chalu karo", "awaaz on karo", "آواز کھولو", "والیوم اَن میوٹ کرو", "آواز بحال کرو", "خاموشی ختم کرو", "آواز دوبارہ چالو کرو", "آواز پھر سے کھولو",
-                    "ألغ كتم الصوت", "أعد الصوت", "شغل الصوت")
-                    .any { value.contains(it) } -> {
+                "UNMUTE" -> {
                     audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_UNMUTE, 0)
                     Result(true, "میڈیا کی آواز بحال کر دی گئی ہے۔")
                 }
-
-                listOf("maximum volume", "volume full", "आवाज फुल करो", "वॉल्यूम फुल करो", "volume maximum karo", "awaz full karo", "آواز پوری کرو", "والیوم فل کرو", "آواز زیادہ سے زیادہ کرو",
-                    "ارفع الصوت للحد الأقصى", "أقصى مستوى للصوت", "اجعل الصوت بأقصى مستوى")
-                    .any { value.contains(it) } -> {
+                "MAX" -> {
                     audioManager.setStreamVolume(stream, maximum, 0)
                     Result(true, "میڈیا کی آواز زیادہ سے زیادہ کر دی گئی ہے۔")
                 }
-
-                listOf("minimum volume", "volume zero", "आवाज बिल्कुल कम करो", "volume zero karo", "awaz bilkul kam karo", "آواز بالکل کم کرو", "آواز صفر کرو",
-                    "اخفض الصوت إلى الصفر", "اجعل الصوت صفرا", "الصوت عند الصفر")
-                    .any { value.contains(it) } -> {
+                "MIN" -> {
                     audioManager.setStreamVolume(stream, 0, 0)
                     Result(true, "میڈیا کی آواز صفر کر دی گئی ہے۔")
                 }
-
                 else -> null
             }
         } catch (_: SecurityException) {
