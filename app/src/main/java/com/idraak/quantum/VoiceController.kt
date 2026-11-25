@@ -168,12 +168,18 @@ class VoiceController(
             var silentSamples = 0
             var totalSamples = 0
             val silenceLimit = (SAMPLE_RATE * 1.1f).toInt()
+            // Do not hold the microphone open for the full 12-second capture
+            // window when nobody starts speaking.
+            val initialSilenceLimit = SAMPLE_RATE * 4
             val minimumSpeech = (SAMPLE_RATE * 0.45f).toInt()
             val maxSamples = SAMPLE_RATE * 12
 
             while (isListening && !isShutdown && totalSamples < maxSamples) {
                 val read = recorder.read(buffer, 0, buffer.size)
-                if (read <= 0) continue
+                if (read < 0) {
+                    throw IllegalStateException("Microphone read failed (code $read)")
+                }
+                if (read == 0) continue
                 var peak = 0
                 for (i in 0 until read) {
                     val sample = buffer[i]
@@ -188,6 +194,10 @@ class VoiceController(
                 } else if (speechStarted) {
                     silentSamples += read
                     if (silentSamples >= silenceLimit && totalSamples >= minimumSpeech) break
+                } else if (totalSamples >= initialSilenceLimit) {
+                    // Empty/noisy room: release the mic promptly and resume the
+                    // continuous voice loop instead of waiting for 12 seconds.
+                    break
                 }
             }
             recorder.stop()
