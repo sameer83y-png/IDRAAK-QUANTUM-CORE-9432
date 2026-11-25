@@ -591,6 +591,14 @@ object LocalMemoryStore {
                             .putString(BACKUP_KEY, encrypted)
                             .commit()
                     }
+                } else {
+                    // The primary record is authoritative. Refresh an older backup
+                    // so previously deleted or edited content cannot be resurrected.
+                    if (prefs.getString(BACKUP_KEY, null) != primary) {
+                        prefs.edit()
+                            .putString(BACKUP_KEY, primary)
+                            .commit()
+                    }
                 }
                 return decoded
             }
