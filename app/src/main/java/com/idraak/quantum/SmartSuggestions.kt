@@ -24,12 +24,14 @@ import java.util.Calendar
 data class IdraakSuggestion(
     val title: String,
     val detail: String,
-    val command: String
+    val command: String,
+    val category: String = "सामान्य सहायता"
 )
 
 /**
- * Builds a small, context-aware suggestion list using only local device state.
- * It does not request permissions, read personal content, or use the network.
+ * Builds suggestions from local device state and the category of the latest
+ * command only. It does not request permissions, inspect private content,
+ * or use the network.
  */
 object SmartSuggestionEngine {
 
@@ -47,13 +49,15 @@ object SmartSuggestionEngine {
             suggestions += IdraakSuggestion(
                 title = "बैटरी कम है",
                 detail = "बैटरी की स्थिति जाँच लें।",
-                command = "बैटरी कितनी है"
+                command = "बैटरी कितनी है",
+                category = "डिवाइस स्थिति"
             )
         } else if (battery != null && battery.second) {
             suggestions += IdraakSuggestion(
                 title = "फोन चार्ज हो रहा है",
                 detail = "चाहें तो चार्जिंग की स्थिति जाँचें।",
-                command = "चार्जिंग स्टेटस बताओ"
+                command = "चार्जिंग स्टेटस बताओ",
+                category = "डिवाइस स्थिति"
             )
         }
 
@@ -61,31 +65,34 @@ object SmartSuggestionEngine {
             suggestions += IdraakSuggestion(
                 title = "सुबह की शुरुआत",
                 detail = "आज की तारीख और समय जानें।",
-                command = "आज की तारीख बताओ"
+                command = "आज की तारीख बताओ",
+                category = "समय और दिन"
             )
         } else if (hour in 12..17) {
             suggestions += IdraakSuggestion(
                 title = "दिन का समय",
                 detail = "अभी का समय जानें।",
-                command = "अभी समय बताओ"
+                command = "अभी समय बताओ",
+                category = "समय और दिन"
             )
         } else {
             suggestions += IdraakSuggestion(
                 title = "आज का दिन",
                 detail = "आज की तारीख देख सकते हैं।",
-                command = "आज की तारीख बताओ"
+                command = "आज की तारीख बताओ",
+                category = "समय और दिन"
             )
         }
 
-        // Use only the category of the most recent user command. Do not
-        // inspect contacts, message contents, app usage history, or screen text.
+        // Use only the category of the most recent user command.
         when {
             last.contains("camera") || last.contains("कैमरा") ||
                 last.contains("فوٹو") || last.contains("تصویر") -> {
                 suggestions += IdraakSuggestion(
                     title = "कैमरा सहायता",
-                    detail = "चाहें तो Idraak से कैमरा खोलने को कहें।",
-                    command = "कैमरा खोलो"
+                    detail = "कैमरा खोलने या फोटो लेने के लिए स्पष्ट वॉइस कमांड दें।",
+                    command = "मदद करो",
+                    category = "हाल की कमांड"
                 )
             }
 
@@ -93,7 +100,8 @@ object SmartSuggestionEngine {
                 suggestions += IdraakSuggestion(
                     title = "ऐप बदलें",
                     detail = "किसी दूसरे इंस्टॉल किए ऐप को खोलने के लिए कहें।",
-                    command = "मदद करो"
+                    command = "मदद करो",
+                    category = "हाल की कमांड"
                 )
             }
 
@@ -102,7 +110,8 @@ object SmartSuggestionEngine {
                 suggestions += IdraakSuggestion(
                     title = "कॉल सहायता",
                     detail = "कॉल के लिए संपर्क चुनना और डायलर में पुष्टि करना जरूरी है।",
-                    command = "मदद करो"
+                    command = "मदद करो",
+                    category = "हाल की कमांड"
                 )
             }
 
@@ -112,7 +121,8 @@ object SmartSuggestionEngine {
                 suggestions += IdraakSuggestion(
                     title = "मैसेज सहायता",
                     detail = "भेजने से पहले संदेश और प्राप्तकर्ता की पुष्टि करें।",
-                    command = "मदद करो"
+                    command = "मदद करो",
+                    category = "हाल की कमांड"
                 )
             }
 
@@ -120,7 +130,8 @@ object SmartSuggestionEngine {
                 suggestions += IdraakSuggestion(
                     title = "वॉइस कमांड",
                     detail = "माइक बटन से Idraak को बोलकर कमांड दें।",
-                    command = "तुम क्या-क्या कर सकते हो"
+                    command = "तुम क्या-क्या कर सकते हो",
+                    category = "वॉइस सहायता"
                 )
             }
         }
@@ -129,11 +140,12 @@ object SmartSuggestionEngine {
             suggestions += IdraakSuggestion(
                 title = "Idraak सहायता",
                 detail = "उपलब्ध ऑफलाइन कमांड जानें।",
-                command = "मदद करो"
+                command = "मदद करो",
+                category = "सामान्य सहायता"
             )
         }
 
-        return suggestions.distinctBy { it.title }.take(3)
+        return suggestions.distinctBy { it.title }.take(4)
     }
 
     private fun readBattery(context: Context): Pair<Int, Boolean>? {
@@ -171,7 +183,7 @@ fun SmartSuggestionsPanel(
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
                 text = "SMART SUGGESTIONS • परिस्थिति के अनुसार",
@@ -180,28 +192,46 @@ fun SmartSuggestionsPanel(
                 fontWeight = FontWeight.Bold
             )
 
-            suggestions.forEach { suggestion ->
-                Row(
+            suggestions.groupBy { it.category }.forEach { (category, items) ->
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = suggestion.title,
-                            color = Color.White,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = suggestion.detail,
-                            color = Color(0xFF9DB2D1),
-                            fontSize = 11.sp
-                        )
-                    }
-                    TextButton(
-                        onClick = { onSuggestionSelected(suggestion.command) }
-                    ) {
-                        Text("चुनें", color = Color(0xFF65C8FF))
+                    Text(
+                        text = category.uppercase(),
+                        color = Color(0xFF65C8FF),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    items.forEach { suggestion ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = suggestion.title,
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = suggestion.detail,
+                                    color = Color(0xFF9DB2D1),
+                                    fontSize = 11.sp
+                                )
+                            }
+                            TextButton(
+                                onClick = { onSuggestionSelected(suggestion.command) }
+                            ) {
+                                Text("चुनें", color = Color(0xFF65C8FF))
+                            }
+                        }
                     }
                 }
             }
