@@ -48,28 +48,28 @@ object HardwareController {
 
         return try {
             when {
-                listOf("volume up", "increase volume", "आवाज बढ़ाओ", "वॉल्यूम बढ़ाओ", "आवाज़ तेज करो", "volume badhao", "volume tez karo", "awaz badhao", "awaaz tez karo", "آواز بڑھاؤ", "والیوم بڑھاؤ", "آواز تیز کرو", "آواز اونچی کرو", "آواز بڑھا دو",
+                listOf("volume up", "increase volume", "आवाज बढ़ाओ", "वॉल्यूम बढ़ाओ", "आवाज़ तेज करो", "volume badhao", "volume tez karo", "awaz badhao", "awaaz tez karo", "آواز بڑھاؤ", "والیوم بڑھاؤ", "آواز تیز کرو", "آواز اونچی کرو", "آواز بڑھا دو", "آواز اونچی کر دو", "ذرا آواز بڑھاؤ", "ذرا آواز بڑھا دو", "آواز تیز کر دو",
                     "ارفع الصوت", "زد الصوت", "علي الصوت", "ارفع مستوى الصوت")
                     .any { value.contains(it) } -> {
                     audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_RAISE, 0)
                     Result(true, "میڈیا کی آواز بڑھا دی گئی ہے۔")
                 }
 
-                listOf("volume down", "decrease volume", "आवाज कम करो", "वॉल्यूम कम करो", "आवाज़ धीमी करो", "volume kam karo", "awaz kam karo", "awaaz dheemi karo", "آواز کم کرو", "والیوم کم کرو", "آواز آہستہ کرو", "آواز کم کر دو",
+                listOf("volume down", "decrease volume", "आवाज कम करो", "वॉल्यूम कम करो", "आवाज़ धीमी करो", "volume kam karo", "awaz kam karo", "awaaz dheemi karo", "آواز کم کرو", "والیوم کم کرو", "آواز آہستہ کرو", "آواز کم کر دو", "آواز ہلکی کرو", "آواز دھیمی کر دو", "ذرا آواز کم کرو",
                     "اخفض الصوت", "خفض الصوت", "قلل الصوت", "اخفض مستوى الصوت")
                     .any { value.contains(it) } -> {
                     audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_LOWER, 0)
                     Result(true, "میڈیا کی آواز کم کر دی گئی ہے۔")
                 }
 
-                listOf("mute volume", "mute sound", "आवाज बंद करो", "वॉल्यूम म्यूट करो", "आवाज़ म्यूट", "awaz mute karo", "awaaz band karo", "آواز خاموش کرو", "والیوم میوٹ کرو", "آواز بند کر دو", "خاموش کر دو",
+                listOf("mute volume", "mute sound", "आवाज बंद करो", "वॉल्यूम म्यूट करो", "आवाज़ म्यूट", "awaz mute karo", "awaaz band karo", "آواز خاموش کرو", "والیوم میوٹ کرو", "آواز بند کر دو", "خاموش کر دو", "ساری آواز بند کرو", "آواز بالکل بند کرو",
                     "اكتم الصوت", "كتم الصوت", "اجعل الصوت صامتا")
                     .any { value.contains(it) } -> {
                     audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_MUTE, 0)
                     Result(true, "میڈیا کی آواز خاموش کر دی گئی ہے۔")
                 }
 
-                listOf("unmute volume", "sound on", "आवाज चालू करो", "वॉल्यूम अनम्यूट", "awaz chalu karo", "awaaz on karo", "آواز کھولو", "والیوم اَن میوٹ کرو", "آواز بحال کرو", "خاموشی ختم کرو",
+                listOf("unmute volume", "sound on", "आवाज चालू करो", "वॉल्यूम अनम्यूट", "awaz chalu karo", "awaaz on karo", "آواز کھولو", "والیوم اَن میوٹ کرو", "آواز بحال کرو", "خاموشی ختم کرو", "آواز دوبارہ چالو کرو", "آواز پھر سے کھولو",
                     "ألغ كتم الصوت", "أعد الصوت", "شغل الصوت")
                     .any { value.contains(it) } -> {
                     audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_UNMUTE, 0)
@@ -111,10 +111,10 @@ object HardwareController {
     ): Result? {
         val value = command.trim().lowercase(Locale.ROOT)
         val action = when {
-            listOf("brightness up", "increase brightness", "screen brighter", "चमक बढ़ाओ", "ब्राइटनेस बढ़ाओ", "रोशनी बढ़ाओ", "brightness badhao", "screen bright karo", "roshni badhao", "روشنی بڑھاؤ", "برائٹنس بڑھاؤ", "روشنی بڑھا دو",
+            listOf("brightness up", "increase brightness", "screen brighter", "चमक बढ़ाओ", "ब्राइटनेस बढ़ाओ", "रोशनी बढ़ाओ", "brightness badhao", "screen bright karo", "roshni badhao", "روشنی بڑھاؤ", "برائٹنس بڑھاؤ", "روشنی بڑھا دو", "روشنی ذرا بڑھاؤ", "اسکرین روشن کرو", "اسکرین زیادہ روشن کرو",
                 "ارفع السطوع", "زد السطوع", "ارفع سطوع الشاشة")
                 .any { value.contains(it) } -> "UP"
-            listOf("brightness down", "decrease brightness", "screen dim", "चमक कम करो", "ब्राइटनेस कम करो", "रोशनी कम करो", "brightness kam karo", "screen dim karo", "roshni kam karo", "روشنی کم کرو", "برائٹنس کم کرو", "روشنی کم کر دو",
+            listOf("brightness down", "decrease brightness", "screen dim", "चमक कम करो", "ब्राइटनेस कम करो", "रोशनी कम करो", "brightness kam karo", "screen dim karo", "roshni kam karo", "روشنی کم کرو", "برائٹنس کم کرو", "روشنی کم کر دو", "روشنی ذرا کم کرو", "اسکرین مدھم کرو", "اسکرین کی روشنی گھٹا دو",
                 "اخفض السطوع", "خفض السطوع", "قلل سطوع الشاشة")
                 .any { value.contains(it) } -> "DOWN"
             listOf("maximum brightness", "brightness full", "चमक पूरी करो", "ब्राइटनेस फुल करो", "brightness full karo", "roshni full karo", "روشنی پوری کرو", "برائٹنس فل کرو", "روشنی زیادہ سے زیادہ کرو",

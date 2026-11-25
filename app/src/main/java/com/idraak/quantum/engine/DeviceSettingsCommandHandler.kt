@@ -27,11 +27,11 @@ object DeviceSettingsCommandHandler {
     ): Result? {
         val value = command.trim().lowercase()
         val target = when {
-            containsAny(value, "وائی فائی", "وائیفائی", "وائی فائی کی سیٹنگ", "وائی فائی کی ترتیبات",
+            containsAny(value, "وائی فائی", "وائیفائی", "وائی فائی کی سیٹنگ", "وائی فائی کی ترتیبات", "وائی فائی کی سیٹنگ کھولو", "وائی فائی دکھاؤ",
                 "wifi", "wi-fi", "إعدادات الواي فاي", "اعدادات الواي فاي", "افتح إعدادات الواي فاي") ->
                 Triple(Settings.ACTION_WIFI_SETTINGS, "وائی فائی", "WIFI_SETTINGS")
 
-            containsAny(value, "بلوٹوتھ", "bluetooth", "إعدادات البلوتوث", "اعدادات البلوتوث", "افتح إعدادات البلوتوث") ->
+            containsAny(value, "بلوٹوتھ", "بلوٹوتھ کی سیٹنگ کھولو", "بلوٹوتھ کی ترتیبات کھولو", "bluetooth", "إعدادات البلوتوث", "اعدادات البلوتوث", "افتح إعدادات البلوتوث") ->
                 Triple(Settings.ACTION_BLUETOOTH_SETTINGS, "بلوٹوتھ", "BLUETOOTH_SETTINGS")
 
             containsAny(value, "لوکیشن", "مقام", "مقام کی ترتیبات", "location", "gps",

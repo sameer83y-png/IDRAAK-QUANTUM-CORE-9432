@@ -20,9 +20,9 @@ object DeviceStatusController {
     fun executeBatteryCommand(context: Context, command: String): Result? {
         val value = command.trim().lowercase(Locale.ROOT)
         val phrases = listOf(
-            "بیٹری", "بیٹری کتنی ہے", "بیٹری کا حال بتاؤ",
+            "بیٹری", "بیٹری کتنی ہے", "بیٹری کا حال بتاؤ", "فون کی بیٹری بتاؤ", "کتنی بیٹری باقی ہے", "چارج کتنے فیصد رہ گیا ہے",
             "چارج کتنا", "چارج کتنے فیصد ہے", "چارجنگ کی حالت بتاؤ",
-            "فون چارج ہو رہا ہے", "کیا فون چارج ہو رہا ہے",
+            "فون چارج ہو رہا ہے", "کیا فون چارج ہو رہا ہے", "کیا چارجر لگا ہوا ہے", "چارجر لگا ہے یا نہیں",
             "چارجر لگا ہے", "چارجر کی حالت بتاؤ",
             "battery", "battery level", "battery percentage", "how much battery",
             "is phone charging", "charging status",
