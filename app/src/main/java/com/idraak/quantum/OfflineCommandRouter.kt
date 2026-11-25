@@ -58,6 +58,10 @@ object OfflineCommandRouter {
                     stepResult.requiresForegroundUi ||
                     stepResult.intent in setOf(
                         "CLICK_CONFIRMATION_REQUIRED",
+                        "SAFE_CALL",
+                        "MESSAGE_COMPOSE",
+                        "CAMERA_OPEN",
+                        "WEB_NAVIGATION",
                         "CANCELLED",
                         "UNKNOWN",
                         "EMPTY",
