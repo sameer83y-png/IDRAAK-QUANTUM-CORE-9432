@@ -270,6 +270,22 @@ fun IdraakHomeScreen() {
         }
     }
 
+    fun speakDashboardSuggestions() {
+        val suggestions = SmartSuggestionEngine.build(
+            context = context.applicationContext,
+            voiceActive = true,
+            lastUserMessage = messages.lastOrNull { it.isUser }?.text.orEmpty()
+        )
+        val firstSuggestion = suggestions.firstOrNull()
+        val spokenSummary = if (firstSuggestion != null) {
+            "Idraak सुझाव: ${firstSuggestion.title}. ${firstSuggestion.detail}."
+        } else {
+            "Idraak तैयार है। आप बोलकर कमांड दे सकते हैं।"
+        }
+        voiceController.speak(spokenSummary)
+        voiceStatus = "OFFLINE SUGGESTION SPEAKING"
+    }
+
     fun startVoiceChat() {
         if (isBackgroundVoiceActive) {
             stopBackgroundVoiceService()
@@ -287,14 +303,9 @@ fun IdraakHomeScreen() {
             ) == PackageManager.PERMISSION_GRANTED
 
         if (permissionGranted) {
-            val started = voiceController.startListening()
-            isListening = started
-
-            voiceStatus = if (started) {
-                "VOICE CHAT ACTIVE • LISTENING"
-            } else {
-                "Could not start voice recognition"
-            }
+            speakDashboardSuggestions()
+            isListening = false
+            voiceStatus = "VOICE SESSION STARTING • OFFLINE"
         } else {
             voiceStatus = "Requesting microphone permission"
             microphonePermissionRequest = true
@@ -455,14 +466,9 @@ fun IdraakHomeScreen() {
             contract = ActivityResultContracts.RequestPermission()
         ) { granted ->
             if (granted && isContinuousVoiceChat) {
-                val started = voiceController.startListening()
-                isListening = started
-
-                voiceStatus = if (started) {
-                    "VOICE CHAT ACTIVE • LISTENING"
-                } else {
-                    "Could not start listening"
-                }
+                speakDashboardSuggestions()
+                isListening = false
+                voiceStatus = "VOICE SESSION STARTING • OFFLINE"
             } else {
                 isContinuousVoiceChat = false
                 isListening = false
@@ -865,99 +871,40 @@ fun IdraakHomeScreen() {
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    val dashboardSuggestions = remember(
-                        messages.size,
-                        isContinuousVoiceChat,
-                        isBackgroundVoiceActive
-                    ) {
-                        SmartSuggestionEngine.build(
-                            context = context.applicationContext,
-                            voiceActive = isContinuousVoiceChat || isBackgroundVoiceActive,
-                            lastUserMessage = messages.lastOrNull { it.isUser }?.text.orEmpty()
-                        )
-                    }
-
-                    LazyColumn(
+                    Column(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth(),
-                        verticalArrangement =
-                            Arrangement.spacedBy(10.dp)
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        item {
-                            SmartSuggestionsPanel(
-                                suggestions = dashboardSuggestions,
-                                onSuggestionSelected = { command ->
-                                    inputText = command
-                                }
-                            )
-                        }
-
-                        items(messages) { message ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement =
-                                    if (message.isUser) {
-                                        Arrangement.End
-                                    } else {
-                                        Arrangement.Start
-                                    }
-                            ) {
-                                Surface(
-                                    color = if (message.isUser) {
-                                        Color(0xFF123B70)
-                                    } else {
-                                        Color(0xFF17243A)
-                                    },
-                                    shape = RoundedCornerShape(16.dp),
-                                    modifier = Modifier.fillMaxWidth(0.88f)
-                                ) {
-                                    Text(
-                                        text = message.text,
-                                        color = Color.White,
-                                        fontSize = 14.sp,
-                                        modifier = Modifier.padding(13.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedTextField(
-                            value = inputText,
-                            onValueChange = { inputText = it },
-                            modifier = Modifier.weight(1f),
-                            placeholder = {
-                                Text(
-                                    "Message Idraak...",
-                                    color = Color.LightGray
-                                )
+                        Text(
+                            text = if (isContinuousVoiceChat || isBackgroundVoiceActive) {
+                                "IDRAAK VOICE CONTROL ACTIVE"
+                            } else {
+                                "VOICE-ONLY CONTROL"
                             },
-                            singleLine = true,
-                            shape = RoundedCornerShape(16.dp),
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = ImeAction.Send
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onSend = { sendMessage() }
-                            )
+                            color = Color(0xFF65C8FF),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
                         )
-
-                        Spacer(modifier = Modifier.size(8.dp))
-
-                        Button(
-                            onClick = { sendMessage() },
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = blue
-                            )
-                        ) {
-                            Text("SEND")
-                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "बोलकर कहें: ऐप खोलो, कॉल करो, कैमरा खोलो या फोन की सेटिंग बदलो।",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "सुझाव Idraak आवाज़ में बताएगा। चैट बॉक्स और टेक्स्ट चैट उपलब्ध नहीं हैं।",
+                            color = Color(0xFF8EA6C9),
+                            fontSize = 11.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
