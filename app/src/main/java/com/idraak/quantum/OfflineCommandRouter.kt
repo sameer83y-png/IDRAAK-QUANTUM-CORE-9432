@@ -57,6 +57,16 @@ object OfflineCommandRouter {
         // UNKNOWN means this is not a screen command, so normal routing continues.
         val screenResult = OfflineScreenCommandHandler.execute(message)
         if (screenResult.intent != "UNKNOWN") {
+            // Preserve OfflineBrain's pending-confirmation flow for sensitive
+            // screen targets such as Send, Delete, Purchase, or Pay.
+            // The brain records the pending request and handles a later yes/no.
+            if (screenResult.intent == "CLICK_CONFIRMATION_REQUIRED") {
+                return Result(
+                    response = OfflineBrain.respond(appContext, message),
+                    intent = "CLICK_CONFIRMATION_REQUIRED"
+                )
+            }
+
             OfflineBrain.recordExperience(
                 context = appContext,
                 intent = screenResult.intent,
