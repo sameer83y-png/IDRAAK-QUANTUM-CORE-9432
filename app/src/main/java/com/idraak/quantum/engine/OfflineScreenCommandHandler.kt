@@ -291,7 +291,9 @@ object OfflineScreenCommandHandler {
             "क्लिक करो ",
             "दबाओ ",
             "کلک کرو ",
-            "دباؤ "
+            "کلک کریں ",
+            "دباؤ ",
+            "دبائیں "
         )
 
         for (prefix in prefixes) {

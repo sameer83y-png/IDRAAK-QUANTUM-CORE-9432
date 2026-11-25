@@ -64,7 +64,7 @@ object MemoryCommandHandler {
                 topic = payload
                 stage = Stage.WAITING_FOR_CONTENT
                 startedAt = now
-                return "समझ गया। अब बताइए कि "$topic" के बारे में क्या याद रखना है?"
+                return "समझ गया। अब बताइए कि \"$topic\" के बारे में क्या याद रखना है?"
             }
 
             Stage.WAITING_FOR_TOPIC -> {
@@ -76,7 +76,7 @@ object MemoryCommandHandler {
                 topic = value
                 stage = Stage.WAITING_FOR_CONTENT
                 startedAt = now
-                return "ठीक है। अब "$topic" के बारे में सही जानकारी बताइए।"
+                return "ठीक है। अब \"$topic\" के बारे में सही जानकारी बताइए।"
             }
 
             Stage.WAITING_FOR_CONTENT -> {

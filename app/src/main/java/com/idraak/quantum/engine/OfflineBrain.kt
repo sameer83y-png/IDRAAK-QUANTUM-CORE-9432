@@ -314,7 +314,7 @@ object OfflineBrain {
             "tap ", "tap on ",
             "press ",
             "क्लिक करो ", "दबाओ ",
-            "کلک کرو ", "دباؤ "
+            "کلک کرو ", "کلک کریں ", "دباؤ ", "دبائیں "
         )
 
         if (clickPrefixes.any { message.startsWith(it) }) {
@@ -576,7 +576,7 @@ object OfflineBrain {
         aliases[value]?.let { return it }
 
         val clickPrefixes = listOf(
-            "کلک کرو ", "دباؤ ", "کلک کریں "
+            "کلک کرو ", "دباؤ ", "کلک کریں ", "دبائیں "
         )
 
         for (prefix in clickPrefixes) {
