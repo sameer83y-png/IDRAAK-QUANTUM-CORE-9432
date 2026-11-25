@@ -16,7 +16,7 @@ object VoiceSessionCommandHandler {
             .replace(Regex("[^\\p{L}\\p{M}\\p{N}'\\s]"), " ")
             .replace(Regex("\\s+"), " ")
             .trim()
-            .removePrefix("idraak ")
+            .removePrefix("ادراک ")
             .trim()
 
         if (normalized.isBlank()) return false
