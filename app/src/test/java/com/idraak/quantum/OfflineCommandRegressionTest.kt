@@ -100,6 +100,39 @@ class OfflineCommandRegressionTest {
         assertEquals("CLICK_CONFIRMATION_REQUIRED", result.intent)
     }
 
+
+    @Test
+    fun requiresConfirmationBeforeSigningOut() {
+        val result = com.idraak.quantum.engine.OfflineScreenCommandHandler.execute(
+            "click Sign out"
+        )
+        assertEquals("CLICK_CONFIRMATION_REQUIRED", result.intent)
+    }
+
+    @Test
+    fun requiresConfirmationBeforeDeletingAccountInUrdu() {
+        val result = com.idraak.quantum.engine.OfflineScreenCommandHandler.execute(
+            "کلک کریں اکاؤنٹ حذف"
+        )
+        assertEquals("CLICK_CONFIRMATION_REQUIRED", result.intent)
+    }
+
+    @Test
+    fun requiresConfirmationBeforeArabicFactoryResetAction() {
+        val result = com.idraak.quantum.engine.OfflineScreenCommandHandler.execute(
+            "اضغط ضبط المصنع"
+        )
+        assertEquals("CLICK_CONFIRMATION_REQUIRED", result.intent)
+    }
+
+    @Test
+    fun requiresConfirmationBeforeHindiAccountRemoval() {
+        val result = com.idraak.quantum.engine.OfflineScreenCommandHandler.execute(
+            "दबाओ खाता हटाएं"
+        )
+        assertEquals("CLICK_CONFIRMATION_REQUIRED", result.intent)
+    }
+
     @Test
     fun doesNotTreatBareStopAsVoiceStopCommand() {
         assertFalse(VoiceSessionCommandHandler.isStopListeningCommand("بس"))
