@@ -141,9 +141,8 @@ object SmartSuggestionEngine {
                 )
             }
 
-            last.contains("remember") || last.contains("याद रखना") ||
-                last.contains("याद रखो") || last.contains("memory") ||
-                last.contains("یادداشت") || last.contains("یاد رکھنا") -> {
+            last.contains("یاد رکھنا") || last.contains("یاد رکھو") ||
+                last.contains("یادداشت") -> {
                 suggestions += IdraakSuggestion(
                     title = "مقامی یادداشت کی مدد",
                     detail = "نئی معلومات تصدیق تک زیرِ جانچ رہتی ہیں؛ اسے درست ثابت کرنے کے لیے یادداشت میں تصدیق کریں۔",
