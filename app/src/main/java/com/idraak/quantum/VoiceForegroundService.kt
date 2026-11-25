@@ -162,10 +162,11 @@ class VoiceForegroundService : Service() {
     private fun processCommand(command: String) {
         if (!serviceActive || command.isBlank()) return
 
-        voiceController?.cancelListening()
         sendCommand(command)
 
         if (VoiceSessionCommandHandler.isStopListeningCommand(command)) {
+            // Explicit stop requests must interrupt capture immediately.
+            voiceController?.cancelListening()
             stopAfterSpeech = true
             val response = "ٹھیک ہے، ادراک پس منظر میں سننا بند کر رہا ہے۔"
             sendResponse(response)
