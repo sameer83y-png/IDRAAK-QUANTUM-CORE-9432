@@ -17,32 +17,31 @@ object CameraController {
         val message: String
     )
 
+    private val cameraPhrases = listOf(
+        "open camera", "launch camera", "start camera", "camera kholo",
+        "camera khol do", "camera kholna", "camera on karo",
+        "कैमरा खोलो", "कैमरा खोल दो", "कैमरा खोलिए", "कैमरा चालू करो",
+        "کیمرا کھولو", "کیمرا کھول دو", "کیمرہ کھولیں",
+        "افتح الكاميرا", "شغل الكاميرا", "افتح كاميرا"
+    )
+
+    private val photoPhrases = listOf(
+        "take photo", "take a photo", "click photo", "snap photo",
+        "photo lo", "photo lena", "photo kheecho", "photo khincho",
+        "tasveer lo", "tasveer kheecho", "tasveer khincho",
+        "फोटो लो", "फोटो लेना है", "फोटो खींचो", "फोटो खींच दो", "फोटो खींचिए",
+        "तस्वीर लो", "तस्वीर खींचिए",
+        "تصویر لو", "تصویر کھینچو", "تصویر کھینچیں", "تصویر لے لو",
+        "التقط صورة", "التقط صورة لي", "خذ صورة", "خذ لي صورة"
+    )
+
     fun isCameraCommand(command: String): Boolean {
         val value = command.trim().lowercase(Locale.ROOT)
-        val cameraPhrases = listOf(
-            "open camera", "launch camera", "start camera", "camera kholo",
-            "camera khol do", "कैमरा खोलो", "कैमरा खोल दो", "कैमरा चालू करो",
-            "کیمرا کھولو", "کیمرا کھول دو"
-        )
-
-        val photoPhrases = listOf(
-            "take photo", "take a photo", "click photo", "snap photo",
-            "photo lo", "photo lena", "photo kheecho", "photo khincho",
-            "फोटो लो", "फोटो लेना है", "फोटो खींचो", "फोटो खींच दो",
-            "तस्वीर लो", "تصویر لو", "تصویر کھینچو"
-        )
-
         return photoPhrases.any { value.contains(it) } || cameraPhrases.any { value.contains(it) }
     }
 
     fun executeCameraCommand(context: Context, command: String): Result? {
         val value = command.trim().lowercase(Locale.ROOT)
-        val photoPhrases = listOf(
-            "take photo", "take a photo", "click photo", "snap photo",
-            "photo lo", "photo lena", "photo kheecho", "photo khincho",
-            "फोटो लो", "फोटो लेना है", "फोटो खींचो", "फोटो खींच दो",
-            "तस्वीर लो", "تصویر لو", "تصویر کھینچو"
-        )
         val shouldCapture = photoPhrases.any { value.contains(it) }
         val shouldOpenCamera = isCameraCommand(command)
         if (!shouldOpenCamera) return null
