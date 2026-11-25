@@ -50,6 +50,31 @@ class OfflineCommandRegressionTest {
         )
     }
 
+
+    @Test
+    fun requiresConfirmationBeforeGrantingPermissionByVoice() {
+        val result = com.idraak.quantum.engine.OfflineScreenCommandHandler.execute(
+            "کلک کرو اجازت دیں"
+        )
+        assertEquals("CLICK_CONFIRMATION_REQUIRED", result.intent)
+    }
+
+    @Test
+    fun requiresConfirmationBeforeClickingAndroidAllowButton() {
+        val result = com.idraak.quantum.engine.OfflineScreenCommandHandler.execute(
+            "click Allow"
+        )
+        assertEquals("CLICK_CONFIRMATION_REQUIRED", result.intent)
+    }
+
+    @Test
+    fun requiresConfirmationBeforeAcceptingPermissionInArabic() {
+        val result = com.idraak.quantum.engine.OfflineScreenCommandHandler.execute(
+            "اضغط السماح"
+        )
+        assertEquals("CLICK_CONFIRMATION_REQUIRED", result.intent)
+    }
+
     @Test
     fun doesNotTreatBareStopAsVoiceStopCommand() {
         assertFalse(VoiceSessionCommandHandler.isStopListeningCommand("بس"))
