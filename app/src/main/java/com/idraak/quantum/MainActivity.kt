@@ -142,7 +142,7 @@ fun IdraakHomeScreen() {
         mutableStateOf("آف لائن ذہن تیار ہے")
     }
 
-    var isسن رہا ہوں by remember { mutableStateOf(false) }
+    var isListening by remember { mutableStateOf(false) }
     var isContinuousVoiceChat by remember { mutableStateOf(false) }
     var isBackgroundVoiceActive by remember { mutableStateOf(false) }
 
@@ -177,7 +177,7 @@ fun IdraakHomeScreen() {
             onSpeechResult = { result ->
                 mainHandler.post {
                     recognizedSpeech = result
-                    isسن رہا ہوں = false
+                    isListening = false
                 }
             },
             onStatusChanged = { status ->
@@ -190,7 +190,7 @@ fun IdraakHomeScreen() {
                         status.contains("عمل جاری ہے", true) ||
                         status.contains("تیار ہوں۔", true)
                     ) {
-                        isسن رہا ہوں = true
+                        isListening = true
                     } else if (
                         status.contains("recognized", true) ||
                         status.contains("finished", true) ||
@@ -201,7 +201,7 @@ fun IdraakHomeScreen() {
                         status.contains("timeout", true) ||
                         status.contains("No speech", true)
                     ) {
-                        isسن رہا ہوں = false
+                        isListening = false
                     }
                 }
             },
@@ -216,9 +216,9 @@ fun IdraakHomeScreen() {
 
                         if (permissionGranted) {
                             val started =
-                                controllerReference[0]?.startسن رہا ہوں() == true
+                                controllerReference[0]?.startListening() == true
 
-                            isسن رہا ہوں = started
+                            isListening = started
 
                             if (started) {
                                 voiceStatus =
@@ -226,7 +226,7 @@ fun IdraakHomeScreen() {
                             }
                         } else {
                             isContinuousVoiceChat = false
-                            isسن رہا ہوں = false
+                            isListening = false
                             voiceStatus =
                                 "مائیکروفون کی اجازت درکار ہے"
                         }
@@ -256,8 +256,8 @@ fun IdraakHomeScreen() {
 
     fun stopVoiceChat() {
         isContinuousVoiceChat = false
-        isسن رہا ہوں = false
-        voiceController.cancelسن رہا ہوں()
+        isListening = false
+        voiceController.cancelListening()
         voiceController.stopSpeaking()
         voiceStatus = "آواز سننا بند ہے"
     }
@@ -340,7 +340,7 @@ fun IdraakHomeScreen() {
 
         if (permissionGranted) {
             speakDashboardSuggestions()
-            isسن رہا ہوں = false
+            isListening = false
             voiceStatus = "آف لائن آواز شروع ہو رہی ہے"
         } else {
             voiceStatus = "مائیکروفون کی اجازت مانگی جا رہی ہے"
@@ -398,15 +398,15 @@ fun IdraakHomeScreen() {
 
         // Stop Vosk before processing a recognized command or speaking its reply.
         // This prevents Idraak from hearing its own TTS output as a new command.
-        voiceController.cancelسن رہا ہوں()
+        voiceController.cancelListening()
 
         messages.add(ChatMessage(message, true))
         inputText = ""
 
-        if (VoiceSessionCommandHandler.isStopسن رہا ہوںCommand(message)) {
+        if (VoiceSessionCommandHandler.isStopListeningCommand(message)) {
             isContinuousVoiceChat = false
-            isسن رہا ہوں = false
-            voiceController.cancelسن رہا ہوں()
+            isListening = false
+            voiceController.cancelListening()
 
             if (isBackgroundVoiceActive) {
                 val stopIntent = Intent(
@@ -451,7 +451,7 @@ fun IdraakHomeScreen() {
                 try {
                     context.startActivity(
                         Intent(
-                            Settings.ACTION_MANAGE_WRITE_ترتیبات,
+                            Settings.ACTION_MANAGE_WRITE_SETTINGS,
                             Uri.parse("package:${context.packageName}")
                         ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     )
@@ -521,11 +521,11 @@ fun IdraakHomeScreen() {
             PermissionRequestGate.markResult(context, Manifest.permission.RECORD_AUDIO, granted)
             if (granted && isContinuousVoiceChat) {
                 speakDashboardSuggestions()
-                isسن رہا ہوں = false
+                isListening = false
                 voiceStatus = "آف لائن آواز شروع ہو رہی ہے"
             } else {
                 isContinuousVoiceChat = false
-                isسن رہا ہوں = false
+                isListening = false
                 voiceStatus = "مائیکروفون کی اجازت مسترد ہوئی"
             }
         }
@@ -783,11 +783,11 @@ fun IdraakHomeScreen() {
                             }
                         } else {
                             val resumeForegroundVoiceChat =
-                                isContinuousVoiceChat && isسن رہا ہوں
+                                isContinuousVoiceChat && isListening
 
                             isContinuousVoiceChat = false
-                            isسن رہا ہوں = false
-                            voiceController.cancelسن رہا ہوں()
+                            isListening = false
+                            voiceController.cancelListening()
 
                             voiceController.setRecognitionLanguage(
                                 language,
@@ -796,8 +796,8 @@ fun IdraakHomeScreen() {
 
                             if (resumeForegroundVoiceChat) {
                                 isContinuousVoiceChat = true
-                                isسن رہا ہوں = voiceController.startسن رہا ہوں()
-                                voiceStatus = if (isسن رہا ہوں) {
+                                isListening = voiceController.startListening()
+                                voiceStatus = if (isListening) {
                                     "اردو آواز فعال ہے"
                                 } else {
                                     "زبان محفوظ ہو گئی ہے"
@@ -923,7 +923,7 @@ fun IdraakHomeScreen() {
                     Text(
                         text = voiceStatus,
                         color = if (
-                            isسن رہا ہوں ||
+                            isListening ||
                             isContinuousVoiceChat ||
                             isBackgroundVoiceActive
                         ) {
