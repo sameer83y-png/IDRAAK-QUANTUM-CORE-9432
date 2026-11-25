@@ -14,6 +14,7 @@ import android.net.Uri
 import android.provider.Settings
 import android.os.Handler
 import android.os.Looper
+import java.util.concurrent.Executors
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -126,6 +127,7 @@ class MainActivity : ComponentActivity() {
 fun IdraakHomeScreen() {
     val context = LocalContext.current
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
+    val commandExecutor = remember { Executors.newSingleThreadExecutor() }
 
     var selectedTheme by remember(context) {
         mutableStateOf(IdraakTheme.load(context))
@@ -254,9 +256,10 @@ fun IdraakHomeScreen() {
         mutableStateOf(voiceController.getSpeechRate())
     }
 
-    DisposableEffect(voiceController) {
+    DisposableEffect(voiceController, commandExecutor) {
         onDispose {
             isContinuousVoiceChat = false
+            commandExecutor.shutdownNow()
             voiceController.shutdown()
             controllerReference[0] = null
         }
@@ -400,6 +403,68 @@ fun IdraakHomeScreen() {
             }
         }
 
+    fun handleCommandResult(message: String, result: OfflineCommandRouter.Result) {
+        if (result.requiresBrightnessPermission) {
+            messages.add(ChatMessage(result.response, false))
+            voiceController.speakQueued(result.response)
+            voiceStatus = "اسکرین کی روشنی کی اجازت درکار ہے"
+            if (PermissionRequestGate.tryMarkSpecialSettingsOpened(context, "modify_system_settings")) {
+                try {
+                    context.startActivity(
+                        Intent(
+                            Settings.ACTION_MANAGE_WRITE_SETTINGS,
+                            Uri.parse("package:${context.packageName}")
+                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                } catch (error: Exception) {
+                    voiceStatus = "روشنی کی اجازت کی ترتیبات نہیں کھل سکیں"
+                }
+            } else {
+                val response = "روشنی کی خصوصی اجازت پہلے مانگی جا چکی ہے۔ فون کی ترتیبات میں ادراک کے لیے نظام کی ترتیبات بدلنے کی اجازت فعال کریں۔"
+                messages.add(ChatMessage(response, false))
+                voiceController.speakQueued(response)
+                voiceStatus = "روشنی کی اجازت کے لیے ترتیبات کھولیں"
+            }
+            return
+        }
+
+        if (result.requiresCameraPermission) {
+            val enabled = result.torchEnabled
+
+            if (enabled == null) {
+                messages.add(ChatMessage(result.response, false))
+                voiceController.speakQueued(result.response)
+                voiceStatus = "بتائیں ٹارچ جلانی ہے یا بجھانی ہے"
+                return
+            }
+
+            pendingTorchCommand = message to enabled
+            messages.add(ChatMessage(result.response, false))
+            voiceController.speakQueued(result.response)
+            voiceStatus = "کیمرے کی اجازت مانگی جا رہی ہے"
+
+            if (PermissionRequestGate.tryMarkRequested(context, Manifest.permission.CAMERA)) {
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            } else {
+                val response = "کیمرے کی اجازت پہلے مانگی جا چکی ہے۔ فون کی ایپ ترتیبات میں اسے فعال کریں۔"
+                messages.add(ChatMessage(response, false))
+                voiceController.speakQueued(response)
+                voiceStatus = "کیمرے کی اجازت کے لیے ایپ ترتیبات کھولیں"
+            }
+            return
+        }
+
+        messages.add(ChatMessage(result.response, false))
+        voiceController.speakQueued(result.response)
+
+        voiceStatus = when (result.intent) {
+            "SAFE_CALL" -> "محفوظ کال کا نظام کھل گیا"
+            "FLASHLIGHT" -> "ٹارچ کا حکم مکمل ہوا"
+            "ERROR" -> "آف لائن حکم ناکام ہوا"
+            else -> "آف لائن حکم کا نظام فعال ہے"
+        }
+    }
+
     fun sendMessage(messageText: String = inputText) {
         val message = messageText.trim()
         if (message.isEmpty()) return
@@ -436,77 +501,46 @@ fun IdraakHomeScreen() {
             return
         }
 
-        val result = try {
-            OfflineCommandRouter.process(
-                context = context.applicationContext,
-                command = message
-            )
-        } catch (error: Exception) {
-            OfflineCommandRouter.Result(
-                response = "آف لائن حکم مکمل نہیں ہو سکا: " +
-                    (error.localizedMessage ?: "نامعلوم خرابی"),
-                intent = "ERROR"
-            )
-        }
+        voiceStatus = "حکم پر کام شروع ہے"
+        voiceController.speak("آپ کا حکم سمجھ لیا ہے، اب اس پر کام کر رہا ہوں۔")
 
-        if (result.requiresBrightnessPermission) {
-            messages.add(ChatMessage(result.response, false))
-            voiceController.speak(result.response)
-            voiceStatus = "اسکرین کی روشنی کی اجازت درکار ہے"
-            if (PermissionRequestGate.tryMarkSpecialSettingsOpened(context, "modify_system_settings")) {
-                try {
-                    context.startActivity(
-                        Intent(
-                            Settings.ACTION_MANAGE_WRITE_SETTINGS,
-                            Uri.parse("package:${context.packageName}")
-                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    )
-                } catch (error: Exception) {
-                    voiceStatus = "روشنی کی اجازت کی ترتیبات نہیں کھل سکیں"
+        // Command analysis runs off the UI thread. Commands that need to open
+        // another Android screen are re-run on the main thread after safe preflight.
+        commandExecutor.execute {
+            val preparedResult = try {
+                OfflineCommandRouter.process(
+                    context = context.applicationContext,
+                    command = message,
+                    allowForegroundUi = false
+                )
+            } catch (error: Exception) {
+                OfflineCommandRouter.Result(
+                    response = "آف لائن حکم مکمل نہیں ہو سکا: " +
+                        (error.localizedMessage ?: "نامعلوم خرابی"),
+                    intent = "ERROR"
+                )
+            }
+
+            mainHandler.post {
+                val finalResult = if (preparedResult.requiresForegroundUi) {
+                    try {
+                        OfflineCommandRouter.process(
+                            context = context.applicationContext,
+                            command = message,
+                            allowForegroundUi = true
+                        )
+                    } catch (error: Exception) {
+                        OfflineCommandRouter.Result(
+                            response = "آف لائن حکم مکمل نہیں ہو سکا: " +
+                                (error.localizedMessage ?: "نامعلوم خرابی"),
+                            intent = "ERROR"
+                        )
+                    }
+                } else {
+                    preparedResult
                 }
-            } else {
-                val response = "روشنی کی خصوصی اجازت پہلے مانگی جا چکی ہے۔ فون کی ترتیبات میں ادراک کے لیے نظام کی ترتیبات بدلنے کی اجازت فعال کریں۔"
-                messages.add(ChatMessage(response, false))
-                voiceController.speak(response)
-                voiceStatus = "روشنی کی اجازت کے لیے ترتیبات کھولیں"
+                handleCommandResult(message, finalResult)
             }
-            return
-        }
-
-        if (result.requiresCameraPermission) {
-            val enabled = result.torchEnabled
-
-            if (enabled == null) {
-                messages.add(ChatMessage(result.response, false))
-                voiceController.speak(result.response)
-                voiceStatus = "بتائیں ٹارچ جلانی ہے یا بجھانی ہے"
-                return
-            }
-
-            pendingTorchCommand = message to enabled
-            messages.add(ChatMessage(result.response, false))
-            voiceController.speak(result.response)
-            voiceStatus = "کیمرے کی اجازت مانگی جا رہی ہے"
-
-            if (PermissionRequestGate.tryMarkRequested(context, Manifest.permission.CAMERA)) {
-                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-            } else {
-                val response = "کیمرے کی اجازت پہلے مانگی جا چکی ہے۔ فون کی ایپ ترتیبات میں اسے فعال کریں۔"
-                messages.add(ChatMessage(response, false))
-                voiceController.speak(response)
-                voiceStatus = "کیمرے کی اجازت کے لیے ایپ ترتیبات کھولیں"
-            }
-            return
-        }
-
-        messages.add(ChatMessage(result.response, false))
-        voiceController.speak(result.response)
-
-        voiceStatus = when (result.intent) {
-            "SAFE_CALL" -> "محفوظ کال کا نظام کھل گیا"
-            "FLASHLIGHT" -> "ٹارچ کا حکم مکمل ہوا"
-            "ERROR" -> "آف لائن حکم ناکام ہوا"
-            else -> "آف لائن حکم کا نظام فعال ہے"
         }
     }
 
