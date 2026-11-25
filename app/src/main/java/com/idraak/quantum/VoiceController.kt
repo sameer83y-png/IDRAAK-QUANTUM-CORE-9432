@@ -302,14 +302,24 @@ class VoiceController(
         isListening = false
         try { activeRecorder?.stop() } catch (_: Exception) {}
         activeRecorder = null
-        try { loadedModel?.let { Whisper.releaseModel(it) } } catch (_: Exception) {}
+        val modelToRelease = loadedModel
         loadedModel = null
+        try {
+            if (modelToRelease != null) {
+                executor.execute {
+                    try { Whisper.releaseModel(modelToRelease) } catch (_: Exception) {}
+                }
+            }
+            executor.shutdown()
+        } catch (_: Exception) {
+            try { modelToRelease?.let { Whisper.releaseModel(it) } } catch (_: Exception) {}
+            executor.shutdown()
+        }
         textToSpeech?.stop()
         textToSpeech?.shutdown()
         textToSpeech = null
         pendingSpeech = null
         isTtsReady = false
-        executor.shutdownNow()
     }
 
     fun getSpeechRate(): Float = preferences.getFloat(SPEECH_RATE_KEY, 1.0f).coerceIn(0.75f, 1.5f)
