@@ -277,7 +277,7 @@ fun IdraakHomeScreen() {
         } catch (error: Exception) {
             voiceStatus =
                 "پس منظر میں سننا بند نہیں ہو سکا: " +
-                    (error.localizedMessage ?: "Unknown error")
+                    (error.localizedMessage ?: "نامعلوم خرابی")
         }
     }
 
@@ -301,7 +301,7 @@ fun IdraakHomeScreen() {
             isBackgroundVoiceActive = false
             voiceStatus =
                 "پس منظر میں آواز شروع نہیں ہو سکی: " +
-                    (error.localizedMessage ?: "Unknown error")
+                    (error.localizedMessage ?: "نامعلوم خرابی")
         }
     }
 
@@ -438,7 +438,7 @@ fun IdraakHomeScreen() {
         } catch (error: Exception) {
             OfflineCommandRouter.Result(
                 response = "آف لائن حکم مکمل نہیں ہو سکا: " +
-                    (error.localizedMessage ?: "Unknown error"),
+                    (error.localizedMessage ?: "نامعلوم خرابی"),
                 intent = "ERROR"
             )
         }
@@ -581,7 +581,7 @@ fun IdraakHomeScreen() {
             } else {
                 isBackgroundVoiceActive = false
                 voiceStatus =
-                    "مائیکروفون کی اجازت مسترد ہوئی. Background voice is OFF."
+                    "مائیکروفون کی اجازت مسترد ہوئی۔ پس منظر میں سننا بند ہے۔"
             }
         }
 
@@ -608,7 +608,7 @@ fun IdraakHomeScreen() {
             if (PermissionRequestGate.tryMarkRequested(context, Manifest.permission.RECORD_AUDIO)) {
                 backgroundMicrophonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             } else {
-                val response = "Microphone अनुमति पहले पूछी जा चुकी है। दोबारा पॉप-अप नहीं दिखाऊँगा। Android App Settings में अनुमति चालू करें।"
+                val response = "مائیکروفون کی اجازت پہلے مانگی جا چکی ہے۔ فون کی ایپ ترتیبات میں اسے فعال کریں۔"
                 voiceController.speak(response)
                 voiceStatus = "مائیکروفون کی اجازت کے لیے ایپ ترتیبات کھولیں"
             }
@@ -779,7 +779,7 @@ fun IdraakHomeScreen() {
                             } catch (error: Exception) {
                                 voiceStatus =
                                     "پس منظر کی آواز کی زبان تبدیل نہیں ہو سکی: " +
-                                        (error.localizedMessage ?: "Unknown error")
+                                        (error.localizedMessage ?: "نامعلوم خرابی")
                             }
                         } else {
                             val resumeForegroundVoiceChat =
@@ -946,7 +946,7 @@ fun IdraakHomeScreen() {
                     ) {
                         Text(
                             text = if (isContinuousVoiceChat || isBackgroundVoiceActive) {
-                                "ادراک VOICE CONTROL ACTIVE"
+                                "ادراک کا صوتی کنٹرول فعال ہے"
                             } else {
                                 "صرف آواز کے ذریعے کنٹرول"
                             },
@@ -1065,7 +1065,7 @@ fun IdraakHomeScreen() {
                     )
 
                     Text(
-                        text = "ادراک OFFLINE BRAIN • LOCAL MODE",
+                        text = "ادراک کا آف لائن ذہن • مقامی نظام",
                         color = Color(0xFF7B91B5),
                         fontSize = 10.sp,
                         textAlign = TextAlign.Center
@@ -1162,14 +1162,14 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "SYSTEM ترتیبات",
+            text = "نظام کی ترتیبات",
             color = Color.White,
             fontSize = 25.sp,
             fontWeight = FontWeight.Bold
         )
 
         Text(
-            text = "ادراک کوانٹم مرکز • OFFLINE CONFIGURATION",
+            text = "ادراک کوانٹم مرکز • آف لائن ترتیب",
             color = Color(0xFF8EA6C9),
             fontSize = 11.sp
         )
@@ -1193,7 +1193,7 @@ fun SettingsScreen(
         SettingsStatusCard(
             title = "آواز کا نظام",
             status = "آف لائن اردو آواز پہچان اور فون کی آواز",
-            detail = "صرف اردو کی آواز پہچاننے کے لیے مقامی Whisper ماڈل استعمال ہوتا ہے۔ جواب کے لیے فون کی آف لائن اردو آواز درکار ہے۔",
+            detail = "صرف اردو سمجھنے کے لیے مقامی وائس ماڈل استعمال ہوتا ہے۔ جواب کے لیے فون میں آف لائن اردو آواز موجود ہونا ضروری ہے۔",
             accentColor = themeAccentColor,
         )
 
@@ -1241,7 +1241,7 @@ fun SettingsScreen(
         )
 
         Text(
-            text = String.format(java.util.Locale.US, "%.2fx", selectedSpeechRate),
+            text = String.format(java.util.Locale.US, "%.2f گنا", selectedSpeechRate),
             color = Color.White,
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold
@@ -1330,9 +1330,9 @@ fun SettingsScreen(
         ) {
             Text(
                 if (screenControlEnabled) {
-                    "MANAGE اسکرین کنٹرول کی اجازت"
+                    "اسکرین کنٹرول کی اجازت سنبھالیں"
                 } else {
-                    "ENABLE ادراک SCREEN CONTROL"
+                    "ادراک کا اسکرین کنٹرول فعال کریں"
                 },
                 fontWeight = FontWeight.Bold
             )
