@@ -351,6 +351,33 @@ fun IdraakHomeScreen() {
         messages.add(ChatMessage(message, true))
         inputText = ""
 
+        if (VoiceSessionCommandHandler.isStopListeningCommand(message)) {
+            isContinuousVoiceChat = false
+            isListening = false
+            voiceController.cancelListening()
+
+            if (isBackgroundVoiceActive) {
+                val stopIntent = Intent(
+                    context,
+                    VoiceForegroundService::class.java
+                ).apply {
+                    action = VoiceForegroundService.ACTION_STOP
+                }
+                try {
+                    context.startService(stopIntent)
+                } catch (_: Exception) {
+                    voiceStatus = "Could not stop background voice service"
+                }
+                isBackgroundVoiceActive = false
+            }
+
+            val response = "ठीक है। Idraak की voice listening बंद कर दी गई है।"
+            messages.add(ChatMessage(response, false))
+            voiceStatus = "VOICE LISTENING STOPPED"
+            voiceController.speak(response)
+            return
+        }
+
         val result = try {
             OfflineCommandRouter.process(
                 context = context.applicationContext,
