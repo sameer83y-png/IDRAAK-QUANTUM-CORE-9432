@@ -93,6 +93,24 @@ object MessageCommandHandler {
         val prefix = bodyPrefixes.firstOrNull { body.lowercase().startsWith(it) }
         if (prefix != null) body = body.drop(prefix.length).trim()
 
+        // Commands may include recipient/app details before the actual message,
+        // e.g. "send a message to Rahul on WhatsApp saying hello".
+        // Keep only the text after a clear spoken-content introducer.
+        val lowerBody = body.lowercase()
+        val contentIntroducers = listOf(
+            " saying ", " that ", " message is ", " text is ",
+            " لکھو ", " بولو ", " کہو ", " کہ "
+        )
+        val contentStart = contentIntroducers
+            .map { introducer -> lowerBody.indexOf(introducer).let { index ->
+                if (index >= 0) index to introducer.length else null
+            } }
+            .filterNotNull()
+            .minByOrNull { it.first }
+        if (contentStart != null) {
+            body = body.substring(contentStart.first + contentStart.second.length).trim()
+        }
+
         body = body.trim().trim(':', '-', '،', ',', '.', ' ')
 
         val targetPackage = when {
