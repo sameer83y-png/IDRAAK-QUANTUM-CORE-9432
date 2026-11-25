@@ -78,6 +78,7 @@ object OfflineCommandRouter {
                         "SAFE_CALL",
                         "MESSAGE_COMPOSE",
                         "CAMERA_OPEN",
+                        "OPEN_APP",
                         "WEB_NAVIGATION",
                         "CANCELLED",
                         "UNKNOWN",
@@ -91,7 +92,11 @@ object OfflineCommandRouter {
                     stepResult.intent.endsWith("_FAILED")
 
                 if (mustStop) {
-                    completedSteps += "اگلا مرحلہ روک دیا گیا ہے۔ پہلے اس مرحلے کو مکمل یا منظور کریں۔"
+                    completedSteps += when (stepResult.intent) {
+                        "OPEN_APP" -> "ایپ کھلنے کے بعد اگلا حکم الگ سے دیں تاکہ اگلا عمل درست اسکرین پر ہو۔"
+                        "WEB_NAVIGATION" -> "ویب صفحہ کھلنے کے بعد اگلا حکم الگ سے دیں۔"
+                        else -> "اگلا مرحلہ روک دیا گیا ہے۔ پہلے اس مرحلے کو مکمل یا منظور کریں۔"
+                    }
                     return Result(
                         response = "ترتیب وار کام کی رپورٹ:\n" + completedSteps.joinToString("\n"),
                         requiresCameraPermission = stepResult.requiresCameraPermission,
