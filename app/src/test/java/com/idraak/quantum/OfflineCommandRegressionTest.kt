@@ -308,4 +308,23 @@ class OfflineCommandRegressionTest {
         assertFalse(VoiceSessionCommandHandler.isStopListeningCommand("رک جاؤ"))
     }
 
+
+    @Test
+    fun contextualSuggestionsRecognizeRecentCommandsAcrossLanguages() {
+        assertEquals("CAMERA", SmartSuggestionEngine.classifyRecentCommandCategory("camera kholo"))
+        assertEquals("YOUTUBE", SmartSuggestionEngine.classifyRecentCommandCategory("यूट्यूब खोलो"))
+        assertEquals("CALL", SmartSuggestionEngine.classifyRecentCommandCategory("call Rahul"))
+        assertEquals("MESSAGE", SmartSuggestionEngine.classifyRecentCommandCategory("پیغام بھیجو"))
+        assertEquals("HARDWARE", SmartSuggestionEngine.classifyRecentCommandCategory("آواز بڑھاؤ"))
+        assertEquals("SCREEN", SmartSuggestionEngine.classifyRecentCommandCategory("scroll down"))
+        assertEquals("MEMORY", SmartSuggestionEngine.classifyRecentCommandCategory("remember this"))
+        assertEquals("APP", SmartSuggestionEngine.classifyRecentCommandCategory("open calculator"))
+    }
+
+    @Test
+    fun contextualSuggestionsIgnoreUnrelatedConversation() {
+        assertEquals(null, SmartSuggestionEngine.classifyRecentCommandCategory("آج موسم اچھا ہے"))
+        assertEquals(null, SmartSuggestionEngine.classifyRecentCommandCategory("I like music"))
+    }
+
 }
