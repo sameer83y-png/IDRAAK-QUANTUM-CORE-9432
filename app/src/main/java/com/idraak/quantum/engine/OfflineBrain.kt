@@ -399,9 +399,9 @@ object OfflineBrain {
                 )
 
                 return if (result.success) {
-                    "आपकी पुष्टि मिल गई। ${pending.target} पर क्लिक कर दिया गया है।"
+                    "آپ کی تصدیق مل گئی۔ ${pending.target} پر کلک کر دیا گیا ہے۔"
                 } else {
-                    "पुष्टि मिल गई, लेकिन क्लिक पूरा नहीं हुआ। ${result.message}"
+                    "تصدیق مل گئی، لیکن کلک مکمل نہیں ہو سکا۔ ${result.message}"
                 }
             }
 
@@ -442,6 +442,15 @@ object OfflineBrain {
             if (!memoryAnswer.isNullOrBlank()) {
                 return memoryAnswer
             }
+
+            // Keep unclear requests as unverified learning examples.
+            // They are never promoted to executable rules without correction.
+            recordExperience(
+                context = context,
+                intent = "UNRECOGNIZED_UTTERANCE",
+                status = "NEEDS_CLARIFICATION",
+                steps = listOf(userMessage)
+            )
         }
 
         when (decision.intent) {
@@ -453,7 +462,7 @@ object OfflineBrain {
 
                 if (result == null) {
                     val response =
-                        "कमांड पहचान ली, लेकिन ऐप का नाम या खोलने का तरीका समझ नहीं आया। कृपया YouTube, WhatsApp, Chrome या किसी समर्थित ऐप का स्पष्ट नाम बताइए।"
+                        "حکم سمجھ لیا، لیکن ایپ کا نام واضح نہیں ہوا۔ براہِ کرم یوٹیوب، واٹس ایپ، کروم یا کسی دوسری نصب شدہ ایپ کا نام بتائیں۔"
 
                     recordExperience(
                         context,
