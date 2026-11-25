@@ -27,6 +27,18 @@ object CallCommandHandler {
 
         if (command.isBlank()) return false
 
+        // Phone power, lock, and silent-mode commands are not call requests.
+        // Exclude them before the broad Hindi/Urdu "phone + action" matcher.
+        val isPhoneControlCommand = listOf(
+            "फोन बंद", "फोन लॉक", "फोन साइलेंट",
+            "मोबाइल बंद", "मोबाइल लॉक",
+            "phone off", "turn off phone", "switch off phone",
+            "lock phone", "silent phone",
+            "فون بند", "فون لاک"
+        ).any { command.startsWith(it) }
+
+        if (isPhoneControlCommand) return false
+
         // "फोन" alone is not enough: phrases such as
         // "फोन बंद करो" must never open the call flow.
         val hasCallWord = Regex(
