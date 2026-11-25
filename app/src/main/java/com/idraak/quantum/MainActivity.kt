@@ -73,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.idraak.quantum.engine.OfflineBrain
+import com.idraak.quantum.engine.LocalMemoryStore
 
 data class ChatMessage(
     val text: String,
@@ -1078,7 +1079,7 @@ fun SettingsScreen(
     }
 
     val memoryCount = remember {
-        OfflineBrain.getExperienceCount(context)
+        LocalMemoryStore.getCount(context)
     }
 
     val recentExperiences = remember {
