@@ -356,7 +356,7 @@ object OfflineCommandRouter {
 
     private fun splitSequentialCommands(command: String): List<String> {
         val separator = Regex(
-            """(?i)\\s+(?:اور\\s+پھر|اس\\s+کے\\s+بعد|and\\s+then|then|پھر|ثم)\\s+"""
+            """(?i)\s+(?:اور\s+پھر|اس\s+کے\s+بعد|and\s+then|then|پھر|ثم)\s+"""
         )
         return command.split(separator)
             .map { it.trim().trim(',', '،', ';', '؛', '.') }
