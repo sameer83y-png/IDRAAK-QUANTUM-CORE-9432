@@ -1180,18 +1180,21 @@ fun SettingsScreen(
             title = "AI BRAIN",
             status = "OFFLINE BRAIN ACTIVE",
             detail = "Idraak runs with its own offline brain. External AI connections and internet services are disabled."
+            accentColor = themeAccentColor,
         )
 
         SettingsStatusCard(
             title = "LOCAL EXPERIENCE MEMORY",
             status = "$memoryCount RECORDS SAVED",
             detail = "Voice commands can explicitly save facts and preferences to encrypted local memory. New entries remain PENDING until you verify them in Memory Dashboard."
+            accentColor = themeAccentColor,
         )
 
         SettingsStatusCard(
             title = "VOICE SYSTEM",
             status = "OFFLINE VOSK + ANDROID TEXT TO SPEECH",
             detail = "Hindi and Indian English speech recognition models are bundled with the app. The selected Vosk model runs locally; Android Text-to-Speech is used for voice output."
+            accentColor = themeAccentColor,
         )
 
         Text(
@@ -1326,6 +1329,7 @@ fun SettingsScreen(
             title = "PHONE CONTROLLERS",
             status = "APP CONTROL • SCREEN CONTROL • FLASHLIGHT • CAMERA • VOLUME • BRIGHTNESS",
             detail = "Phone controls run locally. Android may require you to enable special access or grant a permission before a control can work."
+            accentColor = themeAccentColor,
         )
 
         SettingsStatusCard(
@@ -1336,6 +1340,7 @@ fun SettingsScreen(
                 "ACCESSIBILITY PERMISSION NEEDED"
             },
             detail = "This permission lets Idraak inspect visible screen labels locally for your requested tap, and perform navigation, swipe and scroll actions. Screen events are not saved or transmitted."
+            accentColor = themeAccentColor,
         )
 
         Button(
