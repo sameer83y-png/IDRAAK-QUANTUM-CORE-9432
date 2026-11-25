@@ -31,6 +31,10 @@
     <!-- Other existing permissions -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Android 9 requires legacy storage access to write photos to MediaStore. -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
     <!-- User-granted special access for changing screen brightness. -->
     <uses-permission
         android:name="android.permission.WRITE_SETTINGS"
