@@ -13,7 +13,7 @@ object MessageCommandHandler {
     fun tryHandle(context: Context, command: String): String? {
         val body = extractMessageBody(command) ?: return null
         if (body.isBlank()) {
-            return "मैसेज का पूरा टेक्स्ट बोलिए। उदाहरण: राहुल को मैसेज भेजो कि मैं घर आ रहा हूँ।"
+            return "मैसेज किसे और क्या भेजना है, यह बताइए। उदाहरण: राहुल को मैसेज भेजो कि मैं घर आ रहा हूँ।"
         }
 
         return try {
@@ -28,29 +28,32 @@ object MessageCommandHandler {
         }
     }
 
+    /**
+     * Returns null only when this is not a message command.
+     * An empty string means the user asked to send a message but did not dictate
+     * its body yet, so the router can ask for the missing information instead
+     * of silently treating the command as unknown.
+     */
     private fun extractMessageBody(command: String): String? {
         val value = command.trim()
         val lower = value.lowercase()
 
-        // Generic phrases plus common app-specific ways people describe messaging.
-        // The app chooser remains generic; these words do not guarantee that a
-        // named app supports receiving shared text or automatic sending.
         val markers = listOf(
-            "message bhejo", "msg bhejo", "message send karo", "msg send karo",
-            "message kar do", "msg kar do", "dm bhejo", "dm karo",
-            "direct message bhejo", "chat message bhejo",
-            "send a message", "send message", "send a text", "text message",
-            "send dm", "send a dm",
             "whatsapp par message bhejo", "whatsapp pe message bhejo",
             "instagram par dm bhejo", "instagram pe dm bhejo",
             "facebook par message bhejo", "messenger par message bhejo",
             "telegram par message bhejo", "signal par message bhejo",
-            "मैसेज भेज दो", "मैसेज भेजो", "मैसेज कर दो",
-            "संदेश भेजो", "डीएम भेजो", "चैट भेजो",
+            "direct message bhejo", "chat message bhejo",
+            "message send karo", "msg send karo",
+            "message bhejo", "msg bhejo", "message kar do", "msg kar do",
+            "dm bhejo", "dm karo", "send a message", "send message",
+            "send a text", "text message", "send dm", "send a dm",
             "व्हाट्सएप पर मैसेज भेजो", "इंस्टाग्राम पर मैसेज भेजो",
             "फेसबुक पर मैसेज भेजो", "मैसेंजर पर मैसेज भेजो",
-            "میسج بھیج دو", "میسج بھیجو", "پیغام بھیجو",
-            "واٹس ایپ پر میسج بھیجو", "انسٹاگرام پر ڈی ایم بھیجو"
+            "मैसेज भेज दो", "मैसेज भेजो", "मैसेज कर दो",
+            "संदेश भेजो", "डीएम भेजो", "चैट भेजो",
+            "واٹس ایپ پر میسج بھیجو", "انسٹاگرام پر ڈی ایم بھیجو",
+            "میسج بھیج دو", "میسج بھیجو", "پیغام بھیجو"
         )
 
         val marker = markers
@@ -69,6 +72,6 @@ object MessageCommandHandler {
         if (prefix != null) body = body.drop(prefix.length).trim()
 
         body = body.trim().trim(':', '-', '،', ',', '.', ' ')
-        return body.takeIf { it.isNotBlank() }
+        return body
     }
 }
