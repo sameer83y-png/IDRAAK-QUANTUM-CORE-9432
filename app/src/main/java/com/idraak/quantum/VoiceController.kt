@@ -2,596 +2,321 @@ package com.idraak.quantum
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.media.AudioFormat
+import android.media.AudioRecord
+import android.media.MediaRecorder
 import android.os.Bundle
 import android.os.SystemClock
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import androidx.core.content.ContextCompat
-import org.json.JSONObject
-import org.vosk.Model
-import org.vosk.Recognizer
-import org.vosk.android.RecognitionListener
-import org.vosk.android.SpeechService
+import dev.ffmpegkit.whisper.Whisper
+import dev.ffmpegkit.whisper.WhisperConfig
+import dev.ffmpegkit.whisper.WhisperModel
+import java.io.File
+import java.io.FileOutputStream
 import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.math.abs
 
+/**
+ * Urdu-only offline voice controller.
+ * Captures 16 kHz mono PCM, writes a WAV file, and transcribes it locally
+ * with whisper.cpp. No Android online speech-recognition service is used.
+ */
 class VoiceController(
     context: Context,
     private val onSpeechResult: (String) -> Unit,
     private val onStatusChanged: (String) -> Unit,
     private val onSpeechFinished: () -> Unit = {}
 ) {
-
     private val appContext = context.applicationContext
-    private val modelStore = VoskModelStore(appContext)
-
     private val preferences = appContext.getSharedPreferences(
-        LANGUAGE_PREFERENCES,
-        Context.MODE_PRIVATE
+        LANGUAGE_PREFERENCES, Context.MODE_PRIVATE
     )
-
-    private val executor: ExecutorService =
-        Executors.newSingleThreadExecutor()
-
+    private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private var textToSpeech: TextToSpeech? = null
-    private var isTtsReady = false
-    @Volatile
-    private var pendingSpeech: String? = null
+    @Volatile private var isTtsReady = false
+    @Volatile private var pendingSpeech: String? = null
+    @Volatile private var isShutdown = false
+    @Volatile private var isListening = false
+    @Volatile private var activeRecorder: AudioRecord? = null
+    @Volatile private var loadedModel: WhisperModel? = null
+    @Volatile private var lastDeliveredText = ""
+    @Volatile private var lastDeliveredTime = 0L
 
-    @Volatile
-    private var isShutdown = false
+    init { initializeTextToSpeech() }
 
-    @Volatile
-    private var isLoadingModel = false
+    fun getRecognitionLanguage(): VoskModelStore.VoskLanguage =
+        VoskModelStore.VoskLanguage.URDU
 
-    @Volatile
-    private var selectedLanguage =
-        loadSavedLanguage()
-
-    private var currentModel: Model? = null
-    private var currentRecognizer: Recognizer? = null
-    private var speechService: SpeechService? = null
-
-    @Volatile
-    private var lastDeliveredText = ""
-
-    @Volatile
-    private var lastDeliveredTime = 0L
-
-    private val recognitionListener = object : RecognitionListener {
-
-        override fun onPartialResult(hypothesis: String?) {
-            if (!isShutdown) {
-                onStatusChanged("Recognizing your voice...")
-            }
-        }
-
-        override fun onResult(hypothesis: String?) {
-            handleRecognitionResult(hypothesis)
-        }
-
-        override fun onFinalResult(hypothesis: String?) {
-            if (isShutdown) return
-
-            handleRecognitionResult(hypothesis)
-            onStatusChanged("Speech recognized")
-        }
-
-        override fun onError(exception: Exception?) {
-            if (!isShutdown) {
-                onStatusChanged(
-                    "Offline voice error: " +
-                        (exception?.localizedMessage ?: "Unknown error")
-                )
-                // A recognition error must not leave background voice idle.
-                onSpeechFinished()
-            }
-        }
-
-        override fun onTimeout() {
-            if (!isShutdown) {
-                onStatusChanged("Listening timeout")
-                // Vosk may stop after a timeout; allow the service to resume.
-                onSpeechFinished()
-            }
-        }
-    }
-
-    init {
-        initializeTextToSpeech()
-    }
-
-    private fun loadSavedLanguage(): VoskModelStore.VoskLanguage {
-        val savedLanguage = preferences.getString(
-            LANGUAGE_KEY,
-            VoskModelStore.VoskLanguage.HINDI.name
-        )
-
-        return try {
-            VoskModelStore.VoskLanguage.valueOf(
-                savedLanguage ?: VoskModelStore.VoskLanguage.HINDI.name
-            )
-        } catch (_: IllegalArgumentException) {
-            VoskModelStore.VoskLanguage.HINDI
-        }
-    }
-
-    @Synchronized
     fun setRecognitionLanguage(
         language: VoskModelStore.VoskLanguage,
         resumeListening: Boolean = false
     ) {
-        if (isShutdown || selectedLanguage == language) return
-
-        selectedLanguage = language
-
-        preferences.edit()
-            .putString(LANGUAGE_KEY, language.name)
-            .apply()
-
-        stopRecognitionResources()
-
-        onStatusChanged(
-            if (language == VoskModelStore.VoskLanguage.HINDI) {
-                "Hindi offline voice selected and saved"
-            } else {
-                "Indian English offline voice selected and saved"
-            }
-        )
-
-        // Queue the restart behind any model-loading task already in progress.
-        // This prevents a language switch from leaving the recognizer idle.
+        preferences.edit().putString(LANGUAGE_KEY, VoskModelStore.VoskLanguage.URDU.name).apply()
+        onStatusChanged("اردو کی آواز پہچاننے کا نظام منتخب ہے")
         if (resumeListening) {
-            try {
-                executor.execute {
-                    if (!isShutdown) {
-                        startListening()
-                    }
-                }
-            } catch (_: java.util.concurrent.RejectedExecutionException) {
-                if (!isShutdown) {
-                    onStatusChanged("Could not restart offline voice")
-                }
-            }
+            cancelListening()
+            startListening()
         }
-    }
-
-    fun getRecognitionLanguage(): VoskModelStore.VoskLanguage {
-        return selectedLanguage
     }
 
     private fun initializeTextToSpeech() {
         textToSpeech = TextToSpeech(appContext) { status ->
-
             if (isShutdown) return@TextToSpeech
-
-            if (status == TextToSpeech.SUCCESS) {
-
-                // Select only a voice that Android marks as offline.
-                // A network-required TTS voice must never be used by Idraak.
-                val preferredLocale = Locale.getDefault()
-                val offlineVoice = textToSpeech?.voices
-                    .orEmpty()
-                    .filter { voice ->
-                        !voice.isNetworkConnectionRequired &&
-                            voice.locale.language.equals(
-                                preferredLocale.language,
-                                ignoreCase = true
-                            )
-                    }
-                    .maxByOrNull { voice ->
-                        if (
-                            voice.locale.country.equals(
-                                preferredLocale.country,
-                                ignoreCase = true
-                            )
-                        ) 1 else 0
-                    }
-
-                val voiceResult = if (offlineVoice != null) {
-                    textToSpeech?.setVoice(offlineVoice)
-                } else {
-                    TextToSpeech.ERROR
-                }
-
-                if (voiceResult == TextToSpeech.SUCCESS) {
-                    textToSpeech?.setSpeechRate(getSpeechRate())
-                    isTtsReady = true
-                    onStatusChanged("Offline voice output ready")
-                    val queuedSpeech = pendingSpeech
-                    pendingSpeech = null
-                    if (!queuedSpeech.isNullOrBlank()) {
-                        speak(queuedSpeech)
-                    }
-                } else {
-                    isTtsReady = false
-                    onStatusChanged(
-                        "Offline voice data unavailable. Install an offline TTS voice for ${preferredLocale.displayLanguage} in Android settings."
-                    )
-                    // Do not fall back to a network-required voice.
+            if (status != TextToSpeech.SUCCESS) {
+                onStatusChanged("اردو آواز کا نظام شروع نہیں ہو سکا")
+                onSpeechFinished()
+                return@TextToSpeech
+            }
+            val urduVoice = textToSpeech?.voices.orEmpty()
+                .filter { it.locale.language.equals("ur", true) && !it.isNetworkConnectionRequired }
+                .maxByOrNull { if (it.locale.country.equals("PK", true)) 1 else 0 }
+            if (urduVoice == null || textToSpeech?.setVoice(urduVoice) != TextToSpeech.SUCCESS) {
+                isTtsReady = false
+                onStatusChanged("اردو کی آف لائن آواز دستیاب نہیں۔ فون میں اردو TTS voice data نصب کریں۔")
+                onSpeechFinished()
+                return@TextToSpeech
+            }
+            isTtsReady = true
+            textToSpeech?.setSpeechRate(getSpeechRate())
+            onStatusChanged("اردو آواز تیار ہے")
+            val queued = pendingSpeech
+            pendingSpeech = null
+            if (!queued.isNullOrBlank()) speak(queued)
+        }
+        textToSpeech?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {
+                if (!isShutdown) onStatusChanged("آواز میں جواب دیا جا رہا ہے")
+            }
+            override fun onDone(utteranceId: String?) {
+                if (!isShutdown) {
+                    onStatusChanged("جواب مکمل ہو گیا")
                     onSpeechFinished()
                 }
-
-            } else {
-                isTtsReady = false
-                onStatusChanged("Voice output initialization failed")
-                // Keep listening usable even when Android TTS is unavailable.
-                onSpeechFinished()
             }
-        }
-
-        textToSpeech?.setOnUtteranceProgressListener(
-            object : UtteranceProgressListener() {
-
-                override fun onStart(utteranceId: String?) {
-                    if (!isShutdown) {
-                        onStatusChanged("Speaking...")
-                    }
-                }
-
-                override fun onDone(utteranceId: String?) {
-                    if (!isShutdown) {
-                        onStatusChanged("Speech finished")
-                        onSpeechFinished()
-                    }
-                }
-
-                @Deprecated("Deprecated in Java")
-                override fun onError(utteranceId: String?) {
-                    if (!isShutdown) {
-                        onStatusChanged("Voice output error")
-                        // Resume listening if the device TTS engine fails.
-                        onSpeechFinished()
-                    }
-                }
-
-                override fun onError(
-                    utteranceId: String?,
-                    errorCode: Int
-                ) {
-                    if (!isShutdown) {
-                        onStatusChanged("Voice output error: $errorCode")
-                        // Do not leave continuous/background voice paused.
-                        onSpeechFinished()
-                    }
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) {
+                if (!isShutdown) {
+                    onStatusChanged("آواز میں جواب نہیں دیا جا سکا")
+                    onSpeechFinished()
                 }
             }
-        )
+            override fun onError(utteranceId: String?, errorCode: Int) = onError(utteranceId)
+        })
     }
 
     @Synchronized
     fun startListening(): Boolean {
-
-        if (isShutdown) return false
-
-        val permissionGranted =
-            ContextCompat.checkSelfPermission(
-                appContext,
-                android.Manifest.permission.RECORD_AUDIO
-            ) == PackageManager.PERMISSION_GRANTED
-
-        if (!permissionGranted) {
-            onStatusChanged("Microphone permission is required")
+        if (isShutdown || isListening) return !isShutdown
+        if (ContextCompat.checkSelfPermission(appContext, android.Manifest.permission.RECORD_AUDIO)
+            != PackageManager.PERMISSION_GRANTED) {
+            onStatusChanged("مائیکروفون کی اجازت درکار ہے")
             return false
         }
-
-        val existingService = speechService
-
-        if (existingService != null) {
-            val started = existingService.startListening(
-                recognitionListener
-            )
-
-            if (started) {
-                onStatusChanged("Listening offline...")
-            }
-
-            return started
-        }
-
-        if (isLoadingModel) {
-            onStatusChanged("Offline voice model is loading...")
-            return true
-        }
-
-        isLoadingModel = true
-        onStatusChanged("Preparing offline voice model...")
-
-        val languageToLoad = selectedLanguage
-
+        isListening = true
+        onStatusChanged("اردو میں سن رہا ہوں")
         try {
-            executor.execute {
-
-                var loadedModel: Model? = null
-                var recognizer: Recognizer? = null
-                var service: SpeechService? = null
-
-                try {
-                    if (isShutdown) return@execute
-
-                    val modelDirectory =
-                        modelStore.prepareModel(languageToLoad)
-
-                    if (isShutdown) return@execute
-
-                    onStatusChanged(
-                        "Loading offline recognition engine..."
-                    )
-
-                    loadedModel = Model(
-                        modelDirectory.absolutePath
-                    )
-
-                    if (isShutdown) return@execute
-
-                    recognizer = Recognizer(
-                        loadedModel,
-                        16000.0f
-                    )
-
-                    if (isShutdown) return@execute
-
-                    service = SpeechService(
-                        recognizer,
-                        16000.0f
-                    )
-
-                    synchronized(this) {
-
-                        if (
-                            isShutdown ||
-                            selectedLanguage != languageToLoad
-                        ) {
-                            isLoadingModel = false
-                            return@synchronized
-                        }
-
-                        currentModel = loadedModel
-                        currentRecognizer = recognizer
-                        speechService = service
-
-                        loadedModel = null
-                        recognizer = null
-                        service = null
-
-                        isLoadingModel = false
-
-                        val started = speechService?.startListening(
-                            recognitionListener
-                        ) ?: false
-
-                        if (started) {
-                            onStatusChanged(
-                                if (
-                                    languageToLoad ==
-                                    VoskModelStore.VoskLanguage.HINDI
-                                ) {
-                                    "Hindi offline listening..."
-                                } else {
-                                    "Indian English offline listening..."
-                                }
-                            )
-                        } else {
-                            onStatusChanged(
-                                "Could not start offline listening"
-                            )
-                        }
-                    }
-
-                } catch (exception: Exception) {
-
-                    isLoadingModel = false
-
-                    if (!isShutdown) {
-                        onStatusChanged(
-                            "Offline model error: " +
-                                (exception.localizedMessage
-                                    ?: "Unknown error")
-                        )
-                    }
-
-                } finally {
-                    try {
-                        service?.shutdown()
-                    } catch (_: Exception) {
-                    }
-
-                    try {
-                        recognizer?.close()
-                    } catch (_: Exception) {
-                    }
-
-                    try {
-                        loadedModel?.close()
-                    } catch (_: Exception) {
-                    }
-                }
-            }
-
-        } catch (exception: Exception) {
-            isLoadingModel = false
-
-            onStatusChanged(
-                "Could not prepare offline model: " +
-                    (exception.localizedMessage ?: "Unknown error")
-            )
-
+            executor.execute { captureAndTranscribe() }
+        } catch (_: Exception) {
+            isListening = false
+            onStatusChanged("آواز سننے کا عمل شروع نہیں ہو سکا")
             return false
         }
-
         return true
     }
 
-    private fun handleRecognitionResult(hypothesis: String?) {
-        if (isShutdown || hypothesis.isNullOrBlank()) return
-
+    private fun captureAndTranscribe() {
+        var recorder: AudioRecord? = null
+        var wav: File? = null
         try {
-            val json = JSONObject(hypothesis)
-            val recognizedText =
-                json.optString("text", "").trim()
-
-            if (recognizedText.isBlank()) return
-
-            val currentTime = SystemClock.elapsedRealtime()
-
-            val isDuplicate =
-                recognizedText == lastDeliveredText &&
-                    currentTime - lastDeliveredTime < 1200L
-
-            if (isDuplicate) return
-
-            lastDeliveredText = recognizedText
-            lastDeliveredTime = currentTime
-
-            onSpeechResult(recognizedText)
-
-        } catch (_: Exception) {
-            if (!isShutdown) {
-                onStatusChanged("Could not read recognition result")
+            if (loadedModel == null) {
+                onStatusChanged("اردو آف لائن ماڈل لوڈ ہو رہا ہے")
+                loadedModel = Whisper.loadModelFromAsset(appContext, MODEL_ASSET)
             }
+            if (isShutdown || !isListening) return
+
+            val minBuffer = AudioRecord.getMinBufferSize(
+                SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
+            )
+            if (minBuffer <= 0) throw IllegalStateException("Audio input is not supported")
+            recorder = AudioRecord(
+                MediaRecorder.AudioSource.MIC, SAMPLE_RATE,
+                AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT,
+                maxOf(minBuffer, SAMPLE_RATE * 2)
+            )
+            if (recorder.state != AudioRecord.STATE_INITIALIZED) {
+                throw IllegalStateException("Microphone could not be initialized")
+            }
+            activeRecorder = recorder
+            recorder.startRecording()
+
+            val pcm = java.io.ByteArrayOutputStream()
+            val buffer = ShortArray(2048)
+            var speechStarted = false
+            var silentSamples = 0
+            var totalSamples = 0
+            val silenceLimit = (SAMPLE_RATE * 1.1f).toInt()
+            val minimumSpeech = (SAMPLE_RATE * 0.45f).toInt()
+            val maxSamples = SAMPLE_RATE * 12
+
+            while (isListening && !isShutdown && totalSamples < maxSamples) {
+                val read = recorder.read(buffer, 0, buffer.size)
+                if (read <= 0) continue
+                var peak = 0
+                for (i in 0 until read) {
+                    val sample = buffer[i]
+                    peak = maxOf(peak, abs(sample.toInt()))
+                    pcm.write(sample.toInt() and 0xff)
+                    pcm.write((sample.toInt() shr 8) and 0xff)
+                }
+                totalSamples += read
+                if (peak > VOICE_THRESHOLD) {
+                    speechStarted = true
+                    silentSamples = 0
+                } else if (speechStarted) {
+                    silentSamples += read
+                    if (silentSamples >= silenceLimit && totalSamples >= minimumSpeech) break
+                }
+            }
+            recorder.stop()
+            activeRecorder = null
+            if (!isListening || isShutdown) return
+            if (!speechStarted || totalSamples < minimumSpeech) {
+                onStatusChanged("آواز واضح نہیں آئی، دوبارہ بولیں")
+                onSpeechFinished()
+                return
+            }
+
+            wav = File(appContext.cacheDir, "idraak_urdu_${SystemClock.elapsedRealtime()}.wav")
+            writeWav(wav, pcm.toByteArray())
+            onStatusChanged("اردو آواز سمجھ رہا ہوں")
+            val result = Whisper.transcribe(
+                loadedModel ?: throw IllegalStateException("Urdu model not loaded"),
+                wav.absolutePath,
+                WhisperConfig(language = "ur")
+            ).text.trim()
+
+            if (isShutdown || !isListening) return
+            if (result.isNotBlank()) {
+                val now = SystemClock.elapsedRealtime()
+                if (result != lastDeliveredText || now - lastDeliveredTime > 1200L) {
+                    lastDeliveredText = result
+                    lastDeliveredTime = now
+                    isListening = false
+                    onStatusChanged("آپ کی بات سمجھ لی")
+                    onSpeechResult(result)
+                } else {
+                    onSpeechFinished()
+                }
+            } else {
+                onStatusChanged("بات سمجھ نہیں آئی، ذرا دوبارہ کہیں")
+                onSpeechFinished()
+            }
+        } catch (error: Exception) {
+            if (!isShutdown) {
+                isListening = false
+                onStatusChanged("اردو آف لائن آواز میں مسئلہ: ${error.localizedMessage ?: "نامعلوم خرابی"}")
+                onSpeechFinished()
+            }
+        } finally {
+            try { recorder?.let { if (it.recordingState == AudioRecord.RECORDSTATE_RECORDING) it.stop() } } catch (_: Exception) {}
+            try { recorder?.release() } catch (_: Exception) {}
+            activeRecorder = null
+            wav?.delete()
         }
     }
 
-    @Synchronized
-    fun stopListening() {
-        if (isShutdown) return
-
-        speechService?.stop()
-        onStatusChanged("Listening stopped")
+    private fun writeWav(file: File, pcm: ByteArray) {
+        FileOutputStream(file).use { out ->
+            val dataLength = pcm.size
+            val header = ByteArray(44)
+            fun putInt(offset: Int, value: Int) {
+                for (i in 0..3) header[offset + i] = (value shr (8 * i)).toByte()
+            }
+            fun putShort(offset: Int, value: Int) {
+                header[offset] = value.toByte()
+                header[offset + 1] = (value shr 8).toByte()
+            }
+            "RIFF".toByteArray(Charsets.US_ASCII).copyInto(header, 0)
+            putInt(4, 36 + dataLength)
+            "WAVE".toByteArray(Charsets.US_ASCII).copyInto(header, 8)
+            "fmt ".toByteArray(Charsets.US_ASCII).copyInto(header, 12)
+            putInt(16, 16)
+            putShort(20, 1)
+            putShort(22, 1)
+            putInt(24, SAMPLE_RATE)
+            putInt(28, SAMPLE_RATE * 2)
+            putShort(32, 2)
+            putShort(34, 16)
+            "data".toByteArray(Charsets.US_ASCII).copyInto(header, 36)
+            putInt(40, dataLength)
+            out.write(header)
+            out.write(pcm)
+        }
     }
+
+    @Synchronized fun stopListening() = cancelListening()
 
     @Synchronized
     fun cancelListening() {
-        if (isShutdown) return
-
-        speechService?.cancel()
-        onStatusChanged("Listening cancelled")
+        isListening = false
+        try { activeRecorder?.stop() } catch (_: Exception) {}
+        if (!isShutdown) onStatusChanged("سننا روک دیا گیا")
     }
 
     fun speak(text: String) {
         if (isShutdown || text.isBlank()) return
-
         val tts = textToSpeech
-
         if (tts == null || !isTtsReady) {
             pendingSpeech = text
-            onStatusChanged("Offline voice output is preparing")
+            onStatusChanged("اردو آواز تیار ہو رہی ہے")
             return
         }
-
         tts.setSpeechRate(getSpeechRate())
-
-        val result = tts.speak(
-            text,
-            TextToSpeech.QUEUE_FLUSH,
-            Bundle(),
-            "idraak_voice_output"
-        )
-
-        if (result == TextToSpeech.ERROR) {
-            onStatusChanged("Could not speak the response")
+        if (tts.speak(text, TextToSpeech.QUEUE_FLUSH, Bundle(), "idraak_urdu_output")
+            == TextToSpeech.ERROR) {
+            onStatusChanged("جواب بولنا ممکن نہیں ہوا")
             onSpeechFinished()
         }
     }
 
-    fun stopSpeaking() {
-        textToSpeech?.stop()
-
-        if (!isShutdown) {
-            onStatusChanged("Voice output stopped")
-        }
-    }
-
-    @Synchronized
-    private fun stopRecognitionResources() {
-
-        try {
-            speechService?.cancel()
-            speechService?.shutdown()
-        } catch (_: Exception) {
-        }
-
-        speechService = null
-
-        try {
-            currentRecognizer?.close()
-        } catch (_: Exception) {
-        }
-
-        currentRecognizer = null
-
-        try {
-            currentModel?.close()
-        } catch (_: Exception) {
-        }
-
-        currentModel = null
-    }
+    fun stopSpeaking() { textToSpeech?.stop() }
 
     @Synchronized
     fun shutdown() {
-
         if (isShutdown) return
-
         isShutdown = true
-        isLoadingModel = false
-
-        try {
-            speechService?.cancel()
-            speechService?.shutdown()
-        } catch (_: Exception) {
-        }
-
-        speechService = null
-
-        try {
-            currentRecognizer?.close()
-        } catch (_: Exception) {
-        }
-
-        currentRecognizer = null
-
-        try {
-            currentModel?.close()
-        } catch (_: Exception) {
-        }
-
-        currentModel = null
-
+        isListening = false
+        try { activeRecorder?.stop() } catch (_: Exception) {}
+        activeRecorder = null
+        try { loadedModel?.let { Whisper.releaseModel(it) } } catch (_: Exception) {}
+        loadedModel = null
         textToSpeech?.stop()
         textToSpeech?.shutdown()
         textToSpeech = null
-
         pendingSpeech = null
         isTtsReady = false
-
         executor.shutdownNow()
     }
 
-    companion object {
-        private const val LANGUAGE_PREFERENCES =
-            "idraak_voice_preferences"
-
-        private const val LANGUAGE_KEY =
-            "selected_recognition_language"
-
-        private const val SPEECH_RATE_KEY =
-            "speech_output_rate"
-    }
-
-    fun getSpeechRate(): Float {
-        return preferences.getFloat(SPEECH_RATE_KEY, 1.0f)
-            .coerceIn(0.75f, 1.5f)
-    }
+    fun getSpeechRate(): Float = preferences.getFloat(SPEECH_RATE_KEY, 1.0f).coerceIn(0.75f, 1.5f)
 
     fun setSpeechRate(rate: Float) {
-        val safeRate = rate.coerceIn(0.75f, 1.5f)
-        preferences.edit()
-            .putFloat(SPEECH_RATE_KEY, safeRate)
-            .apply()
+        val safe = rate.coerceIn(0.75f, 1.5f)
+        preferences.edit().putFloat(SPEECH_RATE_KEY, safe).apply()
+        textToSpeech?.setSpeechRate(safe)
+        onStatusChanged("رفتار محفوظ ہو گئی")
+    }
 
-        textToSpeech?.setSpeechRate(safeRate)
-        onStatusChanged("Voice speed saved: " + safeRate + "x")
+    companion object {
+        private const val LANGUAGE_PREFERENCES = "idraak_voice_preferences"
+        private const val LANGUAGE_KEY = "selected_recognition_language"
+        private const val SPEECH_RATE_KEY = "speech_output_rate"
+        private const val MODEL_ASSET = "models/ggml-small.bin"
+        private const val SAMPLE_RATE = 16000
+        private const val VOICE_THRESHOLD = 650
     }
 }
