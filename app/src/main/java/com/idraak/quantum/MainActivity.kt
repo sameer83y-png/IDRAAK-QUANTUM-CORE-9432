@@ -827,6 +827,12 @@ fun IdraakHomeScreen() {
             }
 
             else -> {
+                val dashboardSuggestions = SmartSuggestionEngine.build(
+                    context = context.applicationContext,
+                    voiceActive = isContinuousVoiceChat || isBackgroundVoiceActive,
+                    lastUserMessage = messages.lastOrNull { it.isUser }?.text.orEmpty()
+                )
+
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -972,6 +978,13 @@ fun IdraakHomeScreen() {
                             modifier = Modifier.padding(horizontal = 12.dp)
                         )
                     }
+
+                    SmartSuggestionsPanel(
+                        suggestions = dashboardSuggestions,
+                        onSuggestionSelected = { suggestionCommand ->
+                            sendMessage(suggestionCommand)
+                        }
+                    )
 
                     Spacer(modifier = Modifier.height(8.dp))
 
