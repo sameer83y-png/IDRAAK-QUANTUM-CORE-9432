@@ -3,6 +3,7 @@ package com.idraak.quantum
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import java.util.Locale
 
 /**
  * Detects clear phone-call commands and opens
@@ -19,18 +20,22 @@ object CallCommandHandler {
 
         val command = message
             .trim()
-            .lowercase()
+            .lowercase(Locale.ROOT)
+            .replace(Regex("[^\\p{L}\\p{M}\\p{N}\\s]"), " ")
             .replace(Regex("\\s+"), " ")
+            .trim()
 
         if (command.isBlank()) return false
 
-        val callWords = listOf(
-            "call",
-            "कॉल",
-            "फोन",
-            "फोने",
-            "فون"
-        )
+        // "फोन" alone is not enough: phrases such as
+        // "फोन बंद करो" must never open the call flow.
+        val hasCallWord = Regex(
+            """(^|\\s)(call|कॉल|کال|فون)(?=\\s|$)"""
+        ).containsMatchIn(command)
+
+        val hasHindiPhoneCallPhrase = Regex(
+            """(^|\\s)फोन\\s+(करो|कर दो|लगाओ|लगा दो|मिलाओ|मिला दो|करें|लगाइए)(?=\\s|$)"""
+        ).containsMatchIn(command)
 
         val actionWords = listOf(
             "karo",
@@ -51,21 +56,21 @@ object CallCommandHandler {
             "ملاو"
         )
 
-        val hasCallWord = callWords.any {
-            command.contains(it)
+        val hasActionWord = actionWords.any { action ->
+            Regex(
+                """(^|\\s)${Regex.escape(action)}(?=\\s|$)"""
+            ).containsMatchIn(command)
         }
 
-        val hasActionWord = actionWords.any {
-            command.contains(it)
-        }
+        val directEnglishCommand = Regex(
+            """^(please\\s+)?(call|phone call)\\b"""
+        ).containsMatchIn(command) ||
+            command == "make a call"
 
-        val directEnglishCommand =
-            command.startsWith("call ") ||
-                command == "call someone" ||
-                command == "make a call"
-
-        if (!directEnglishCommand &&
-            !(hasCallWord && hasActionWord)
+        if (
+            !directEnglishCommand &&
+            !(hasCallWord && hasActionWord) &&
+            !hasHindiPhoneCallPhrase
         ) {
             return false
         }
