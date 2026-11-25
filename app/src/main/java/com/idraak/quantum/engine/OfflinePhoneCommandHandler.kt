@@ -104,8 +104,10 @@ object OfflinePhoneCommandHandler {
             " please open", " open please", " open kar do", " open karo", " open",
             " launch karo", " start kar do", " start karo", " on kar do", " on karo",
             " chalu kar do", " chalu karo", " kholo", " khol do", " kholiye", " chalao", " chala do",
-            " ऐप खोल दो", " ऐप खोलो", " खोल दो", " खोलो", " चालू कर दो", " चालू करो", " ऑन कर दो",
-            " کھول دو", " کھولو", " چلا دو", " شروع کرو", " آن کر دو"
+            " ऐप खोल दो", " ऐप खोलो", " खोल देना", " खोल दीजिए", " खोल दो", " खोलो",
+            " चला देना", " चालू कर देना", " चालू कर दो", " चालू करो", " ऑन कर दो",
+            " کھول دینا", " کھول دیجیے", " کھول دو", " کھولو", " چلا دو", " چلا دینا",
+            " شروع کرو", " آن کر دو"
         )
         for (suffix in suffixes.sortedByDescending { it.length }) {
             if (value.endsWith(suffix)) {
