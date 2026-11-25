@@ -42,7 +42,7 @@ object MemoryCommandHandler {
         if (isCancel(message)) {
             if (stage != Stage.IDLE) {
                 reset()
-                return "ठीक है। Memory save रद्द कर दिया गया है।"
+                return "ٹھیک ہے، یادداشت محفوظ کرنے کا عمل منسوخ کر دیا گیا ہے۔"
             }
             return null
         }
@@ -54,35 +54,35 @@ object MemoryCommandHandler {
                 if (payload.isBlank()) {
                     stage = Stage.WAITING_FOR_TOPIC
                     startedAt = now
-                    return "ज़रूर। किस विषय को याद रखना है? विषय बताइए।"
+                    return "ضرور، کس موضوع کو یاد رکھنا ہے؟ موضوع بتائیں۔"
                 }
 
                 if (payload.length > MAX_TOPIC_LENGTH) {
-                    return "विषय थोड़ा छोटा करके बताइए।"
+                    return "موضوع ذرا مختصر بتائیں۔"
                 }
 
                 topic = payload
                 stage = Stage.WAITING_FOR_CONTENT
                 startedAt = now
-                return "समझ गया। अब बताइए कि \"$topic\" के बारे में क्या याद रखना है?"
+                return "سمجھ گیا۔ اب بتائیں کہ \"$topic\" کے بارے میں کیا یاد رکھنا ہے؟"
             }
 
             Stage.WAITING_FOR_TOPIC -> {
                 val value = userMessage.trim()
                 if (value.length < 2 || value.length > MAX_TOPIC_LENGTH) {
-                    return "कृपया विषय 2 से 120 अक्षरों के बीच स्पष्ट बताइए।"
+                    return "موضوع دو سے ایک سو بیس حروف کے درمیان واضح بتائیں۔"
                 }
 
                 topic = value
                 stage = Stage.WAITING_FOR_CONTENT
                 startedAt = now
-                return "ठीक है। अब \"$topic\" के बारे में सही जानकारी बताइए।"
+                return "ٹھیک ہے، اب \"$topic\" کے بارے میں درست معلومات بتائیں۔"
             }
 
             Stage.WAITING_FOR_CONTENT -> {
                 val content = userMessage.trim()
                 if (content.length < 2 || content.length > MAX_CONTENT_LENGTH) {
-                    return "जानकारी 2 से 1000 अक्षरों के बीच स्पष्ट बताइए।"
+                    return "معلومات دو سے ایک ہزار حروف کے درمیان واضح بتائیں۔"
                 }
 
                 val category = if (isPreferenceTopic(topic)) {
@@ -106,9 +106,9 @@ object MemoryCommandHandler {
                 reset()
 
                 return if (saved) {
-                    "आपकी जानकारी सुरक्षित Local Memory में PENDING के रूप में सेव हो गई है। इसे भरोसेमंद याददाश्त बनाने के लिए Memory Dashboard में जाकर Verify करें। Password, OTP या निजी credentials सेव न करें।"
+                    "آپ کی معلومات محفوظ مقامی یادداشت میں زیرِ تصدیق رکھ دی گئی ہیں۔ انہیں قابلِ اعتماد بنانے کے لیے یادداشت کے صفحے میں تصدیق کریں۔ پاس ورڈ یا خفیہ کوڈ محفوظ نہ کریں۔"
                 } else {
-                    "यह जानकारी सेव नहीं हो सकी। इसमें संवेदनशील विवरण हो सकता है या Storage में समस्या आई है।"
+                    "یہ معلومات محفوظ نہیں ہو سکیں۔ ممکن ہے ان میں نجی تفصیل ہو یا فون کی محفوظ جگہ میں مسئلہ آیا ہو۔"
                 }
             }
         }
