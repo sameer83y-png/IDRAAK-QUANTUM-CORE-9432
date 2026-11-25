@@ -113,12 +113,12 @@ object MultilingualCommandNormalizer {
 
     private fun extractYoutubeSearchQuery(input: String): String? {
         val patterns = listOf(
-            Regex("""^open\\s+(?:the\\s+)?youtube\\s+and\\s+search\\s+(?:for\\s+)?(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^search\\s+(.+?)\\s+on\\s+youtube$""", RegexOption.IGNORE_CASE),
-            Regex("""^find\\s+(.+?)\\s+on\\s+youtube$""", RegexOption.IGNORE_CASE),
-            Regex("""^youtube\\s+khol(?:o|na)\\s+aur\\s+(.+?)\\s+(?:search|dhoondho|dhundo)\\s+(?:karo)?$""", RegexOption.IGNORE_CASE),
-            Regex("""^यूट्यूब\\s+खोलो\\s+और\\s+(.+?)\\s+(?:खोजो|ढूंढो|सर्च\\s+करो)$"""),
-            Regex("""^یوٹیوب\\s+کھولو\\s+اور\\s+(.+?)\\s+(?:تلاش\\s+کرو|ڈھونڈو|سرچ\\s+کرو)$""")
+            Regex("""^open\s+(?:the\s+)?youtube\s+and\s+search\s+(?:for\s+)?(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^search\s+(.+?)\s+on\s+youtube$""", RegexOption.IGNORE_CASE),
+            Regex("""^find\s+(.+?)\s+on\s+youtube$""", RegexOption.IGNORE_CASE),
+            Regex("""^youtube\s+khol(?:o|na)\s+aur\s+(.+?)\s+(?:search|dhoondho|dhundo)\s+(?:karo)?$""", RegexOption.IGNORE_CASE),
+            Regex("""^यूट्यूब\s+खोलो\s+और\s+(.+?)\s+(?:खोजो|ढूंढो|सर्च\s+करो)$"""),
+            Regex("""^یوٹیوب\s+کھولو\s+اور\s+(.+?)\s+(?:تلاش\s+کرو|ڈھونڈو|سرچ\s+کرو)$""")
         )
 
         for (pattern in patterns) {
