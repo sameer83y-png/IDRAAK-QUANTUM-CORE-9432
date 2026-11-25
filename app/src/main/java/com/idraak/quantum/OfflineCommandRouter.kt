@@ -31,8 +31,10 @@ object OfflineCommandRouter {
     fun process(context: Context, command: String, allowForegroundUi: Boolean = true): Result {
         val appContext = context.applicationContext
         val originalMessage = command.trim()
-        val message = LearnedCommandStore.resolve(appContext, originalMessage)
-            ?: originalMessage
+        // Detect common multilingual phrasing, then route through the existing Urdu handlers.
+        val multilingualMessage = MultilingualCommandNormalizer.normalize(originalMessage)
+        val message = LearnedCommandStore.resolve(appContext, multilingualMessage)
+            ?: multilingualMessage
 
         if (message.isBlank()) {
             return Result(response = "براہِ کرم اپنا حکم بتائیں۔", intent = "EMPTY")
