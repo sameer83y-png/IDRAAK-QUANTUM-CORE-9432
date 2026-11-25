@@ -166,7 +166,13 @@ object OfflineCommandRouter {
 
         // Screen commands use the user's explicitly enabled Android Accessibility service.
         // UNKNOWN means this is not a screen command, so normal routing continues.
-        val screenResult = OfflineScreenCommandHandler.execute(message)
+        val screenResult = OfflineScreenCommandHandler.execute(originalMessage).let { originalResult ->
+            if (originalResult.intent == "UNKNOWN") {
+                OfflineScreenCommandHandler.execute(message)
+            } else {
+                originalResult
+            }
+        }
         if (screenResult.intent != "UNKNOWN") {
             // Preserve OfflineBrain's pending-confirmation flow for sensitive
             // screen targets such as Send, Delete, Purchase, or Pay.
