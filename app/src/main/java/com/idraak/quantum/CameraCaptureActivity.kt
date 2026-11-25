@@ -45,7 +45,7 @@ class CameraCaptureActivity : ComponentActivity() {
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             PermissionRequestGate.markResult(this, Manifest.permission.CAMERA, granted)
             if (granted) {
-                ensureLegacyStoragePermissionAndStartCamera()
+                startCamera()
             } else {
                 statusView.text = "Camera permission नहीं मिली।"
                 Toast.makeText(
@@ -65,7 +65,7 @@ class CameraCaptureActivity : ComponentActivity() {
                 granted
             )
             if (granted) {
-                startCamera()
+                performPhotoCapture()
             } else {
                 statusView.text = "Android 9 में फोटो सेव करने के लिए Storage permission जरूरी है।"
                 Toast.makeText(
@@ -142,44 +142,12 @@ class CameraCaptureActivity : ComponentActivity() {
                 Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            ensureLegacyStoragePermissionAndStartCamera()
+            startCamera()
         } else if (PermissionRequestGate.tryMarkRequested(this, Manifest.permission.CAMERA)) {
             permissionLauncher.launch(Manifest.permission.CAMERA)
         } else {
             statusView.text = "Camera अनुमति पहले पूछी जा चुकी है। Android App Settings में इसे चालू करें।"
             Toast.makeText(this, "Camera permission के लिए Android App Settings खोलें।", Toast.LENGTH_LONG).show()
-            finish()
-        }
-    }
-
-    private fun ensureLegacyStoragePermissionAndStartCamera() {
-        if (android.os.Build.VERSION.SDK_INT > android.os.Build.VERSION_CODES.P) {
-            startCamera()
-            return
-        }
-
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            startCamera()
-        } else if (
-            PermissionRequestGate.tryMarkRequested(
-                this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            )
-        ) {
-            storagePermissionLauncher.launch(
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            )
-        } else {
-            statusView.text = "Storage अनुमति पहले पूछी जा चुकी है। Android App Settings में इसे चालू करें।"
-            Toast.makeText(
-                this,
-                "Android 9 में फोटो सेव करने के लिए App Settings में Storage permission चालू करें।",
-                Toast.LENGTH_LONG
-            ).show()
             finish()
         }
     }
@@ -234,6 +202,40 @@ class CameraCaptureActivity : ComponentActivity() {
     }
 
     private fun capturePhoto() {
+        if (captureStarted) return
+
+        if (
+            android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.P &&
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            if (
+                PermissionRequestGate.tryMarkRequested(
+                    this,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                )
+            ) {
+                storagePermissionLauncher.launch(
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                )
+            } else {
+                statusView.text = "Storage अनुमति पहले पूछी जा चुकी है। Android App Settings में इसे चालू करें।"
+                Toast.makeText(
+                    this,
+                    "Android 9 में फोटो सेव करने के लिए App Settings में Storage permission चालू करें।",
+                    Toast.LENGTH_LONG
+                ).show()
+                finish()
+            }
+            return
+        }
+
+        performPhotoCapture()
+    }
+
+    private fun performPhotoCapture() {
         if (captureStarted) return
 
         val captureUseCase = imageCapture
