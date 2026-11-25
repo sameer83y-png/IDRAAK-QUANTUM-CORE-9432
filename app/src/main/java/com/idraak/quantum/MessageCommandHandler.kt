@@ -14,6 +14,9 @@ object MessageCommandHandler {
         val targetPackage: String?
     )
 
+    fun requiresForegroundUi(command: String): Boolean =
+        extractRequest(command)?.body?.isNotBlank() == true
+
     fun tryHandle(context: Context, command: String, launchActivity: Boolean = true): String? {
         val request = extractRequest(command) ?: return null
         if (request.body.isBlank()) {

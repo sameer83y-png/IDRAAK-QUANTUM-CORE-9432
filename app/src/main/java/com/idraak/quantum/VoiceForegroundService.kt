@@ -304,7 +304,7 @@ class VoiceForegroundService : Service() {
                 this,
                 102,
                 commandIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_ONE_SHOT
             )
             builder.addAction(android.R.drawable.ic_media_play, "OPEN & RUN", commandPendingIntent)
         }

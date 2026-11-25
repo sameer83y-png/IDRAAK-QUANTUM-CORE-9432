@@ -52,7 +52,11 @@ object OfflineCommandRouter {
                 status = "AWAITING_USER_CONFIRMATION",
                 steps = listOf(message, messageResponse)
             )
-            return Result(response = messageResponse, requiresForegroundUi = !allowForegroundUi, intent = "MESSAGE_COMPOSE")
+            return Result(
+                response = messageResponse,
+                requiresForegroundUi = !allowForegroundUi && MessageCommandHandler.requiresForegroundUi(message),
+                intent = "MESSAGE_COMPOSE"
+            )
         }
 
         // Screen commands use the user's explicitly enabled Android Accessibility service.
