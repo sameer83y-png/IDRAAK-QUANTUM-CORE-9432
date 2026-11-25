@@ -51,9 +51,19 @@ object OfflinePhoneCommandHandler {
             val label = normalize(app.label)
             label == normalizedTarget || aliases.contains(label)
         }
-        val matches = if (exactMatches.isNotEmpty()) exactMatches else installedApps.filter { app ->
-            val label = normalize(app.label)
-            label.contains(normalizedTarget) || normalizedTarget.contains(label)
+        // Fallback matching is token-based, not arbitrary substring matching.
+        // This prevents a short target such as "book" from accidentally opening
+        // an unrelated app whose label merely contains those letters (for example, Facebook).
+        val targetTokens = normalizedTarget.split(" ").filter { it.isNotBlank() }
+        val matches = if (exactMatches.isNotEmpty()) {
+            exactMatches
+        } else {
+            installedApps.filter { app ->
+                val labelTokens = normalize(app.label).split(" ").filter { it.isNotBlank() }
+                targetTokens.isNotEmpty() &&
+                    labelTokens.size >= targetTokens.size &&
+                    labelTokens.windowed(targetTokens.size).any { it == targetTokens }
+            }
         }
 
         if (matches.isEmpty()) {
