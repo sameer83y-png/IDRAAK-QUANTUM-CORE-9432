@@ -108,7 +108,7 @@ object MessageCommandHandler {
             .filterNotNull()
             .minByOrNull { it.first }
         if (contentStart != null) {
-            body = body.substring(contentStart.first + contentStart.second.length).trim()
+            body = body.substring(contentStart.first + contentStart.second).trim()
         }
 
         body = body.trim().trim(':', '-', '،', ',', '.', ' ')
