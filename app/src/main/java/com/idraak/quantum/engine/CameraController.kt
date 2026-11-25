@@ -79,7 +79,7 @@ object CameraController {
             Result(
                 false,
                 "ادراک کا کیمرہ شروع نہیں ہو سکا: " +
-                    (error.localizedMessage ?: "Unknown error")
+                    (error.localizedMessage ?: "نامعلوم خرابی")
             )
         }
     }
