@@ -80,6 +80,36 @@ data class ChatMessage(
     val isUser: Boolean
 )
 
+enum class IdraakTheme(
+    val title: String,
+    val backgroundColor: Long,
+    val surfaceColor: Long,
+    val accentColor: Long,
+    val glowColor: Long
+) {
+    QUANTUM_BLUE("Quantum Blue", 0xFF050B18, 0xFF101D38, 0xFF087DFF, 0xFF8BEAFF),
+    EMERALD("Emerald", 0xFF04130F, 0xFF0C2A20, 0xFF00A978, 0xFF75F0C5),
+    VIOLET("Violet", 0xFF10091C, 0xFF24143A, 0xFF986BFF, 0xFFD0B8FF),
+    AMBER("Amber", 0xFF171006, 0xFF33230D, 0xFFE59A27, 0xFFFFD27D);
+
+    fun save(context: Context) {
+        context.applicationContext
+            .getSharedPreferences("idraak_visual_preferences", Context.MODE_PRIVATE)
+            .edit()
+            .putString("selected_theme", name)
+            .apply()
+    }
+
+    companion object {
+        fun load(context: Context): IdraakTheme {
+            val saved = context.applicationContext
+                .getSharedPreferences("idraak_visual_preferences", Context.MODE_PRIVATE)
+                .getString("selected_theme", QUANTUM_BLUE.name)
+            return entries.firstOrNull { it.name == saved } ?: QUANTUM_BLUE
+        }
+    }
+}
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -97,8 +127,12 @@ fun IdraakHomeScreen() {
     val context = LocalContext.current
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
 
-    val backgroundColor = Color(0xFF050B18)
-    val blue = Color(0xFF087DFF)
+    var selectedTheme by remember(context) {
+        mutableStateOf(IdraakTheme.load(context))
+    }
+    val backgroundColor = Color(selectedTheme.backgroundColor)
+    val accentColor = Color(selectedTheme.accentColor)
+    val glowColor = Color(selectedTheme.glowColor)
 
     var inputText by remember { mutableStateOf("") }
     var showSettings by remember { mutableStateOf(false) }
@@ -715,7 +749,8 @@ fun IdraakHomeScreen() {
                 MemoryDashboardScreen(
                     onBack = {
                         showMemoryDashboard = false
-                    }
+                    },
+                    accentColor = accentColor
                 )
             }
 
@@ -789,6 +824,11 @@ fun IdraakHomeScreen() {
                     onSpeechRateChanged = { rate ->
                         selectedSpeechRate = rate.coerceIn(0.75f, 1.5f)
                         voiceController.setSpeechRate(selectedSpeechRate)
+                    },
+                    selectedTheme = selectedTheme,
+                    onThemeSelected = { theme ->
+                        selectedTheme = theme
+                        theme.save(context)
                     }
                 )
             }
@@ -827,7 +867,7 @@ fun IdraakHomeScreen() {
 
                             Text(
                                 text = "QUANTUM CORE",
-                                color = Color(0xFF00B7FF),
+                                color = accentColor,
                                 fontSize = 11.sp,
                                 letterSpacing = 4.sp
                             )
@@ -843,7 +883,7 @@ fun IdraakHomeScreen() {
                         ) {
                             Text(
                                 "SETTINGS",
-                                color = Color(0xFF65C8FF),
+                                color = accentColor,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -858,8 +898,8 @@ fun IdraakHomeScreen() {
                             .background(
                                 Brush.radialGradient(
                                     colors = listOf(
-                                        Color(0xFF8BEAFF),
-                                        Color(0xFF087DFF),
+                                        glowColor,
+                                        accentColor,
                                         Color(0xFF06152D)
                                     )
                                 ),
@@ -917,7 +957,7 @@ fun IdraakHomeScreen() {
                             } else {
                                 "VOICE-ONLY CONTROL"
                             },
-                            color = Color(0xFF65C8FF),
+                            color = accentColor,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
@@ -962,7 +1002,7 @@ fun IdraakHomeScreen() {
                                     if (isContinuousVoiceChat) {
                                         Color(0xFFB83250)
                                     } else {
-                                        Color(0xFF087DFF)
+                                        accentColor
                                     }
                             )
                         ) {
@@ -999,7 +1039,7 @@ fun IdraakHomeScreen() {
                                 if (isBackgroundVoiceActive) {
                                     Color(0xFFB83250)
                                 } else {
-                                    Color(0xFF087DFF)
+                                    accentColor
                                 }
                         )
                     ) {
@@ -1043,10 +1083,14 @@ fun SettingsScreen(
     selectedVoiceLanguage: VoskModelStore.VoskLanguage,
     onVoiceLanguageSelected: (VoskModelStore.VoskLanguage) -> Unit,
     selectedSpeechRate: Float,
-    onSpeechRateChanged: (Float) -> Unit
+    onSpeechRateChanged: (Float) -> Unit,
+    selectedTheme: IdraakTheme,
+    onThemeSelected: (IdraakTheme) -> Unit
 ) {
     val context = LocalContext.current
     val activity = context as? ComponentActivity
+    val themeBackgroundColor = Color(selectedTheme.backgroundColor)
+    val themeAccentColor = Color(selectedTheme.accentColor)
 
     fun isScreenControlEnabled(): Boolean {
         val enabledServices = Settings.Secure.getString(
@@ -1099,8 +1143,8 @@ fun SettingsScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF101D38),
-                        Color(0xFF050B18),
+                        Color(selectedTheme.surfaceColor),
+                        themeBackgroundColor,
                         Color(0xFF02050D)
                     )
                 )
@@ -1111,7 +1155,7 @@ fun SettingsScreen(
         TextButton(onClick = onBack) {
             Text(
                 "← BACK TO IDRAAK",
-                color = Color(0xFF65C8FF)
+                color = themeAccentColor
             )
         }
 
@@ -1152,7 +1196,7 @@ fun SettingsScreen(
 
         Text(
             text = "OFFLINE SPEECH LANGUAGE",
-            color = Color(0xFF00B7FF),
+            color = themeAccentColor,
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold
         )
@@ -1181,7 +1225,7 @@ fun SettingsScreen(
                         selectedVoiceLanguage ==
                         VoskModelStore.VoskLanguage.HINDI
                     ) {
-                        Color(0xFF087DFF)
+                        themeAccentColor
                     } else {
                         Color(0xFF263B59)
                     }
@@ -1206,7 +1250,7 @@ fun SettingsScreen(
                         selectedVoiceLanguage ==
                         VoskModelStore.VoskLanguage.INDIAN_ENGLISH
                     ) {
-                        Color(0xFF087DFF)
+                        themeAccentColor
                     } else {
                         Color(0xFF263B59)
                     }
@@ -1219,7 +1263,7 @@ fun SettingsScreen(
 
         Text(
             text = "VOICE OUTPUT SPEED",
-            color = Color(0xFF00B7FF),
+            color = themeAccentColor,
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold
         )
@@ -1243,6 +1287,39 @@ fun SettingsScreen(
             valueRange = 0.75f..1.5f
         )
 
+        Spacer(modifier = Modifier.height(18.dp))
+
+        Text(
+            text = "VISUAL THEME",
+            color = themeAccentColor,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "Choose and save the look of Idraak on this device.",
+            color = Color(0xFF9CB0CC),
+            fontSize = 12.sp
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        IdraakTheme.entries.forEach { theme ->
+            Button(
+                onClick = { onThemeSelected(theme) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (selectedTheme == theme) {
+                        Color(theme.accentColor)
+                    } else {
+                        Color(theme.surfaceColor)
+                    }
+                )
+            ) {
+                Text(
+                    text = if (selectedTheme == theme) "✓ ${theme.title}" else theme.title,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
         Spacer(modifier = Modifier.height(18.dp))
 
         SettingsStatusCard(
@@ -1279,7 +1356,7 @@ fun SettingsScreen(
                 containerColor = if (screenControlEnabled) {
                     Color(0xFF263B59)
                 } else {
-                    Color(0xFF087DFF)
+                    themeAccentColor
                 }
             )
         ) {
@@ -1305,7 +1382,7 @@ fun SettingsScreen(
 
         Text(
             text = "MEMORY MANAGEMENT",
-            color = Color(0xFF00B7FF),
+            color = themeAccentColor,
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold
         )
@@ -1325,7 +1402,7 @@ fun SettingsScreen(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF087DFF)
+                containerColor = themeAccentColor
             )
         ) {
             Text(
@@ -1338,7 +1415,7 @@ fun SettingsScreen(
 
         Text(
             text = "RECENT MEMORY RECORDS",
-            color = Color(0xFF00B7FF),
+            color = themeAccentColor,
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold
         )
@@ -1373,7 +1450,7 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text = "MORE SETTINGS WILL BE ADDED IN SEPARATE MODULES.",
+            text = "THEME AND VOICE PREFERENCES ARE SAVED LOCALLY ON THIS DEVICE.",
             color = Color(0xFF7B91B5),
             fontSize = 10.sp
         )
@@ -1398,7 +1475,7 @@ fun SettingsStatusCard(
         ) {
             Text(
                 text = title,
-                color = Color(0xFF65C8FF),
+                color = themeAccentColor,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold
             )

@@ -37,7 +37,8 @@ import java.util.Locale
 
 @Composable
 fun MemoryDashboardScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    accentColor: Color = accentColor
 ) {
     val context = LocalContext.current
 
@@ -130,7 +131,7 @@ fun MemoryDashboardScreen(
         Text(
             text = "IDRAAK MEMORY",
             style = MaterialTheme.typography.headlineMedium,
-            color = Color(0xFF087DFF)
+            color = accentColor
         )
 
         Text(
@@ -196,7 +197,7 @@ fun MemoryDashboardScreen(
             ) {
                 Text(
                     text = "ADD MEMORY KNOWLEDGE",
-                    color = Color(0xFF65C8FF),
+                    color = accentColor,
                     style = MaterialTheme.typography.titleMedium
                 )
 
@@ -351,7 +352,7 @@ fun MemoryDashboardScreen(
 
                     Text(
                         text = saveMessage,
-                        color = Color(0xFF65C8FF),
+                        color = accentColor,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -590,7 +591,7 @@ private fun MemoryCountCard(
         ) {
             Text(
                 text = title,
-                color = Color(0xFF65C8FF),
+                color = accentColor,
                 style = MaterialTheme.typography.labelSmall
             )
 
@@ -616,7 +617,7 @@ private fun MemoryRecordCard(
         "PENDING" -> Color(0xFFFFC857)
         "FAILED" -> Color(0xFFFF7777)
         "REJECTED" -> Color(0xFFFF7777)
-        "SUCCESS" -> Color(0xFF65C8FF)
+        "SUCCESS" -> accentColor
         else -> Color.LightGray
     }
 
@@ -647,7 +648,7 @@ private fun MemoryRecordCard(
 
             Text(
                 text = "CATEGORY: ${memory.category}",
-                color = Color(0xFF65C8FF),
+                color = accentColor,
                 style = MaterialTheme.typography.labelSmall
             )
 
