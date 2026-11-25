@@ -90,10 +90,16 @@ object OfflinePhoneCommandHandler {
         var value = normalize(command)
         val conversationalPrefixes = listOf(
             "bhai ", "yaar ", "please ", "kindly ", "zara ",
+            "idraak ", "इद्राक ", "ادراک ",
             "भाई ", "यार ", "जरा ", "कृपया ",
             "بھائی ", "یار ", "ذرا ", "براہ کرم "
-        )
-        conversationalPrefixes.forEach { if (value.startsWith(it)) value = value.removePrefix(it).trim() }
+        ).sortedByDescending { it.length }
+        // Remove stacked assistant-name and polite lead-ins, e.g.
+        // "Idraak, please open YouTube" or "ادراک، ذرا یوٹیوب کھولو".
+        while (true) {
+            val prefix = conversationalPrefixes.firstOrNull { value.startsWith(it) } ?: break
+            value = value.removePrefix(prefix).trim()
+        }
 
         val prefixes = listOf(
             "could you please open ", "please open the ", "could you open ", "please launch ",
