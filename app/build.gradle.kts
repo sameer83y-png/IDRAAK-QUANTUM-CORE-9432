@@ -52,4 +52,7 @@ dependencies {
     // Urdu offline speech recognition using whisper.cpp (file-based inference).
     implementation("dev.ffmpegkit-maintained:whisper-android:1.0.0")
 
+    // Lightweight JVM regression tests for offline command parsing.
+    testImplementation("junit:junit:4.13.2")
+
 }

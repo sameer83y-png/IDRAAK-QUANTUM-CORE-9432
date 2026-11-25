@@ -55,6 +55,9 @@ jobs:
       - name: Build Debug APK
         run: gradle :app:assembleDebug
 
+      - name: Run Offline Command Regression Tests
+        run: gradle :app:testDebugUnitTest
+
       - name: Run Android Lint
         run: gradle :app:lintDebug
 
