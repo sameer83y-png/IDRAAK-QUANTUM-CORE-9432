@@ -247,15 +247,15 @@ object OfflineBrain {
         // ordinary conversation mentioning an app is not treated as a command.
         var command = message
         val conversationalPrefixes = listOf(
-            "bhai ", "yaar ", "please ", "zara ",
+            "bhai ", "yaar ", "please ", "kindly ", "zara ",
+            "idraak ", "इद्राक ", "ادراک ",
             "भाई ", "यार ", "कृपया ", "जरा ",
-            "بھائی ", "یار ", "ذرا "
-        )
-        for (prefix in conversationalPrefixes.sortedByDescending { it.length }) {
-            if (command.startsWith(prefix)) {
-                command = command.removePrefix(prefix).trim()
-                break
-            }
+            "بھائی ", "یار ", "ذرا ", "براہ کرم "
+        ).sortedByDescending { it.length }
+        // Allow the assistant name and polite lead-ins in either order.
+        while (true) {
+            val prefix = conversationalPrefixes.firstOrNull { command.startsWith(it) } ?: break
+            command = command.removePrefix(prefix).trim()
         }
 
         val prefixes = listOf(
