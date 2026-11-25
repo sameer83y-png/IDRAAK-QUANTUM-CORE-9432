@@ -90,7 +90,7 @@ object HardwareController {
             Result(false, "فون نے آواز تبدیل کرنے کی اجازت نہیں دی۔")
         } catch (error: Exception) {
             Result(false, "آواز کنٹرول کرنے میں مسئلہ: " +
-                (error.localizedMessage ?: "Unknown error"))
+                (error.localizedMessage ?: "نامعلوم خرابی"))
         }
     }
 
@@ -161,7 +161,7 @@ object HardwareController {
             Result(
                 success = false,
                 message = "روشنی کنٹرول کرنے میں مسئلہ: " +
-                    (error.localizedMessage ?: "Unknown error")
+                    (error.localizedMessage ?: "نامعلوم خرابی")
             )
         }
     }
@@ -246,7 +246,7 @@ object HardwareController {
             Result(
                 false,
                 "ٹارچ کنٹرول میں مسئلہ پیش آیا: ${
-                    error.localizedMessage ?: "Unknown error"
+                    error.localizedMessage ?: "نامعلوم خرابی"
                 }"
             )
         }
