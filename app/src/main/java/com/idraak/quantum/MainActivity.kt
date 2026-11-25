@@ -276,9 +276,10 @@ fun IdraakHomeScreen() {
             voiceActive = true,
             lastUserMessage = messages.lastOrNull { it.isUser }?.text.orEmpty()
         )
-        val firstSuggestion = suggestions.firstOrNull()
-        val spokenSummary = if (firstSuggestion != null) {
-            "Idraak सुझाव: ${firstSuggestion.title}. ${firstSuggestion.detail}."
+        val spokenSummary = if (suggestions.isNotEmpty()) {
+            "Idraak के सुझाव। " + suggestions.joinToString(separator = "। ") { suggestion ->
+                "${suggestion.title}: ${suggestion.detail}"
+            } + "। आप इनमें से कोई काम बोलकर बता सकते हैं।"
         } else {
             "Idraak तैयार है। आप बोलकर कमांड दे सकते हैं।"
         }
@@ -962,9 +963,9 @@ fun IdraakHomeScreen() {
                         ) {
                             Text(
                                 if (isContinuousVoiceChat) {
-                                    "STOP VOICE CHAT"
+                                    "STOP VOICE CONTROL"
                                 } else {
-                                    "🎙 START VOICE CHAT"
+                                    "🎙 START VOICE CONTROL"
                                 }
                             )
                         }
