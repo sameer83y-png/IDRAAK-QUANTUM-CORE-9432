@@ -30,7 +30,7 @@ object OfflineScreenCommandHandler {
         if (matches(
                 command,
                 "back", "go back", "press back",
-                "पीछे जाओ", "वापस जाओ", "बैक दबाओ"
+                "पीछे जाओ", "वापस जाओ", "बैक दबाओ", "پیچھے جاؤ", "واپس جاؤ", "بیک دباؤ"
             )
         ) {
             return perform("BACK") {
@@ -42,7 +42,7 @@ object OfflineScreenCommandHandler {
         if (matches(
                 command,
                 "go home", "open home", "home screen",
-                "होम खोलो", "होम पर जाओ", "घर जाओ"
+                "होम खोलो", "होम पर जाओ", "घर जाओ", "ہوم کھولو", "ہوم پر جاؤ", "گھر جاؤ"
             )
         ) {
             return perform("HOME") {
@@ -55,7 +55,7 @@ object OfflineScreenCommandHandler {
                 command,
                 "swipe up", "swipe upward",
                 "ऊपर स्वाइप", "ऊपर स्वाइप करो",
-                "स्वाइप ऊपर", "स्वाइप ऊपर करो"
+                "स्वाइप ऊपर", "स्वाइप ऊपर करो", "اوپر سوائپ", "اوپر سوائپ کرو"
             )
         ) {
             return perform("SWIPE_UP") {
@@ -68,7 +68,7 @@ object OfflineScreenCommandHandler {
                 command,
                 "swipe down", "swipe downward",
                 "नीचे स्वाइप", "नीचे स्वाइप करो",
-                "स्वाइप नीचे", "स्वाइप नीचे करो"
+                "स्वाइप नीचे", "स्वाइप नीचे करो", "نیچے سوائپ", "نیچے سوائپ کرو"
             )
         ) {
             return perform("SWIPE_DOWN") {
@@ -82,7 +82,7 @@ object OfflineScreenCommandHandler {
                 "swipe left", "swipe to left",
                 "left swipe", "बाएं स्वाइप",
                 "बाएं स्वाइप करो", "बाईं तरफ स्वाइप करो",
-                "स्वाइप बाएं"
+                "स्वाइप बाएं", "بائیں سوائپ", "بائیں طرف سوائپ کرو"
             )
         ) {
             return perform("SWIPE_LEFT") {
@@ -96,7 +96,7 @@ object OfflineScreenCommandHandler {
                 "swipe right", "swipe to right",
                 "right swipe", "दाएं स्वाइप",
                 "दाएं स्वाइप करो", "दाईं तरफ स्वाइप करो",
-                "स्वाइप दाएं"
+                "स्वाइप दाएं", "دائیں سوائپ", "دائیں طرف سوائپ کرو"
             )
         ) {
             return perform("SWIPE_RIGHT") {
@@ -111,7 +111,7 @@ object OfflineScreenCommandHandler {
                 "नीचे स्क्रॉल करो",
                 "स्क्रॉल नीचे करो",
                 "नीचे जाओ",
-                "नीचे करो"
+                "नीचे करो", "نیچے اسکرول کرو", "نیچے جاؤ"
             )
         ) {
             return perform("SCROLL_DOWN") {
@@ -126,7 +126,7 @@ object OfflineScreenCommandHandler {
                 "ऊपर स्क्रॉल करो",
                 "स्क्रॉल ऊपर करो",
                 "ऊपर जाओ",
-                "ऊपर करो"
+                "ऊपर करो", "اوپر اسکرول کرو", "اوپر جاؤ"
             )
         ) {
             return perform("SCROLL_UP") {
@@ -141,7 +141,7 @@ object OfflineScreenCommandHandler {
                 "show notifications",
                 "notification panel",
                 "नोटिफिकेशन खोलो",
-                "नोटिफिकेशन दिखाओ"
+                "नोटिफिकेशन दिखाओ", "نوٹیفکیشن کھولو", "نوٹیفکیشن دکھاؤ"
             )
         ) {
             return perform("NOTIFICATIONS") {
@@ -253,7 +253,9 @@ object OfflineScreenCommandHandler {
             "tap ",
             "press ",
             "क्लिक करो ",
-            "दबाओ "
+            "दबाओ ",
+            "کلک کرو ",
+            "دباؤ "
         )
 
         for (prefix in prefixes) {
@@ -287,7 +289,7 @@ object OfflineScreenCommandHandler {
             "transfer", "send money", "place order",
             "भेजो", "भेजें", "डिलीट", "हटाओ",
             "खरीदो", "पेमेंट", "भुगतान",
-            "पुष्टि", "ट्रांसफर"
+            "पुष्टि", "ट्रांसफर", "بھیجو", "حذف", "مٹاؤ", "خریدیں", "ادائیگی", "تصدیق", "منتقل کرو"
         )
 
         val value = normalize(target)
