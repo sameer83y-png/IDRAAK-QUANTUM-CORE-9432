@@ -92,6 +92,18 @@ object MessageCommandHandler {
         val index = lower.indexOf(marker) + marker.length
         var body = value.substring(index).trim()
 
+        // Support compact spoken formats such as "send a WhatsApp message to Rahul: hello".
+        // Only treat a colon as a recipient separator when the remaining text starts
+        // with an explicit recipient preposition, so message text like "meet at 5:30"
+        // is preserved unchanged.
+        val hasRecipientPrefix = body.lowercase().startsWith("to ") ||
+            body.lowercase().startsWith("for ") ||
+            body.startsWith("को ") || body.startsWith("کے لیے ")
+        val recipientSeparator = body.indexOf(':')
+        if (hasRecipientPrefix && recipientSeparator >= 0 && recipientSeparator < body.lastIndex) {
+            body = body.substring(recipientSeparator + 1).trim()
+        }
+
         val bodyPrefixes = listOf(
             "ki ", "ke ", "that ", "saying ", "bolo ", "likho ", "to ",
             "कि ", "की ", "के ", "ये कि ", "यह कि ", "کہ ", "یہ کہ "
