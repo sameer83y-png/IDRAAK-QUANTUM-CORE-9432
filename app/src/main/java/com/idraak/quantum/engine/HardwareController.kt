@@ -40,7 +40,7 @@ object HardwareController {
         val value = command.trim().lowercase(Locale.ROOT)
         val audioManager = context.applicationContext
             .getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-            ?: return Result(false, "फोन का Volume Controller उपलब्ध नहीं है।")
+            ?: return Result(false, "فون کا آواز کنٹرول دستیاب نہیں۔")
 
         val stream = AudioManager.STREAM_MUSIC
         val current = audioManager.getStreamVolume(stream)
@@ -48,48 +48,48 @@ object HardwareController {
 
         return try {
             when {
-                listOf("volume up", "increase volume", "आवाज बढ़ाओ", "वॉल्यूम बढ़ाओ", "आवाज़ तेज करो", "volume badhao", "volume tez karo", "awaz badhao", "awaaz tez karo", "آواز بڑھاؤ", "والیوم بڑھاؤ", "آواز تیز کرو")
+                listOf("volume up", "increase volume", "आवाज बढ़ाओ", "वॉल्यूम बढ़ाओ", "आवाज़ तेज करो", "volume badhao", "volume tez karo", "awaz badhao", "awaaz tez karo", "آواز بڑھاؤ", "والیوم بڑھاؤ", "آواز تیز کرو", "آواز اونچی کرو", "آواز بڑھا دو")
                     .any { value.contains(it) } -> {
                     audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_RAISE, 0)
-                    Result(true, "मीडिया वॉल्यूम बढ़ा दिया गया है।")
+                    Result(true, "میڈیا کی آواز بڑھا دی گئی ہے۔")
                 }
 
-                listOf("volume down", "decrease volume", "आवाज कम करो", "वॉल्यूम कम करो", "आवाज़ धीमी करो", "volume kam karo", "awaz kam karo", "awaaz dheemi karo", "آواز کم کرو", "والیوم کم کرو", "آواز آہستہ کرو")
+                listOf("volume down", "decrease volume", "आवाज कम करो", "वॉल्यूम कम करो", "आवाज़ धीमी करो", "volume kam karo", "awaz kam karo", "awaaz dheemi karo", "آواز کم کرو", "والیوم کم کرو", "آواز آہستہ کرو", "آواز کم کر دو")
                     .any { value.contains(it) } -> {
                     audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_LOWER, 0)
-                    Result(true, "मीडिया वॉल्यूम कम कर दिया गया है।")
+                    Result(true, "میڈیا کی آواز کم کر دی گئی ہے۔")
                 }
 
-                listOf("mute volume", "mute sound", "आवाज बंद करो", "वॉल्यूम म्यूट करो", "आवाज़ म्यूट", "awaz mute karo", "awaaz band karo", "آواز خاموش کرو", "والیوم میوٹ کرو")
+                listOf("mute volume", "mute sound", "आवाज बंद करो", "वॉल्यूम म्यूट करो", "आवाज़ म्यूट", "awaz mute karo", "awaaz band karo", "آواز خاموش کرو", "والیوم میوٹ کرو", "آواز بند کر دو", "خاموش کر دو")
                     .any { value.contains(it) } -> {
                     audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_MUTE, 0)
-                    Result(true, "मीडिया आवाज़ म्यूट कर दी गई है।")
+                    Result(true, "میڈیا کی آواز خاموش کر دی گئی ہے۔")
                 }
 
-                listOf("unmute volume", "sound on", "आवाज चालू करो", "वॉल्यूम अनम्यूट", "awaz chalu karo", "awaaz on karo", "آواز کھولو", "والیوم اَن میوٹ کرو")
+                listOf("unmute volume", "sound on", "आवाज चालू करो", "वॉल्यूम अनम्यूट", "awaz chalu karo", "awaaz on karo", "آواز کھولو", "والیوم اَن میوٹ کرو", "آواز بحال کرو", "خاموشی ختم کرو")
                     .any { value.contains(it) } -> {
                     audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_UNMUTE, 0)
-                    Result(true, "मीडिया आवाज़ चालू कर दी गई है।")
+                    Result(true, "میڈیا کی آواز بحال کر دی گئی ہے۔")
                 }
 
-                listOf("maximum volume", "volume full", "आवाज फुल करो", "वॉल्यूम फुल करो", "volume maximum karo", "awaz full karo", "آواز پوری کرو", "والیوم فل کرو")
+                listOf("maximum volume", "volume full", "आवाज फुल करो", "वॉल्यूम फुल करो", "volume maximum karo", "awaz full karo", "آواز پوری کرو", "والیوم فل کرو", "آواز زیادہ سے زیادہ کرو")
                     .any { value.contains(it) } -> {
                     audioManager.setStreamVolume(stream, maximum, 0)
-                    Result(true, "मीडिया वॉल्यूम अधिकतम कर दिया गया है।")
+                    Result(true, "میڈیا کی آواز زیادہ سے زیادہ کر دی گئی ہے۔")
                 }
 
-                listOf("minimum volume", "volume zero", "आवाज बिल्कुल कम करो", "volume zero karo", "awaz bilkul kam karo", "آواز بالکل کم کرو")
+                listOf("minimum volume", "volume zero", "आवाज बिल्कुल कम करो", "volume zero karo", "awaz bilkul kam karo", "آواز بالکل کم کرو", "آواز صفر کرو")
                     .any { value.contains(it) } -> {
                     audioManager.setStreamVolume(stream, 0, 0)
-                    Result(true, "मीडिया वॉल्यूम शून्य कर दिया गया है।")
+                    Result(true, "میڈیا کی آواز صفر کر دی گئی ہے۔")
                 }
 
                 else -> null
             }
         } catch (_: SecurityException) {
-            Result(false, "Android ने वॉल्यूम बदलने की अनुमति नहीं दी।")
+            Result(false, "فون نے آواز تبدیل کرنے کی اجازت نہیں دی۔")
         } catch (error: Exception) {
-            Result(false, "वॉल्यूम कंट्रोल में समस्या: " +
+            Result(false, "آواز کنٹرول کرنے میں مسئلہ: " +
                 (error.localizedMessage ?: "Unknown error"))
         }
     }
@@ -105,13 +105,13 @@ object HardwareController {
     ): Result? {
         val value = command.trim().lowercase(Locale.ROOT)
         val action = when {
-            listOf("brightness up", "increase brightness", "screen brighter", "चमक बढ़ाओ", "ब्राइटनेस बढ़ाओ", "रोशनी बढ़ाओ", "brightness badhao", "screen bright karo", "roshni badhao", "روشنی بڑھاؤ", "برائٹنس بڑھاؤ")
+            listOf("brightness up", "increase brightness", "screen brighter", "चमक बढ़ाओ", "ब्राइटनेस बढ़ाओ", "रोशनी बढ़ाओ", "brightness badhao", "screen bright karo", "roshni badhao", "روشنی بڑھاؤ", "برائٹنس بڑھاؤ", "روشنی بڑھا دو")
                 .any { value.contains(it) } -> "UP"
-            listOf("brightness down", "decrease brightness", "screen dim", "चमक कम करो", "ब्राइटनेस कम करो", "रोशनी कम करो", "brightness kam karo", "screen dim karo", "roshni kam karo", "روشنی کم کرو", "برائٹنس کم کرو")
+            listOf("brightness down", "decrease brightness", "screen dim", "चमक कम करो", "ब्राइटनेस कम करो", "रोशनी कम करो", "brightness kam karo", "screen dim karo", "roshni kam karo", "روشنی کم کرو", "برائٹنس کم کرو", "روشنی کم کر دو")
                 .any { value.contains(it) } -> "DOWN"
-            listOf("maximum brightness", "brightness full", "चमक पूरी करो", "ब्राइटनेस फुल करो", "brightness full karo", "roshni full karo", "روشنی پوری کرو", "برائٹنس فل کرو")
+            listOf("maximum brightness", "brightness full", "चमक पूरी करो", "ब्राइटनेस फुल करो", "brightness full karo", "roshni full karo", "روشنی پوری کرو", "برائٹنس فل کرو", "روشنی زیادہ سے زیادہ کرو")
                 .any { value.contains(it) } -> "MAX"
-            listOf("minimum brightness", "brightness minimum", "चमक सबसे कम करो", "ब्राइटनेस जीरो करो", "brightness minimum karo", "roshni bilkul kam karo", "روشنی کم سے کم کرو", "برائٹنس زیرو کرو")
+            listOf("minimum brightness", "brightness minimum", "चमक सबसे कम करो", "ब्राइटनेस जीरो करो", "brightness minimum karo", "roshni bilkul kam karo", "روشنی کم سے کم کرو", "برائٹنس زیرو کرو", "روشنی بالکل کم کرو")
                 .any { value.contains(it) } -> "MIN"
             else -> return null
         }
@@ -119,7 +119,7 @@ object HardwareController {
         if (!Settings.System.canWrite(context)) {
             return Result(
                 success = false,
-                message = "स्क्रीन ब्राइटनेस बदलने के लिए Android की Modify System Settings अनुमति चाहिए।",
+                message = "اسکرین کی روشنی بدلنے کے لیے نظام کی ترتیبات میں تبدیلی کی اجازت درکار ہے۔",
                 permissionRequired = true
             )
         }
@@ -145,22 +145,22 @@ object HardwareController {
             if (!brightnessSaved) {
                 return Result(
                     success = false,
-                    message = "Android ने स्क्रीन ब्राइटनेस बदलने की अनुमति नहीं दी। Settings में Modify System Settings जाँचें।"
+                    message = "فون نے اسکرین کی روشنی بدلنے کی اجازت نہیں دی۔ ترتیبات میں نظام کی تبدیلی کی اجازت دیکھیں۔"
                 )
             }
             Result(
                 success = true,
                 message = when (action) {
-                    "UP" -> "स्क्रीन ब्राइटनेस बढ़ा दी गई है।"
-                    "DOWN" -> "स्क्रीन ब्राइटनेस कम कर दी गई है।"
-                    "MAX" -> "स्क्रीन ब्राइटनेस अधिकतम कर दी गई है।"
-                    else -> "स्क्रीन ब्राइटनेस न्यूनतम कर दी गई है।"
+                    "UP" -> "اسکرین کی روشنی بڑھا دی گئی ہے۔"
+                    "DOWN" -> "اسکرین کی روشنی کم کر دی گئی ہے۔"
+                    "MAX" -> "اسکرین کی روشنی زیادہ سے زیادہ کر دی گئی ہے۔"
+                    else -> "اسکرین کی روشنی کم سے کم کر دی گئی ہے۔"
                 }
             )
         } catch (error: Exception) {
             Result(
                 success = false,
-                message = "ब्राइटनेस कंट्रोल में समस्या: " +
+                message = "روشنی کنٹرول کرنے میں مسئلہ: " +
                     (error.localizedMessage ?: "Unknown error")
             )
         }
@@ -181,7 +181,7 @@ object HardwareController {
         if (!permissionGranted) {
             return Result(
                 success = false,
-                message = "टॉर्च चलाने के लिए Camera permission जरूरी है।",
+                message = "ٹارچ چلانے کے لیے کیمرے کی اجازت ضروری ہے۔",
                 permissionRequired = true
             )
         }
@@ -193,7 +193,7 @@ object HardwareController {
                 ) as? CameraManager
                     ?: return Result(
                         false,
-                        "फोन का Camera Hardware उपलब्ध नहीं है।"
+                        "فون کا کیمرہ دستیاب نہیں۔"
                     )
 
             val cameraId = cameraManager.cameraIdList
@@ -215,7 +215,7 @@ object HardwareController {
                 }
                 ?: return Result(
                     false,
-                    "आपके फोन में समर्थित Flashlight नहीं मिली।"
+                    "آپ کے فون میں ٹارچ دستیاب نہیں۔"
                 )
 
             cameraManager.setTorchMode(
@@ -226,26 +226,26 @@ object HardwareController {
             Result(
                 success = true,
                 message = if (enabled) {
-                    "टॉर्च चालू कर दी गई है।"
+                    "ٹارچ جلا دی گئی ہے۔"
                 } else {
-                    "टॉर्च बंद कर दी गई है।"
+                    "ٹارچ بجھا دی گئی ہے۔"
                 }
             )
 
         } catch (_: SecurityException) {
             Result(
                 false,
-                "Camera permission नहीं मिली।"
+                "کیمرے کی اجازت نہیں ملی۔"
             )
         } catch (_: CameraAccessException) {
             Result(
                 false,
-                "फोन का Camera Hardware अभी उपलब्ध नहीं है।"
+                "فون کا کیمرہ ابھی دستیاب نہیں۔"
             )
         } catch (error: Exception) {
             Result(
                 false,
-                "टॉर्च कंट्रोल में समस्या आई: ${
+                "ٹارچ کنٹرول میں مسئلہ پیش آیا: ${
                     error.localizedMessage ?: "Unknown error"
                 }"
             )
