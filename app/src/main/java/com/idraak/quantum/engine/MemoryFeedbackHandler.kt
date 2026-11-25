@@ -113,7 +113,7 @@ object MemoryFeedbackHandler {
             "incorrect answer", "that was incorrect", "please correct that",
             "let me correct you", "that is not correct",
             // Roman Urdu
-            "ye galat hai", "yeh galat hai", "aap galat ho",
+            "ye galat hai", "yeh galat hai", "yeh ghalat hai", "ye ghalat hai", "aap galat ho", "aap ghalat hain",
             "tum galat ho", "jawab galat hai", "galat jawab",
             "sahi jawab nahi", "aap ne ghalat samjha", "yeh durust nahi",
             // Hindi
