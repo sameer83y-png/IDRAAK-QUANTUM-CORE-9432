@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import com.idraak.quantum.engine.OfflinePhoneCommandHandler
 
 class OfflineCommandRegressionTest {
 
@@ -210,6 +211,21 @@ class OfflineCommandRegressionTest {
     @Test
     fun doesNotShowRecoverySuggestionWithoutHistory() {
         assertEquals(null, SmartSuggestionEngine.recoverySuggestion(emptyList()))
+    }
+
+
+    @Test
+    fun extractsAppNameFromNaturalUrduLaunchPhrases() {
+        assertEquals("یوٹیوب", OfflinePhoneCommandHandler.extractAppName("یوٹیوب چلا کر دکھاؤ"))
+        assertEquals("یوٹیوب", OfflinePhoneCommandHandler.extractAppName("یوٹیوب چلا کے رکھو"))
+        assertEquals("یوٹیوب", OfflinePhoneCommandHandler.extractAppName("یوٹیوب کھول کے رکھو"))
+        assertEquals("یوٹیوب", OfflinePhoneCommandHandler.extractAppName("یوٹیوب چالو کر دو"))
+    }
+
+    @Test
+    fun extractsAppNameFromPoliteUrduLaunchPhrases() {
+        assertEquals("یوٹیوب", OfflinePhoneCommandHandler.extractAppName("براہ کرم یوٹیوب کھول دیں"))
+        assertEquals("یوٹیوب", OfflinePhoneCommandHandler.extractAppName("ذرا یوٹیوب کھول دو"))
     }
 
     @Test
