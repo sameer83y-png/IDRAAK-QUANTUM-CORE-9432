@@ -87,10 +87,10 @@ enum class IdraakTheme(
     val accentColor: Long,
     val glowColor: Long
 ) {
-    QUANTUM_BLUE("Quantum Blue", 0xFF050B18, 0xFF101D38, 0xFF087DFF, 0xFF8BEAFF),
-    EMERALD("Emerald", 0xFF04130F, 0xFF0C2A20, 0xFF00A978, 0xFF75F0C5),
-    VIOLET("Violet", 0xFF10091C, 0xFF24143A, 0xFF986BFF, 0xFFD0B8FF),
-    AMBER("Amber", 0xFF171006, 0xFF33230D, 0xFFE59A27, 0xFFFFD27D);
+    QUANTUM_BLUE("نیلا", 0xFF050B18, 0xFF101D38, 0xFF087DFF, 0xFF8BEAFF),
+    EMERALD("زمرد", 0xFF04130F, 0xFF0C2A20, 0xFF00A978, 0xFF75F0C5),
+    VIOLET("بنفشی", 0xFF10091C, 0xFF24143A, 0xFF986BFF, 0xFFD0B8FF),
+    AMBER("عنبر", 0xFF171006, 0xFF33230D, 0xFFE59A27, 0xFFFFD27D);
 
     fun save(context: Context) {
         context.applicationContext
@@ -139,10 +139,10 @@ fun IdraakHomeScreen() {
     var showMemoryDashboard by remember { mutableStateOf(false) }
 
     var voiceStatus by remember {
-        mutableStateOf("OFFLINE BRAIN READY")
+        mutableStateOf("آف لائن ذہن تیار ہے")
     }
 
-    var isListening by remember { mutableStateOf(false) }
+    var isسن رہا ہوں by remember { mutableStateOf(false) }
     var isContinuousVoiceChat by remember { mutableStateOf(false) }
     var isBackgroundVoiceActive by remember { mutableStateOf(false) }
 
@@ -161,7 +161,7 @@ fun IdraakHomeScreen() {
     val messages = remember {
         mutableStateListOf(
             ChatMessage(
-                "Hello Boss! Main Idraak hoon. Mera Offline Brain ready hai. Aap mujhse baat kar sakte hain.",
+                "السلام علیکم! میں ادراک ہوں۔ میرا آف لائن ذہن تیار ہے۔ آپ مجھ سے بات کر سکتے ہیں۔",
                 false
             )
         )
@@ -177,7 +177,7 @@ fun IdraakHomeScreen() {
             onSpeechResult = { result ->
                 mainHandler.post {
                     recognizedSpeech = result
-                    isListening = false
+                    isسن رہا ہوں = false
                 }
             },
             onStatusChanged = { status ->
@@ -185,12 +185,12 @@ fun IdraakHomeScreen() {
                     voiceStatus = status
 
                     if (
-                        status.contains("Listening", true) ||
-                        status.contains("Recognizing", true) ||
-                        status.contains("Processing", true) ||
-                        status.contains("Ready.", true)
+                        status.contains("سن رہا ہوں", true) ||
+                        status.contains("سمجھ رہا ہوں", true) ||
+                        status.contains("عمل جاری ہے", true) ||
+                        status.contains("تیار ہوں۔", true)
                     ) {
-                        isListening = true
+                        isسن رہا ہوں = true
                     } else if (
                         status.contains("recognized", true) ||
                         status.contains("finished", true) ||
@@ -201,7 +201,7 @@ fun IdraakHomeScreen() {
                         status.contains("timeout", true) ||
                         status.contains("No speech", true)
                     ) {
-                        isListening = false
+                        isسن رہا ہوں = false
                     }
                 }
             },
@@ -216,19 +216,19 @@ fun IdraakHomeScreen() {
 
                         if (permissionGranted) {
                             val started =
-                                controllerReference[0]?.startListening() == true
+                                controllerReference[0]?.startسن رہا ہوں() == true
 
-                            isListening = started
+                            isسن رہا ہوں = started
 
                             if (started) {
                                 voiceStatus =
-                                    "VOICE CHAT ACTIVE • LISTENING"
+                                    "آواز سننے کا عمل جاری ہے"
                             }
                         } else {
                             isContinuousVoiceChat = false
-                            isListening = false
+                            isسن رہا ہوں = false
                             voiceStatus =
-                                "Microphone permission required"
+                                "مائیکروفون کی اجازت درکار ہے"
                         }
                     }
                 }
@@ -256,10 +256,10 @@ fun IdraakHomeScreen() {
 
     fun stopVoiceChat() {
         isContinuousVoiceChat = false
-        isListening = false
-        voiceController.cancelListening()
+        isسن رہا ہوں = false
+        voiceController.cancelسن رہا ہوں()
         voiceController.stopSpeaking()
-        voiceStatus = "VOICE CHAT STOPPED"
+        voiceStatus = "آواز سننا بند ہے"
     }
 
     fun stopBackgroundVoiceService() {
@@ -273,10 +273,10 @@ fun IdraakHomeScreen() {
 
             context.startService(intent)
             isBackgroundVoiceActive = false
-            voiceStatus = "BACKGROUND VOICE STOPPING"
+            voiceStatus = "پس منظر میں سننا بند ہو رہا ہے"
         } catch (error: Exception) {
             voiceStatus =
-                "Could not stop background voice: " +
+                "پس منظر میں سننا بند نہیں ہو سکا: " +
                     (error.localizedMessage ?: "Unknown error")
         }
     }
@@ -296,11 +296,11 @@ fun IdraakHomeScreen() {
             )
 
             isBackgroundVoiceActive = true
-            voiceStatus = "BACKGROUND VOICE STARTING"
+            voiceStatus = "پس منظر میں سننا شروع ہو رہا ہے"
         } catch (error: Exception) {
             isBackgroundVoiceActive = false
             voiceStatus =
-                "Background voice start failed: " +
+                "پس منظر میں آواز شروع نہیں ہو سکی: " +
                     (error.localizedMessage ?: "Unknown error")
         }
     }
@@ -316,17 +316,17 @@ fun IdraakHomeScreen() {
                 "${suggestion.title}: ${suggestion.detail}"
             } + "। आप इनमें से कोई काम बोलकर बता सकते हैं।"
         } else {
-            "Idraak तैयार है। आप बोलकर कमांड दे सकते हैं।"
+            "ادراک تیار ہے۔ آپ بول کر حکم دے سکتے ہیں۔"
         }
         voiceController.speak(spokenSummary)
-        voiceStatus = "OFFLINE SUGGESTION SPEAKING"
+        voiceStatus = "تجویز سنائی جا رہی ہے"
     }
 
     fun startVoiceChat() {
         if (isBackgroundVoiceActive) {
             stopBackgroundVoiceService()
             voiceStatus =
-                "Background voice stopped. Tap START VOICE CHAT again."
+                "پس منظر میں سننا بند ہے۔ دوبارہ شروع کرنے کے لیے آواز کا بٹن دبائیں۔"
             return
         }
 
@@ -340,10 +340,10 @@ fun IdraakHomeScreen() {
 
         if (permissionGranted) {
             speakDashboardSuggestions()
-            isListening = false
-            voiceStatus = "VOICE SESSION STARTING • OFFLINE"
+            isسن رہا ہوں = false
+            voiceStatus = "آف لائن آواز شروع ہو رہی ہے"
         } else {
-            voiceStatus = "Requesting microphone permission"
+            voiceStatus = "مائیکروفون کی اجازت مانگی جا رہی ہے"
             microphonePermissionRequest = true
         }
     }
@@ -361,9 +361,9 @@ fun IdraakHomeScreen() {
         messages.add(ChatMessage(result.response, false))
         voiceController.speak(result.response)
         voiceStatus = if (result.requiresCameraPermission) {
-            "CAMERA PERMISSION REQUIRED"
+            "کیمرے کی اجازت درکار ہے"
         } else {
-            "FLASHLIGHT CONTROL PROCESSED"
+            "ٹارچ کا حکم مکمل ہوا"
         }
     }
 
@@ -383,11 +383,11 @@ fun IdraakHomeScreen() {
                     )
                 } else {
                     val response =
-                        "Camera permission नहीं मिली। Idraak इसे बार-बार नहीं पूछेगा। अनुमति देने के लिए Android App Settings खोलें।"
+                        "کیمرے کی اجازت نہیں ملی۔ ادراک بار بار نہیں پوچھے گا۔ اجازت دینے کے لیے فون کی ایپ ترتیبات کھولیں۔"
 
                     messages.add(ChatMessage(response, false))
                     voiceController.speak(response)
-                    voiceStatus = "CAMERA PERMISSION DENIED"
+                    voiceStatus = "کیمرے کی اجازت مسترد ہوئی"
                 }
             }
         }
@@ -398,15 +398,15 @@ fun IdraakHomeScreen() {
 
         // Stop Vosk before processing a recognized command or speaking its reply.
         // This prevents Idraak from hearing its own TTS output as a new command.
-        voiceController.cancelListening()
+        voiceController.cancelسن رہا ہوں()
 
         messages.add(ChatMessage(message, true))
         inputText = ""
 
-        if (VoiceSessionCommandHandler.isStopListeningCommand(message)) {
+        if (VoiceSessionCommandHandler.isStopسن رہا ہوںCommand(message)) {
             isContinuousVoiceChat = false
-            isListening = false
-            voiceController.cancelListening()
+            isسن رہا ہوں = false
+            voiceController.cancelسن رہا ہوں()
 
             if (isBackgroundVoiceActive) {
                 val stopIntent = Intent(
@@ -418,14 +418,14 @@ fun IdraakHomeScreen() {
                 try {
                     context.startService(stopIntent)
                 } catch (_: Exception) {
-                    voiceStatus = "Could not stop background voice service"
+                    voiceStatus = "پس منظر میں آواز بند نہیں ہو سکی"
                 }
                 isBackgroundVoiceActive = false
             }
 
-            val response = "ठीक है। Idraak की voice listening बंद कर दी गई है।"
+            val response = "ٹھیک ہے، ادراک نے سننا بند کر دیا ہے۔"
             messages.add(ChatMessage(response, false))
-            voiceStatus = "VOICE LISTENING STOPPED"
+            voiceStatus = "آواز سننا بند ہے"
             voiceController.speak(response)
             return
         }
@@ -437,7 +437,7 @@ fun IdraakHomeScreen() {
             )
         } catch (error: Exception) {
             OfflineCommandRouter.Result(
-                response = "Offline कमांड पूरी नहीं हो सकी: " +
+                response = "آف لائن حکم مکمل نہیں ہو سکا: " +
                     (error.localizedMessage ?: "Unknown error"),
                 intent = "ERROR"
             )
@@ -446,23 +446,23 @@ fun IdraakHomeScreen() {
         if (result.requiresBrightnessPermission) {
             messages.add(ChatMessage(result.response, false))
             voiceController.speak(result.response)
-            voiceStatus = "BRIGHTNESS PERMISSION REQUIRED"
+            voiceStatus = "اسکرین کی روشنی کی اجازت درکار ہے"
             if (PermissionRequestGate.tryMarkSpecialSettingsOpened(context, "modify_system_settings")) {
                 try {
                     context.startActivity(
                         Intent(
-                            Settings.ACTION_MANAGE_WRITE_SETTINGS,
+                            Settings.ACTION_MANAGE_WRITE_ترتیبات,
                             Uri.parse("package:${context.packageName}")
                         ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     )
                 } catch (error: Exception) {
-                    voiceStatus = "COULD NOT OPEN BRIGHTNESS PERMISSION SETTINGS"
+                    voiceStatus = "روشنی کی اجازت کی ترتیبات نہیں کھل سکیں"
                 }
             } else {
-                val response = "ब्राइटनेस की विशेष अनुमति पहले दिखाई जा चुकी है। इसे Android Settings में Idraak के Modify System Settings विकल्प से चालू करें।"
+                val response = "روشنی کی خصوصی اجازت پہلے مانگی جا چکی ہے۔ فون کی ترتیبات میں ادراک کے لیے نظام کی ترتیبات بدلنے کی اجازت فعال کریں۔"
                 messages.add(ChatMessage(response, false))
                 voiceController.speak(response)
-                voiceStatus = "BRIGHTNESS PERMISSION NEEDS SETTINGS"
+                voiceStatus = "روشنی کی اجازت کے لیے ترتیبات کھولیں"
             }
             return
         }
@@ -473,22 +473,22 @@ fun IdraakHomeScreen() {
             if (enabled == null) {
                 messages.add(ChatMessage(result.response, false))
                 voiceController.speak(result.response)
-                voiceStatus = "FLASHLIGHT COMMAND NEEDS ON/OFF"
+                voiceStatus = "بتائیں ٹارچ جلانی ہے یا بجھانی ہے"
                 return
             }
 
             pendingTorchCommand = message to enabled
             messages.add(ChatMessage(result.response, false))
             voiceController.speak(result.response)
-            voiceStatus = "REQUESTING CAMERA PERMISSION"
+            voiceStatus = "کیمرے کی اجازت مانگی جا رہی ہے"
 
             if (PermissionRequestGate.tryMarkRequested(context, Manifest.permission.CAMERA)) {
                 cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
             } else {
-                val response = "Camera अनुमति पहले पूछी जा चुकी है। दोबारा पॉप-अप नहीं दिखाऊँगा। इसे Android App Settings में चालू करें।"
+                val response = "کیمرے کی اجازت پہلے مانگی جا چکی ہے۔ فون کی ایپ ترتیبات میں اسے فعال کریں۔"
                 messages.add(ChatMessage(response, false))
                 voiceController.speak(response)
-                voiceStatus = "CAMERA PERMISSION NEEDS APP SETTINGS"
+                voiceStatus = "کیمرے کی اجازت کے لیے ایپ ترتیبات کھولیں"
             }
             return
         }
@@ -497,10 +497,10 @@ fun IdraakHomeScreen() {
         voiceController.speak(result.response)
 
         voiceStatus = when (result.intent) {
-            "SAFE_CALL" -> "SAFE CALL CONTROLLER OPENED"
-            "FLASHLIGHT" -> "FLASHLIGHT CONTROL PROCESSED"
-            "ERROR" -> "OFFLINE COMMAND FAILED"
-            else -> "OFFLINE COMMAND ROUTER ACTIVE"
+            "SAFE_CALL" -> "محفوظ کال کا نظام کھل گیا"
+            "FLASHLIGHT" -> "ٹارچ کا حکم مکمل ہوا"
+            "ERROR" -> "آف لائن حکم ناکام ہوا"
+            else -> "آف لائن حکم کا نظام فعال ہے"
         }
     }
 
@@ -521,12 +521,12 @@ fun IdraakHomeScreen() {
             PermissionRequestGate.markResult(context, Manifest.permission.RECORD_AUDIO, granted)
             if (granted && isContinuousVoiceChat) {
                 speakDashboardSuggestions()
-                isListening = false
-                voiceStatus = "VOICE SESSION STARTING • OFFLINE"
+                isسن رہا ہوں = false
+                voiceStatus = "آف لائن آواز شروع ہو رہی ہے"
             } else {
                 isContinuousVoiceChat = false
-                isListening = false
-                voiceStatus = "Microphone permission denied"
+                isسن رہا ہوں = false
+                voiceStatus = "مائیکروفون کی اجازت مسترد ہوئی"
             }
         }
 
@@ -537,9 +537,9 @@ fun IdraakHomeScreen() {
                 microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             } else {
                 isContinuousVoiceChat = false
-                val response = "Microphone अनुमति पहले पूछी जा चुकी है। दोबारा पॉप-अप नहीं दिखाऊँगा। Android App Settings में Microphone अनुमति चालू करें।"
+                val response = "مائیکروفون کی اجازت پہلے مانگی جا چکی ہے۔ فون کی ایپ ترتیبات میں اسے فعال کریں۔"
                 voiceController.speak(response)
-                voiceStatus = "MICROPHONE PERMISSION NEEDS APP SETTINGS"
+                voiceStatus = "مائیکروفون کی اجازت کے لیے ایپ ترتیبات کھولیں"
             }
         }
     }
@@ -581,7 +581,7 @@ fun IdraakHomeScreen() {
             } else {
                 isBackgroundVoiceActive = false
                 voiceStatus =
-                    "Microphone permission denied. Background voice is OFF."
+                    "مائیکروفون کی اجازت مسترد ہوئی. Background voice is OFF."
             }
         }
 
@@ -594,7 +594,7 @@ fun IdraakHomeScreen() {
         if (isContinuousVoiceChat) {
             stopVoiceChat()
             voiceStatus =
-                "Voice Chat stopped. Tap BACKGROUND VOICE again to start."
+                "آواز سننا بند ہے۔ دوبارہ شروع کرنے کے لیے پس منظر آواز کا بٹن دبائیں۔"
             return
         }
 
@@ -610,7 +610,7 @@ fun IdraakHomeScreen() {
             } else {
                 val response = "Microphone अनुमति पहले पूछी जा चुकी है। दोबारा पॉप-अप नहीं दिखाऊँगा। Android App Settings में अनुमति चालू करें।"
                 voiceController.speak(response)
-                voiceStatus = "MICROPHONE PERMISSION NEEDS APP SETTINGS"
+                voiceStatus = "مائیکروفون کی اجازت کے لیے ایپ ترتیبات کھولیں"
             }
             return
         }
@@ -775,32 +775,32 @@ fun IdraakHomeScreen() {
 
                             try {
                                 context.startService(intent)
-                                voiceStatus = "BACKGROUND VOICE LANGUAGE CHANGING"
+                                voiceStatus = "آواز کی زبان تبدیل ہو رہی ہے"
                             } catch (error: Exception) {
                                 voiceStatus =
-                                    "Could not change background voice language: " +
+                                    "پس منظر کی آواز کی زبان تبدیل نہیں ہو سکی: " +
                                         (error.localizedMessage ?: "Unknown error")
                             }
                         } else {
                             val resumeForegroundVoiceChat =
-                                isContinuousVoiceChat && isListening
+                                isContinuousVoiceChat && isسن رہا ہوں
 
                             isContinuousVoiceChat = false
-                            isListening = false
-                            voiceController.cancelListening()
+                            isسن رہا ہوں = false
+                            voiceController.cancelسن رہا ہوں()
 
                             voiceController.setRecognitionLanguage(
                                 language,
-                                resumeListening = resumeForegroundVoiceChat
+                                resumeسن رہا ہوں = resumeForegroundVoiceChat
                             )
 
                             if (resumeForegroundVoiceChat) {
                                 isContinuousVoiceChat = true
-                                isListening = voiceController.startListening()
-                                voiceStatus = if (isListening) {
-                                    "VOICE CHAT ACTIVE • LANGUAGE CHANGED"
+                                isسن رہا ہوں = voiceController.startسن رہا ہوں()
+                                voiceStatus = if (isسن رہا ہوں) {
+                                    "اردو آواز فعال ہے"
                                 } else {
-                                    "Language saved • voice restart pending"
+                                    "زبان محفوظ ہو گئی ہے"
                                 }
                             } else {
                                 voiceStatus = "اردو آف لائن آواز کا نظام منتخب ہے"
@@ -851,7 +851,7 @@ fun IdraakHomeScreen() {
                     ) {
                         Column {
                             Text(
-                                text = "IDRAAK",
+                                text = "ادراک",
                                 color = Color.White,
                                 fontSize = 27.sp,
                                 fontWeight = FontWeight.Bold,
@@ -859,7 +859,7 @@ fun IdraakHomeScreen() {
                             )
 
                             Text(
-                                text = "QUANTUM CORE",
+                                text = "کوانٹم مرکز",
                                 color = accentColor,
                                 fontSize = 11.sp,
                                 letterSpacing = 4.sp
@@ -875,7 +875,7 @@ fun IdraakHomeScreen() {
                             }
                         ) {
                             Text(
-                                "SETTINGS",
+                                "ترتیبات",
                                 color = accentColor,
                                 fontWeight = FontWeight.Bold
                             )
@@ -911,7 +911,7 @@ fun IdraakHomeScreen() {
                     Spacer(modifier = Modifier.height(14.dp))
 
                     Text(
-                        text = "OFFLINE SYSTEM ONLINE",
+                        text = "آف لائن نظام فعال ہے",
                         color = Color(0xFF43E8B2),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
@@ -923,7 +923,7 @@ fun IdraakHomeScreen() {
                     Text(
                         text = voiceStatus,
                         color = if (
-                            isListening ||
+                            isسن رہا ہوں ||
                             isContinuousVoiceChat ||
                             isBackgroundVoiceActive
                         ) {
@@ -946,9 +946,9 @@ fun IdraakHomeScreen() {
                     ) {
                         Text(
                             text = if (isContinuousVoiceChat || isBackgroundVoiceActive) {
-                                "IDRAAK VOICE CONTROL ACTIVE"
+                                "ادراک VOICE CONTROL ACTIVE"
                             } else {
-                                "VOICE-ONLY CONTROL"
+                                "صرف آواز کے ذریعے کنٹرول"
                             },
                             color = accentColor,
                             fontSize = 16.sp,
@@ -957,7 +957,7 @@ fun IdraakHomeScreen() {
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "बोलकर कहें: ऐप खोलो, कॉल करो, कैमरा खोलो या फोन की सेटिंग बदलो।",
+                            text = "بول کر کہیں: ایپ کھولو، کال کرو، کیمرہ کھولو یا فون کی ترتیبات بدلو۔",
                             color = Color.White,
                             fontSize = 14.sp,
                             textAlign = TextAlign.Center,
@@ -965,7 +965,7 @@ fun IdraakHomeScreen() {
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
-                            text = "सुझाव Idraak आवाज़ में बताएगा। चैट बॉक्स और टेक्स्ट चैट उपलब्ध नहीं हैं।",
+                            text = "ادراک تجاویز آواز میں بتائے گا۔ یہاں تحریری گفتگو دستیاب نہیں۔",
                             color = Color(0xFF8EA6C9),
                             fontSize = 11.sp,
                             textAlign = TextAlign.Center,
@@ -1008,9 +1008,9 @@ fun IdraakHomeScreen() {
                         ) {
                             Text(
                                 if (isContinuousVoiceChat) {
-                                    "STOP VOICE CONTROL"
+                                    "آواز کا کنٹرول بند کریں"
                                 } else {
-                                    "🎙 START VOICE CONTROL"
+                                    "🎙 آواز کا کنٹرول شروع کریں"
                                 }
                             )
                         }
@@ -1022,7 +1022,7 @@ fun IdraakHomeScreen() {
                                 containerColor = Color(0xFF263B59)
                             )
                         ) {
-                            Text("STOP VOICE")
+                            Text("آواز بند کریں")
                         }
                     }
 
@@ -1045,16 +1045,16 @@ fun IdraakHomeScreen() {
                     ) {
                         Text(
                             if (isBackgroundVoiceActive) {
-                                "STOP BACKGROUND VOICE"
+                                "پس منظر میں سننا بند کریں"
                             } else {
-                                "START BACKGROUND VOICE"
+                                "پس منظر میں سننا شروع کریں"
                             },
                             fontWeight = FontWeight.Bold
                         )
                     }
 
                     Text(
-                        text = "Background listening uses the microphone while active. Use the notification STOP button to end it.",
+                        text = "پس منظر میں سننے کے دوران مائیکروفون استعمال ہوتا ہے۔ بند کرنے کے لیے اطلاع میں توقف کا بٹن دبائیں۔",
                         color = Color(0xFF8EA6C9),
                         fontSize = 10.sp,
                         textAlign = TextAlign.Center,
@@ -1065,7 +1065,7 @@ fun IdraakHomeScreen() {
                     )
 
                     Text(
-                        text = "IDRAAK OFFLINE BRAIN • LOCAL MODE",
+                        text = "ادراک OFFLINE BRAIN • LOCAL MODE",
                         color = Color(0xFF7B91B5),
                         fontSize = 10.sp,
                         textAlign = TextAlign.Center
@@ -1154,7 +1154,7 @@ fun SettingsScreen(
     ) {
         TextButton(onClick = onBack) {
             Text(
-                "← BACK TO IDRAAK",
+                "← BACK TO ادراک",
                 color = themeAccentColor
             )
         }
@@ -1162,14 +1162,14 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "SYSTEM SETTINGS",
+            text = "SYSTEM ترتیبات",
             color = Color.White,
             fontSize = 25.sp,
             fontWeight = FontWeight.Bold
         )
 
         Text(
-            text = "IDRAAK QUANTUM CORE • OFFLINE CONFIGURATION",
+            text = "ادراک کوانٹم مرکز • OFFLINE CONFIGURATION",
             color = Color(0xFF8EA6C9),
             fontSize = 11.sp
         )
@@ -1177,22 +1177,22 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         SettingsStatusCard(
-            title = "AI BRAIN",
-            status = "OFFLINE BRAIN ACTIVE",
-            detail = "Idraak runs with its own offline brain. External AI connections and internet services are disabled.",
+            title = "مصنوعی ذہن",
+            status = "آف لائن ذہن فعال ہے",
+            detail = "ادراک اپنا مقامی ذہن استعمال کرتا ہے۔ بیرونی مصنوعی ذہن اور انٹرنیٹ خدمات بند ہیں۔",
             accentColor = themeAccentColor,
         )
 
         SettingsStatusCard(
-            title = "LOCAL EXPERIENCE MEMORY",
-            status = "$memoryCount RECORDS SAVED",
-            detail = "Voice commands can explicitly save facts and preferences to encrypted local memory. New entries remain PENDING until you verify them in Memory Dashboard.",
+            title = "مقامی یادداشت",
+            status = "$memoryCount اندراجات محفوظ ہیں",
+            detail = "آپ کے کہنے پر باتیں اور پسند ناپسند محفوظ مقامی یادداشت میں رکھی جاتی ہیں۔ نئی باتیں آپ کی تصدیق تک زیرِ جانچ رہتی ہیں۔",
             accentColor = themeAccentColor,
         )
 
         SettingsStatusCard(
-            title = "VOICE SYSTEM",
-            status = "OFFLINE VOSK + ANDROID TEXT TO SPEECH",
+            title = "آواز کا نظام",
+            status = "آف لائن اردو آواز پہچان اور فون کی آواز",
             detail = "صرف اردو کی آواز پہچاننے کے لیے مقامی Whisper ماڈل استعمال ہوتا ہے۔ جواب کے لیے فون کی آف لائن اردو آواز درکار ہے۔",
             accentColor = themeAccentColor,
         )
@@ -1228,14 +1228,14 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(18.dp))
 
         Text(
-            text = "VOICE OUTPUT SPEED",
+            text = "آواز کی رفتار",
             color = themeAccentColor,
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold
         )
 
         Text(
-            text = "Adjust how fast Idraak speaks. This setting is saved on this device.",
+            text = "ادراک کے بولنے کی رفتار بدلیں۔ یہ ترتیب اسی فون میں محفوظ ہوگی۔",
             color = Color(0xFF9CB0CC),
             fontSize = 12.sp
         )
@@ -1256,13 +1256,13 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(18.dp))
 
         Text(
-            text = "VISUAL THEME",
+            text = "ظاہری انداز",
             color = themeAccentColor,
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = "Choose and save the look of Idraak on this device.",
+            text = "ادراک کا ظاہری انداز منتخب کریں۔",
             color = Color(0xFF9CB0CC),
             fontSize = 12.sp
         )
@@ -1289,20 +1289,20 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(18.dp))
 
         SettingsStatusCard(
-            title = "PHONE CONTROLLERS",
-            status = "APP CONTROL • SCREEN CONTROL • FLASHLIGHT • CAMERA • VOLUME • BRIGHTNESS",
-            detail = "Phone controls run locally. Android may require you to enable special access or grant a permission before a control can work.",
+            title = "فون کنٹرول",
+            status = "ایپ • اسکرین • ٹارچ • کیمرہ • آواز • روشنی",
+            detail = "فون کے کنٹرول مقامی طور پر چلتے ہیں۔ بعض کاموں کے لیے خصوصی اجازت درکار ہو سکتی ہے۔",
             accentColor = themeAccentColor,
         )
 
         SettingsStatusCard(
-            title = "SCREEN CONTROL ACCESS",
+            title = "اسکرین کنٹرول کی اجازت",
             status = if (screenControlEnabled) {
-                "ACCESSIBILITY SERVICE ENABLED"
+                "اسکرین کنٹرول فعال ہے"
             } else {
-                "ACCESSIBILITY PERMISSION NEEDED"
+                "اسکرین کنٹرول کی اجازت درکار ہے"
             },
-            detail = "This permission lets Idraak inspect visible screen labels locally for your requested tap, and perform navigation, swipe and scroll actions. Screen events are not saved or transmitted.",
+            detail = "یہ اجازت ادراک کو اسکرین پر موجود الفاظ دیکھنے اور آپ کے کہنے پر کلک، سوائپ اور اسکرول کرنے دیتی ہے۔ اسکرین کی معلومات محفوظ یا ارسال نہیں کی جاتیں۔",
             accentColor = themeAccentColor,
         )
 
@@ -1311,11 +1311,11 @@ fun SettingsScreen(
                 accessibilitySettingsError = null
                 try {
                     context.startActivity(
-                        Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                        Intent(Settings.ACTION_ACCESSIBILITY_ترتیبات)
                     )
                 } catch (_: Exception) {
                     accessibilitySettingsError =
-                        "Android Accessibility Settings नहीं खुल सकीं। Settings ऐप से Accessibility खोलें।"
+                        "اسکرین کنٹرول کی ترتیبات نہیں کھل سکیں۔ فون کی ترتیبات سے رسائی کا اختیار کھولیں۔"
                 }
             },
             modifier = Modifier.fillMaxWidth(),
@@ -1330,9 +1330,9 @@ fun SettingsScreen(
         ) {
             Text(
                 if (screenControlEnabled) {
-                    "MANAGE SCREEN CONTROL ACCESS"
+                    "MANAGE اسکرین کنٹرول کی اجازت"
                 } else {
-                    "ENABLE IDRAAK SCREEN CONTROL"
+                    "ENABLE ادراک SCREEN CONTROL"
                 },
                 fontWeight = FontWeight.Bold
             )
@@ -1349,7 +1349,7 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(18.dp))
 
         Text(
-            text = "MEMORY MANAGEMENT",
+            text = "یادداشت کا انتظام",
             color = themeAccentColor,
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold
@@ -1358,7 +1358,7 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "View, search and manage Idraak's saved local memory records.",
+            text = "ادراک کی محفوظ مقامی یادداشت دیکھیں، تلاش کریں اور سنبھالیں۔",
             color = Color(0xFF9CB0CC),
             fontSize = 12.sp
         )
@@ -1374,7 +1374,7 @@ fun SettingsScreen(
             )
         ) {
             Text(
-                text = "OPEN MEMORY DASHBOARD",
+                text = "یادداشت کھولیں",
                 fontWeight = FontWeight.Bold
             )
         }
@@ -1382,7 +1382,7 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(22.dp))
 
         Text(
-            text = "RECENT MEMORY RECORDS",
+            text = "حالیہ یادداشت",
             color = themeAccentColor,
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold
@@ -1392,7 +1392,7 @@ fun SettingsScreen(
 
         if (recentExperiences.isEmpty()) {
             Text(
-                text = "No experience records saved yet.",
+                text = "ابھی کوئی تجربہ محفوظ نہیں ہوا۔",
                 color = Color(0xFF9CB0CC),
                 fontSize = 12.sp
             )
@@ -1418,7 +1418,7 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text = "THEME AND VOICE PREFERENCES ARE SAVED LOCALLY ON THIS DEVICE.",
+            text = "ظاہری انداز اور آواز کی ترتیبات اسی فون میں محفوظ ہیں۔",
             color = Color(0xFF7B91B5),
             fontSize = 10.sp
         )
