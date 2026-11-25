@@ -325,7 +325,12 @@ class VoiceController(
         if (!isShutdown) onStatusChanged("سننا روک دیا گیا")
     }
 
-    fun speak(text: String) {
+    fun speak(text: String) = speakInternal(text, TextToSpeech.QUEUE_FLUSH)
+
+    /** Adds a final reply after a spoken progress update instead of interrupting it. */
+    fun speakQueued(text: String) = speakInternal(text, TextToSpeech.QUEUE_ADD)
+
+    private fun speakInternal(text: String, queueMode: Int) {
         if (isShutdown || text.isBlank()) return
         // Never keep an unfiltered microphone open during speaker output.
         // Devices without working AEC retain the safe listen-then-speak fallback.
@@ -337,14 +342,18 @@ class VoiceController(
                 onStatusChanged("اردو کی آف لائن آواز دستیاب نہیں۔ فون میں اردو TTS voice data نصب کریں۔")
                 onSpeechFinished()
             } else {
-                pendingSpeech = text
+                pendingSpeech = if (queueMode == TextToSpeech.QUEUE_ADD && !pendingSpeech.isNullOrBlank()) {
+                    pendingSpeech + "۔ " + text
+                } else {
+                    text
+                }
                 onStatusChanged("اردو آواز تیار ہو رہی ہے")
             }
             return
         }
         tts.setSpeechRate(getSpeechRate())
-        if (tts.speak(text, TextToSpeech.QUEUE_FLUSH, Bundle(), "idraak_urdu_output")
-            == TextToSpeech.ERROR) {
+        val utteranceId = "idraak_urdu_output_${SystemClock.elapsedRealtime()}"
+        if (tts.speak(text, queueMode, Bundle(), utteranceId) == TextToSpeech.ERROR) {
             onStatusChanged("جواب بولنا ممکن نہیں ہوا")
             onSpeechFinished()
         }
