@@ -396,7 +396,7 @@ fun IdraakHomeScreen() {
         val message = messageText.trim()
         if (message.isEmpty()) return
 
-        // Stop Vosk before processing a recognized command or speaking its reply.
+        // Stop Urdu microphone capture before processing a command or speaking.
         // This prevents Idraak from hearing its own TTS output as a new command.
         voiceController.cancelListening()
 
