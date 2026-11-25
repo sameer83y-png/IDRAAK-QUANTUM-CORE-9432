@@ -43,14 +43,27 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      - name: Cache multilingual Whisper Small model
+        uses: actions/cache@v4
+        with:
+          path: app/src/main/assets/models/ggml-small.bin
+          key: idraak-whisper-small-urdu-v1
+
       - name: Download multilingual Whisper Small model for Urdu
         run: |
           mkdir -p app/src/main/assets/models
-          curl -fL --retry 3 "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin" -o app/src/main/assets/models/ggml-small.bin
-          test -s app/src/main/assets/models/ggml-small.bin
-          MODEL_SIZE=$(stat -c%s app/src/main/assets/models/ggml-small.bin)
+          MODEL="app/src/main/assets/models/ggml-small.bin"
+          if [ ! -s "$MODEL" ] || [ "$(stat -c%s "$MODEL")" -le 400000000 ]; then
+            rm -f "$MODEL"
+            curl -fL --retry 5 --retry-all-errors --retry-delay 5 --connect-timeout 30 --max-time 1800 \
+              "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin" -o "$MODEL"
+          else
+            echo "Using cached Urdu Whisper Small model."
+          fi
+          test -s "$MODEL"
+          MODEL_SIZE=$(stat -c%s "$MODEL")
           test "$MODEL_SIZE" -gt 400000000
-          echo "Urdu Whisper Small model downloaded: $MODEL_SIZE bytes"
+          echo "Urdu Whisper Small model ready: $MODEL_SIZE bytes"
 
       - name: Build Debug APK
         run: gradle :app:assembleDebug
