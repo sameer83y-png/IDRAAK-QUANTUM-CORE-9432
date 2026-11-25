@@ -184,24 +184,35 @@ fun IdraakHomeScreen() {
                 mainHandler.post {
                     voiceStatus = status
 
-                    if (
-                        status.contains("سن رہا ہوں", true) ||
-                        status.contains("سمجھ رہا ہوں", true) ||
-                        status.contains("عمل جاری ہے", true) ||
-                        status.contains("تیار ہوں۔", true)
-                    ) {
-                        isListening = true
-                    } else if (
-                        status.contains("recognized", true) ||
-                        status.contains("finished", true) ||
-                        status.contains("Speaking", true) ||
-                        status.contains("error", true) ||
-                        status.contains("failed", true) ||
-                        status.contains("stopped", true) ||
-                        status.contains("timeout", true) ||
-                        status.contains("No speech", true)
-                    ) {
-                        isListening = false
+                    // Keep the microphone indicator aligned with the real capture state.
+                    // Whisper transcription and Urdu TTS happen after recording has stopped.
+                    when {
+                        status.contains("آپ کی آواز سن رہا ہوں", true) ||
+                            status.contains("آواز سننے کا عمل جاری ہے", true) -> {
+                            isListening = true
+                        }
+                        status.contains("بات سمجھ", true) ||
+                            status.contains("سمجھ رہا ہوں", true) ||
+                            status.contains("جواب دیا جا رہا ہے", true) ||
+                            status.contains("جواب مکمل ہو گیا", true) ||
+                            status.contains("سننا روک دیا گیا", true) ||
+                            status.contains("آواز سننا بند", true) ||
+                            status.contains("واضح نہیں آئی", true) ||
+                            status.contains("دوبارہ کہیں", true) ||
+                            status.contains("آواز میں مسئلہ", true) ||
+                            status.contains("جواب نہیں دیا جا سکا", true) ||
+                            status.contains("مائیکروفون کی اجازت", true) ||
+                            status.contains("شروع نہیں ہو سکا", true) ||
+                            status.contains("recognized", true) ||
+                            status.contains("finished", true) ||
+                            status.contains("Speaking", true) ||
+                            status.contains("error", true) ||
+                            status.contains("failed", true) ||
+                            status.contains("stopped", true) ||
+                            status.contains("timeout", true) ||
+                            status.contains("No speech", true) -> {
+                            isListening = false
+                        }
                     }
                 }
             },
