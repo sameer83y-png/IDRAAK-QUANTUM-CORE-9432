@@ -717,33 +717,12 @@ object LocalMemoryStore {
             val encryptedNewData = encryptStoredValue(newData)
                 ?: return false
 
-            val oldPrimary = prefs.getString(MEMORY_KEY, null)
-
-            if (!oldPrimary.isNullOrBlank()) {
-                val oldArray = decodeStoredArray(oldPrimary)
-
-                if (oldArray != null) {
-                    val encryptedBackup = if (
-                        oldPrimary.startsWith(ENCRYPTED_PREFIX)
-                    ) {
-                        oldPrimary
-                    } else {
-                        encryptStoredValue(oldPrimary)
-                    } ?: return false
-
-                    val backupSaved = prefs.edit()
-                        .putString(BACKUP_KEY, encryptedBackup)
-                        .commit()
-
-                    if (!backupSaved) {
-                        return false
-                    }
-                }
-                // If primary is damaged, preserve the existing backup.
-            }
-
+            // Keep the recovery copy synchronized with the exact current state.
+            // Retaining the previous version here could resurrect a memory after
+            // the user explicitly deletes or clears it and the primary is damaged.
             prefs.edit()
                 .putString(MEMORY_KEY, encryptedNewData)
+                .putString(BACKUP_KEY, encryptedNewData)
                 .commit()
 
         } catch (_: Exception) {
