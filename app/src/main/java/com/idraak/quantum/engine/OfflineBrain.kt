@@ -76,21 +76,21 @@ object OfflineBrain {
         if (isNegative && actionCount > 0) {
             return Decision(
                 "CANCELLED",
-                "ठीक है। आपकी अनुमति के बिना कोई कार्रवाई नहीं होगी।"
+                "ٹھیک ہے، آپ کی اجازت کے بغیر کوئی کارروائی نہیں ہوگی۔"
             )
         }
 
         if (actionCount > 1) {
             return Decision(
                 "MULTIPLE_ACTIONS",
-                "कृपया एक समय में एक कमांड दीजिए।"
+                "براہِ کرم ایک وقت میں ایک کام بتائیے۔"
             )
         }
 
         if (sendMessage) {
             return Decision(
                 "SEND_MESSAGE",
-                "मैसेज भेजने की कमांड समझ गया हूँ। भेजने से पहले आपकी स्पष्ट पुष्टि जरूरी होगी।",
+                "پیغام بھیجنے کی بات سمجھ گیا ہوں۔ بھیجنے سے پہلے آپ کی تصدیق ضروری ہوگی۔",
                 true
             )
         }
@@ -98,21 +98,21 @@ object OfflineBrain {
         if (flashlight) {
             return Decision(
                 "FLASHLIGHT",
-                "टॉर्च कंट्रोल की कमांड समझ गया हूँ।"
+                "ٹارچ کے کنٹرول کی بات سمجھ گیا ہوں۔"
             )
         }
 
         if (openApp) {
             return Decision(
                 "OPEN_APP",
-                "ऐप खोलने की कमांड समझ गया हूँ।"
+                "ایپ کھولنے کی بات سمجھ گیا ہوں۔"
             )
         }
 
         if (screenControl) {
             return Decision(
                 "SCREEN_CONTROL",
-                "स्क्रीन कमांड पहचान ली गई है।"
+                "اسکرین کا حکم سمجھ گیا ہوں۔"
             )
         }
 
@@ -125,10 +125,10 @@ object OfflineBrain {
         ) {
             val time = SimpleDateFormat(
                 "hh:mm a",
-                Locale.getDefault()
+                Locale("ur", "PK")
             ).format(Date())
 
-            return Decision("TIME", "अभी समय $time है।")
+            return Decision("TIME", "ابھی وقت $time ہے۔")
         }
 
         if (containsAny(
@@ -140,10 +140,10 @@ object OfflineBrain {
         ) {
             val date = SimpleDateFormat(
                 "dd MMMM yyyy",
-                Locale.getDefault()
+                Locale("ur", "PK")
             ).format(Date())
 
-            return Decision("DATE", "आज की तारीख $date है।")
+            return Decision("DATE", "آج کی تاریخ $date ہے۔")
         }
 
         if (containsAny(
@@ -159,7 +159,7 @@ object OfflineBrain {
         ) {
             return Decision(
                 "IDENTITY",
-                "मैं Idraak हूँ। आपका Offline AI Assistant। मेरा लक्ष्य बिना इंटरनेट के भी आपकी सहायता करना है।"
+                "میں ادراک ہوں۔ آپ کا آف لائن معاون۔ میرا مقصد انٹرنیٹ کے بغیر بھی آپ کی مدد کرنا ہے۔"
             )
         }
 
@@ -173,7 +173,7 @@ object OfflineBrain {
         ) {
             return Decision(
                 "GREETING",
-                "नमस्ते! मैं Idraak हूँ। बताइए, आज क्या काम करना है?"
+                "السلام علیکم! میں ادراک ہوں۔ بتائیے، آج کیا کام کرنا ہے؟"
             )
         }
 
@@ -187,7 +187,7 @@ object OfflineBrain {
         ) {
             return Decision(
                 "HELP",
-                "मैं इंस्टॉल ऐप खोल सकता हूँ; कॉल और मैसेज की सुरक्षित प्रक्रिया शुरू कर सकता हूँ; कैमरा/फोटो, टॉर्च, मीडिया वॉल्यूम, ब्राइटनेस, बैक/होम, स्वाइप/स्क्रॉल, नोटिफिकेशन, क्विक सेटिंग्स, हाल के ऐप और पावर मेन्यू कंट्रोल कर सकता हूँ। समय/तारीख बता सकता हूँ और “याद रखना” बोलकर जानकारी Local Memory में PENDING सेव कर सकता हूँ। कुछ कामों के लिए Android अनुमति या आपकी पुष्टि जरूरी होगी।"
+                "میں نصب شدہ ایپس کھول سکتا ہوں، کال اور پیغام کا محفوظ عمل شروع کر سکتا ہوں، کیمرہ، ٹارچ، آواز، روشنی، اسکرین، نوٹیفکیشن اور فوری ترتیبات کنٹرول کر سکتا ہوں۔ وقت اور تاریخ بتا سکتا ہوں اور آپ کے کہنے پر معلومات مقامی یادداشت میں محفوظ کر سکتا ہوں۔ کچھ کاموں کے لیے فون کی اجازت یا آپ کی تصدیق ضروری ہوگی۔"
             )
         }
 
@@ -361,7 +361,7 @@ object OfflineBrain {
 
             if (expired) {
                 pendingClick = null
-                return "पुष्टि का समय समाप्त हो गया। कृपया कमांड दोबारा दीजिए।"
+                return "تصدیق کا وقت ختم ہو گیا ہے۔ براہِ کرم دوبارہ بتائیے۔"
             }
 
             if (isNegativeConfirmation(message)) {
@@ -374,7 +374,7 @@ object OfflineBrain {
                     listOf(pending.target, "User cancelled")
                 )
 
-                return "ठीक है। ${pending.target} पर क्लिक रद्द कर दिया गया है।"
+                return "ٹھیک ہے، ${pending.target} پر کلک منسوخ کر دیا گیا ہے۔"
             }
 
             if (isPositiveConfirmation(message)) {
