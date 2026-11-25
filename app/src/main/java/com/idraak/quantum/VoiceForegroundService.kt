@@ -54,7 +54,7 @@ class VoiceForegroundService : Service() {
             ACTION_SET_LANGUAGE -> {
                 val languageName = intent.getStringExtra(EXTRA_LANGUAGE)
                 val language = try {
-                    VoskModelStore.VoskLanguage.valueOf(
+                    UrduVoiceLanguage.valueOf(
                         languageName ?: ""
                     )
                 } catch (_: IllegalArgumentException) {
