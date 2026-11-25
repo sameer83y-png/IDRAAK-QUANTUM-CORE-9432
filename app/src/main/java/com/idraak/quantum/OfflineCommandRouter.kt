@@ -45,46 +45,32 @@ object OfflineCommandRouter {
             .replace(Regex("\\s+"), " ")
             .trim()
         val hasExplicitNegation = listOf(
-            "don't", "don t", "dont", "do not", "never", "not", "no",
-            "mat", "mat karo", "nahi", "nahin",
-            "मत", "मत करो", "नहीं", "नही",
-            "نہیں", "مت", "مت کرو"
+            "نہیں", "مت", "مت کرو", "ہرگز نہیں"
         ).any { phrase ->
             Regex("(^|\\s)" + Regex.escape(phrase) + "(?=\\s|$)")
                 .containsMatchIn(normalizedRefusalText)
         }
-        // Also catch common Hindi/Urdu "na" refusals without treating
-        // every conversational sentence ending in "na" as a refusal.
         val hasNegationBeforeAction =
             Regex(
-                """(^|\s)(na|naa|ना|نہ)\s+(call|open|send|search|website|bhejo|bhejna|kholo|kholna|chalao|click|tap|press|कॉल|खोलो|खोलना|भेजो|भेजना|दबाओ|क्लिक|खोज|सर्च|ویب سائٹ|تلاش|کال|کھولو|بھیجو|بھیجنا|دباؤ)(?=\s|$)"""
+                """(^|\\s)(مت|نہ)s+(کال|کھولو|بھیجو|تلاش|دباؤ|چلاؤ)(?=\\s|$)"""
             ).containsMatchIn(normalizedRefusalText) ||
             Regex(
-                """(^|\s)(call|open|send|search|website|bhejo|kholo|click|tap|press|कॉल|खोलो|भेजो|दबाओ|खोज|सर्च|تلاش|کال|کھولو|بھیجو)\s+(na|naa|ना|نہ)\s+(karo|karna|kar do|bhejo|bhejna|kholo|kholna|करो|करना|कर दो|भेजो|भेजना|खोलो|खोलना|دباؤ|کرو|بھیجو)(?=\s|$)"""
+                """(^|\\s)(کال|کھولو|بھیجو|تلاش|دباؤ)s+(مت|نہ)s+(کرو|کر دو|بھیجو|کھولو)(?=\\s|$)"""
             ).containsMatchIn(normalizedRefusalText) ||
             Regex(
-                """(^|\s)(call|open|send|bhejo|kholo|कॉल|खोलो|भेजो|کال|کھولو|بھیجو)\s+(na|naa|ना|نہ)(?=\s|$)"""
+                """(^|\\s)(کال|کھولو|بھیجو)s+(مت|نہ)(?=\\s|$)"""
             ).containsMatchIn(normalizedRefusalText)
         val mentionsCallAction = listOf(
-            "call", "phone", "phone call", "फोन", "कॉल", "کال", "فون"
-        ).any { phrase -> message.lowercase().contains(phrase) }
+            "کال", "فون"
+        ).any { phrase -> normalizedRefusalText.contains(phrase) }
         val isMessageAction = MessageCommandHandler.tryHandle(
             context, message, launchActivity = false
         ) != null
         val actionVerbs = listOf(
-            "open ", "launch ", "start ", "run ", "call", "phone call",
-            "send ", "message", "text ", "take ", "photo", "click ",
-            "tap ", "press ", "swipe ", "scroll ", "back", "home",
-            "search", "website", "browser", "वेबसाइट", "खोज", "सर्च", "تلاش", "ویب سائٹ",
-            "notification", "lock", "power menu", "quick settings",
-            "volume", "brightness", "torch", "flashlight",
-            "खोल", "चालू", "कॉल", "भेज", "मैसेज", "संदेश", "फोटो",
-            "तस्वीर", "खींच", "क्लिक", "दब", "स्वाइप", "स्क्रॉल",
-            "पीछे", "होम", "नोटिफिकेशन", "लॉक", "पावर", "वॉल्यूम",
-            "आवाज़", "आवाज", "ब्राइटनेस", "चमक", "टॉर्च", "फ्लैशलाइट",
-            "کھول", "کال", "بھیج", "میسج", "پیغام", "تصویر", "کلک",
-            "دب", "سوائپ", "اسکرول", "واپس", "ہوم", "نوٹیفکیشن",
-            "لاک", "پاور", "والیوم", "آواز", "روشنی"
+            "ویب سائٹ", "تلاش", "کھولو", "چالو", "کال", "بھیجو",
+            "پیغام", "تصویر", "کلک", "دباؤ", "سوائپ", "اسکرول",
+            "واپس", "ہوم", "نوٹیفکیشن", "لاک", "پاور",
+            "والیوم", "آواز", "روشنی", "ٹارچ"
         )
         val mentionsOtherAction = actionVerbs.any {
             normalizedRefusalText.contains(it)
@@ -271,7 +257,7 @@ object OfflineCommandRouter {
             )
         } catch (error: Exception) {
             Result(
-                response = "Offline कमांड पूरी नहीं हो सकी: " +
+                response = "آف لائن حکم مکمل نہیں ہو سکا: " +
                     (error.localizedMessage ?: "Unknown error"),
                 intent = decision.intent
             )
@@ -320,10 +306,10 @@ object OfflineCommandRouter {
         val value = command.trim().lowercase()
         val turnOff = Regex("""\boff\b""").containsMatchIn(value) ||
             listOf("turn off", "switch off", "torch off", "flashlight off",
-                "band", "بند", "बंद", "बुझा").any { value.contains(it) }
+                "بند", "بجھا", "بجھا دو", "آف").any { value.contains(it) }
         val turnOn = Regex("""\bon\b""").containsMatchIn(value) ||
             listOf("turn on", "switch on", "torch on", "flashlight on",
-                "chalu", "चालू", "जलाओ", "جلا", "جلا دو", "چالو", "آن").any { value.contains(it) }
+                "جلا", "جلا دو", "چالو", "آن").any { value.contains(it) }
 
         return when {
             turnOn && !turnOff -> true
