@@ -72,7 +72,7 @@ object OfflineCommandRouter {
                 if (mustStop) {
                     completedSteps += "اگلا مرحلہ روک دیا گیا ہے۔ پہلے اس مرحلے کو مکمل یا منظور کریں۔"
                     return Result(
-                        response = "ترتیب وار کام کی رپورٹ:\\n" + completedSteps.joinToString("\\n"),
+                        response = "ترتیب وار کام کی رپورٹ:\n" + completedSteps.joinToString("\n"),
                         requiresCameraPermission = stepResult.requiresCameraPermission,
                         torchEnabled = stepResult.torchEnabled,
                         requiresBrightnessPermission = stepResult.requiresBrightnessPermission,
@@ -83,7 +83,7 @@ object OfflineCommandRouter {
             }
 
             return Result(
-                response = "ترتیب وار کام مکمل ہوا:\\n" + completedSteps.joinToString("\\n"),
+                response = "ترتیب وار کام مکمل ہوا:\n" + completedSteps.joinToString("\n"),
                 intent = "SEQUENCE_COMPLETED"
             )
         }
