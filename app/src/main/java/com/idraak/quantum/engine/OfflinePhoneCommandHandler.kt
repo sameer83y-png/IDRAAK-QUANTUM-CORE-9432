@@ -22,7 +22,7 @@ object OfflinePhoneCommandHandler {
     fun execute(context: Context, userCommand: String): Result? {
         val target = extractAppName(userCommand)
         if (target.isBlank()) {
-            return Result(true, false, "कौन-सा ऐप खोलना है? कृपया ऐप का नाम साफ बताइए।")
+            return Result(true, false, "کون سی ایپ کھولنی ہے؟ براہِ کرم اس کا نام واضح بتائیں۔")
         }
 
         val packageManager = context.packageManager
@@ -42,7 +42,7 @@ object OfflinePhoneCommandHandler {
         }
 
         if (installedApps.isEmpty()) {
-            return Result(true, false, "फोन में उपलब्ध ऐप की सूची नहीं मिल सकी। Android की ऐप सेटिंग जाँचिए।", target)
+            return Result(true, false, "فون میں دستیاب ایپس کی فہرست نہیں مل سکی۔ فون کی ایپ ترتیبات دیکھیں۔", target)
         }
 
         val normalizedTarget = normalize(target)
@@ -67,22 +67,22 @@ object OfflinePhoneCommandHandler {
         }
 
         if (matches.isEmpty()) {
-            return Result(true, false, "मुझे फोन में \"$target\" नाम का इंस्टॉल ऐप नहीं मिला। ऐप इंस्टॉल है तो उसका सही नाम बताइए।", target)
+            return Result(true, false, "فون میں \"$target\" نام کی ایپ نہیں ملی۔ اگر ایپ نصب ہے تو اس کا درست نام بتائیں۔", target)
         }
         if (matches.size > 1) {
             val names = matches.take(4).joinToString(", ") { it.label }
-            return Result(true, false, "एक से ज्यादा मिलते-जुलते ऐप मिले: $names। कृपया पूरा ऐप नाम बताइए।", target)
+            return Result(true, false, "ایک سے زیادہ ملتی جلتی ایپس ملیں: $names۔ براہِ کرم مکمل نام بتائیں۔", target)
         }
 
         val selected = matches.single()
         return try {
             val launchIntent = packageManager.getLaunchIntentForPackage(selected.packageName)
-                ?: return Result(true, false, "${selected.label} मिला, लेकिन Android ने उसे खोलने की अनुमति नहीं दी।", selected.label)
+                ?: return Result(true, false, "${selected.label} مل گئی، لیکن فون نے اسے کھولنے کی اجازت نہیں دی۔", selected.label)
             launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.applicationContext.startActivity(launchIntent)
-            Result(true, true, "${selected.label} खोल रहा हूँ।", selected.label)
+            Result(true, true, "${selected.label} کھول رہا ہوں۔", selected.label)
         } catch (_: Exception) {
-            Result(true, false, "${selected.label} नहीं खुल सका। Android ने ऐप लॉन्च रोक दिया।", selected.label)
+            Result(true, false, "${selected.label} نہیں کھل سکی۔ فون نے اسے کھولنے سے روک دیا۔", selected.label)
         }
     }
 
@@ -103,7 +103,7 @@ object OfflinePhoneCommandHandler {
             "khol do ", "kholo ", "kholiye ", "chalu karo ", "ऐप खोल दो ", "ऐप खोलो ",
             "जरा खोलो ", "जरा खोल दो ", "खोल दो ", "खोलो ", "खोलिए ",
             "चालू कर दो ", "चालू करो ", "ایپ کھول دو ", "ایپ کھولو ",
-            "ذرا کھولو ", "ذرا کھول دو ", "کھول دو ", "کھولو ", "کھولیں "
+            "ذرا کھولو ", "ذرا کھول دو ", "کھول دو ", "کھولو ", "کھولیں ", "کھول کر رکھو ", "کھول کے رکھو ", "کھول کر دکھاؤ ", "کھول کے دکھاؤ "
         )
         for (prefix in prefixes.sortedByDescending { it.length }) {
             if (value.startsWith(prefix)) {
@@ -118,7 +118,7 @@ object OfflinePhoneCommandHandler {
             " chalu kar do", " chalu karo", " kholo", " khol do", " kholiye", " chalao", " chala do",
             " ऐप खोल दो", " ऐप खोलो", " खोल देना", " खोल दीजिए", " खोलिए", " खोल दो", " खोलो",
             " चला देना", " चालू कर देना", " चालू कर दो", " चालू करो", " ऑन कर दो",
-            " کھول دینا", " کھول دیجیے", " کھولیں", " کھول دو", " کھولو", " چلا دو", " چلا دینا",
+            " کھول دینا", " کھول دیجیے", " کھولیں", " کھول دو", " کھولو", " کھول کر رکھو", " کھول کے رکھو", " کھول کر رکھ دو", " کھول کے رکھ دو", " کھول کر دکھاؤ", " کھول کے دکھاؤ", " چلا دو", " چلا دینا",
             " شروع کرو", " آن کر دو"
         )
         for (suffix in suffixes.sortedByDescending { it.length }) {
