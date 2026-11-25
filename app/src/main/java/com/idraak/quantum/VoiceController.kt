@@ -36,6 +36,8 @@ class VoiceController(
 
     private var textToSpeech: TextToSpeech? = null
     private var isTtsReady = false
+    @Volatile
+    private var pendingSpeech: String? = null
 
     @Volatile
     private var isShutdown = false
@@ -197,6 +199,11 @@ class VoiceController(
                     textToSpeech?.setSpeechRate(getSpeechRate())
                     isTtsReady = true
                     onStatusChanged("Offline voice output ready")
+                    val queuedSpeech = pendingSpeech
+                    pendingSpeech = null
+                    if (!queuedSpeech.isNullOrBlank()) {
+                        speak(queuedSpeech)
+                    }
                 } else {
                     isTtsReady = false
                     onStatusChanged(
@@ -468,8 +475,8 @@ class VoiceController(
         val tts = textToSpeech
 
         if (tts == null || !isTtsReady) {
-            onStatusChanged("Voice output is not ready")
-            onSpeechFinished()
+            pendingSpeech = text
+            onStatusChanged("Offline voice output is preparing")
             return
         }
 
@@ -556,6 +563,7 @@ class VoiceController(
         textToSpeech?.shutdown()
         textToSpeech = null
 
+        pendingSpeech = null
         isTtsReady = false
 
         executor.shutdownNow()
