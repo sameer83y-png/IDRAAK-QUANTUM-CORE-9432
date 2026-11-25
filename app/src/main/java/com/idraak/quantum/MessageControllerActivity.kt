@@ -50,7 +50,7 @@ class MessageControllerActivity : ComponentActivity() {
         targetPackage = intent.getStringExtra(EXTRA_TARGET_PACKAGE)
 
         if (messageBody.isBlank()) {
-            showMessage("मैसेज खाली है।")
+            showMessage("پیغام خالی ہے۔")
             finish()
             return
         }
@@ -61,18 +61,18 @@ class MessageControllerActivity : ComponentActivity() {
     private fun showDeliveryChoice() {
         val targetLabel = targetPackage?.let { appLabel(it) }
         val choices = if (targetPackage != null) {
-            arrayOf("SMS", "$targetLabel में भेजें", "कोई समर्थित दूसरा ऐप")
+            arrayOf("ایس ایم ایس", "$targetLabel میں بھیجیں", "کوئی دوسری موزوں ایپ")
         } else {
-            arrayOf("SMS", "कोई समर्थित दूसरा ऐप")
+            arrayOf("ایس ایم ایس", "کوئی دوسری موزوں ایپ")
         }
 
         AlertDialog.Builder(this)
-            .setTitle("मैसेज किस तरीके से भेजना है?")
+            .setTitle("پیغام کس طریقے سے بھیجنا ہے؟")
             .setItems(choices) { _, which ->
                 when {
                     which == 0 -> openContactPicker()
                     targetPackage != null && which == 1 ->
-                        showTargetAppConfirmation(targetLabel ?: "चुने हुए ऐप")
+                        showTargetAppConfirmation(targetLabel ?: "منتخب ایپ")
                     else -> showShareConfirmation()
                 }
             }
@@ -87,41 +87,41 @@ class MessageControllerActivity : ComponentActivity() {
         "com.facebook.katana" -> "Facebook"
         "org.telegram.messenger" -> "Telegram"
         "org.thoughtcrime.securesms" -> "Signal"
-        else -> "चुने हुए ऐप"
+        else -> "منتخب ایپ"
     }
 
     private fun openContactPicker() {
         try {
             contactPicker.launch(CallController.createContactPickerIntent())
         } catch (_: ActivityNotFoundException) {
-            showMessage("फोन में Contact Picker उपलब्ध नहीं है।")
+            showMessage("فون میں رابطہ منتخب کرنے کی سہولت دستیاب نہیں۔")
             finish()
         } catch (_: Exception) {
-            showMessage("कॉन्टैक्ट चुनने की स्क्रीन नहीं खुल सकी।")
+            showMessage("رابطہ منتخب کرنے کی اسکرین نہیں کھل سکی۔")
             finish()
         }
     }
 
     private fun showSmsConfirmation(name: String, number: String) {
         val confirmationText = listOf(
-            "किसे मैसेज भेजना है:",
+            "کسے پیغام بھیجنا ہے:",
             name,
             number,
             "",
-            "मैसेज:",
+            "پیغام:",
             messageBody,
             "",
-            "पुष्टि के बाद SMS ऐप खुलेगा। भेजने का अंतिम नियंत्रण SMS ऐप में रहेगा।"
+            "تصدیق کے بعد ایس ایم ایس ایپ کھلے گی۔ بھیجنے کا آخری اختیار اسی ایپ میں ہوگا۔"
         ).joinToString("\n")
 
         AlertDialog.Builder(this)
-            .setTitle("मैसेज की पुष्टि")
+            .setTitle("پیغام کی تصدیق")
             .setMessage(confirmationText)
-            .setPositiveButton("हाँ, SMS ऐप खोलो") { _, _ ->
+            .setPositiveButton("ہاں، ایس ایم ایس ایپ کھولو") { _, _ ->
                 openSmsComposer(number)
             }
-            .setNegativeButton("रद्द करें") { _, _ ->
-                showMessage("मैसेज रद्द कर दिया गया।")
+            .setNegativeButton("منسوخ کریں") { _, _ ->
+                showMessage("پیغام منسوخ کر دیا گیا ہے۔")
                 finish()
             }
             .setOnCancelListener { finish() }
@@ -131,16 +131,16 @@ class MessageControllerActivity : ComponentActivity() {
 
     private fun showTargetAppConfirmation(label: String) {
         AlertDialog.Builder(this)
-            .setTitle("$label में मैसेज भेजें?")
+            .setTitle("$label میں پیغام بھیجیں؟")
             .setMessage(
-                "मैसेज का टेक्स्ट:\n\n$messageBody\n\nपुष्टि के बाद $label खुलेगा। " +
-                    "वहाँ प्राप्तकर्ता चुनें और भेजने से पहले जाँच लें। अंतिम Send नियंत्रण उसी ऐप में रहेगा।"
+                "پیغام کا متن:\n\n$messageBody\n\nتصدیق کے بعد $label کھلے گی۔ " +
+                    "وہاں وصول کنندہ منتخب کریں اور بھیجنے سے پہلے جائزہ لیں۔ آخری اختیار اسی ایپ میں ہوگا۔"
             )
-            .setPositiveButton("हाँ, $label खोलो") { _, _ ->
+            .setPositiveButton("ہاں، $label کھولو") { _, _ ->
                 openTargetApp()
             }
-            .setNegativeButton("रद्द करें") { _, _ ->
-                showMessage("मैसेज रद्द कर दिया गया।")
+            .setNegativeButton("منسوخ کریں") { _, _ ->
+                showMessage("پیغام منسوخ کر دیا گیا ہے۔")
                 finish()
             }
             .setOnCancelListener { finish() }
@@ -150,17 +150,17 @@ class MessageControllerActivity : ComponentActivity() {
 
     private fun showShareConfirmation() {
         AlertDialog.Builder(this)
-            .setTitle("मैसेज की पुष्टि")
+            .setTitle("پیغام کی تصدیق")
             .setMessage(
-                "यह मैसेज समर्थित ऐप में साझा करने के लिए खुलेगा:\n\n" +
+                "یہ پیغام دستیاب ایپ میں شیئر کرنے کے لیے کھلے گا:\n\n" +
                     messageBody +
-                    "\n\nAndroid उपलब्ध ऐप दिखाएगा। प्राप्तकर्ता चुनना और भेजना उस ऐप के नियंत्रण में रहेगा।"
+                    "\n\nفون دستیاب ایپس دکھائے گا۔ وصول کنندہ منتخب کرنا اور بھیجنا اسی ایپ کے اختیار میں ہوگا۔"
             )
-            .setPositiveButton("हाँ, ऐप चुनो") { _, _ ->
+            .setPositiveButton("ہاں، ایپ منتخب کریں") { _, _ ->
                 openShareChooser()
             }
-            .setNegativeButton("रद्द करें") { _, _ ->
-                showMessage("मैसेज रद्द कर दिया गया।")
+            .setNegativeButton("منسوخ کریں") { _, _ ->
+                showMessage("پیغام منسوخ کر دیا گیا ہے۔")
                 finish()
             }
             .setOnCancelListener { finish() }
@@ -179,10 +179,10 @@ class MessageControllerActivity : ComponentActivity() {
             startActivity(smsIntent)
             finish()
         } catch (_: ActivityNotFoundException) {
-            showMessage("फोन में SMS ऐप उपलब्ध नहीं है।")
+            showMessage("فون میں ایس ایم ایس ایپ دستیاب نہیں۔")
             finish()
         } catch (_: Exception) {
-            showMessage("SMS ऐप नहीं खुल सका।")
+            showMessage("ایس ایم ایس ایپ نہیں کھل سکی۔")
             finish()
         }
     }
@@ -210,7 +210,7 @@ class MessageControllerActivity : ComponentActivity() {
             showMessage(appLabel(packageName) + " में टेक्स्ट शेयरिंग उपलब्ध नहीं मिली। दूसरे समर्थित ऐप चुनें।")
             openShareChooser()
         } catch (_: Exception) {
-            showMessage("चुना हुआ ऐप नहीं खुल सका। दूसरे समर्थित ऐप चुनें।")
+            showMessage("منتخب ایپ نہیں کھل سکی۔ کوئی دوسری موزوں ایپ منتخب کریں۔")
             openShareChooser()
         }
     }
@@ -225,13 +225,13 @@ class MessageControllerActivity : ComponentActivity() {
                 type = "text/plain"
                 putExtra(Intent.EXTRA_TEXT, messageBody)
             }
-            startActivity(Intent.createChooser(shareIntent, "मैसेज के लिए समर्थित ऐप चुनें"))
+            startActivity(Intent.createChooser(shareIntent, "پیغام کے لیے موزوں ایپ منتخب کریں"))
             finish()
         } catch (_: ActivityNotFoundException) {
-            showMessage("इस मैसेज के लिए कोई समर्थित ऐप उपलब्ध नहीं है।")
+            showMessage("اس پیغام کے لیے کوئی موزوں ایپ دستیاب نہیں۔")
             finish()
         } catch (_: Exception) {
-            showMessage("ऐप चुनने की स्क्रीन नहीं खुल सकी।")
+            showMessage("ایپ منتخب کرنے کی اسکرین نہیں کھل سکی۔")
             finish()
         }
     }
