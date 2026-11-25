@@ -146,7 +146,7 @@ class VoiceForegroundService : Service() {
         } catch (error: Exception) {
             sendStatus(
                 "پس منظر کی آواز میں خرابی: " +
-                    (error.localizedMessage ?: "Unknown error")
+                    (error.localizedMessage ?: "نامعلوم خرابی")
             )
             stopVoiceService()
         }
@@ -182,7 +182,7 @@ class VoiceForegroundService : Service() {
         } catch (error: Exception) {
             OfflineCommandRouter.Result(
                 response = "حکم مکمل نہیں ہو سکا۔ " +
-                    (error.localizedMessage ?: "Unknown error"),
+                    (error.localizedMessage ?: "نامعلوم خرابی"),
                 intent = "ERROR"
             )
         }
@@ -229,8 +229,8 @@ class VoiceForegroundService : Service() {
             }
         } catch (error: Exception) {
             sendStatus(
-                "Listening restart error: " +
-                    (error.localizedMessage ?: "Unknown error")
+                "سننا دوبارہ شروع کرنے میں خرابی: " +
+                    (error.localizedMessage ?: "نامعلوم خرابی")
             )
         }
     }
@@ -262,11 +262,11 @@ class VoiceForegroundService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Idraak Background Voice",
+                "ادراک کی پس منظر آواز",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description =
-                    "Shows when Idraak offline voice listening is active"
+                    "یہ اطلاع اس وقت دکھائی جاتی ہے جب ادراک پس منظر میں سن رہا ہو"
             }
 
             val manager =
@@ -318,10 +318,10 @@ class VoiceForegroundService : Service() {
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-            .setContentTitle("IDRAAK is listening")
+            .setContentTitle("ادراک سن رہا ہے")
             .setContentText(
                 if (pendingCommand.isNullOrBlank()) {
-                    "Offline voice control is active. Tap STOP to end listening."
+                    "آف لائن آواز فعال ہے۔ سننا بند کرنے کے لیے توقف دبائیں۔"
                 } else {
                     "حکم تیار ہے۔ اسے جاری رکھنے کے لیے ادراک کی اطلاع میں کھولنے کا اختیار دبائیں۔"
                 }
@@ -341,10 +341,10 @@ class VoiceForegroundService : Service() {
                 commandIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_ONE_SHOT
             )
-            builder.addAction(android.R.drawable.ic_media_play, "OPEN & RUN", commandPendingIntent)
+            builder.addAction(android.R.drawable.ic_media_play, "کھولیں اور چلائیں", commandPendingIntent)
         }
 
-        builder.addAction(android.R.drawable.ic_media_pause, "STOP", stopPendingIntent)
+        builder.addAction(android.R.drawable.ic_media_pause, "بند کریں", stopPendingIntent)
         return builder.build()
     }
 
