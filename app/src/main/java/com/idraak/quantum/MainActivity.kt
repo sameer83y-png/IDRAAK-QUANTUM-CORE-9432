@@ -362,6 +362,10 @@ fun IdraakHomeScreen() {
         val message = messageText.trim()
         if (message.isEmpty()) return
 
+        // Stop Vosk before processing a recognized command or speaking its reply.
+        // This prevents Idraak from hearing its own TTS output as a new command.
+        voiceController.cancelListening()
+
         messages.add(ChatMessage(message, true))
         inputText = ""
 
