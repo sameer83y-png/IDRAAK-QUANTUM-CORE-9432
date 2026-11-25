@@ -112,6 +112,8 @@ object MultilingualCommandNormalizer {
     }
 
     private fun extractYoutubeSearchQuery(input: String): String? {
+        // Speech engines may append sentence punctuation; ignore it for intent matching.
+        val phrase = input.trim().trimEnd('.', '؟', '?', '!', '۔', '،', ',').trim()
         val patterns = listOf(
             Regex("""^open\s+(?:the\s+)?youtube\s+(?:and|then)\s+(?:search|find)\s+(?:for\s+)?(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^search\s+(.+?)\s+on\s+youtube$""", RegexOption.IGNORE_CASE),
@@ -132,7 +134,7 @@ object MultilingualCommandNormalizer {
         )
 
         for (pattern in patterns) {
-            val match = pattern.matchEntire(input.trim()) ?: continue
+            val match = pattern.matchEntire(phrase) ?: continue
             val query = match.groupValues.getOrNull(1)
                 ?.trim()
                 ?.trimEnd('.', '؟', '?', '!', '۔')
