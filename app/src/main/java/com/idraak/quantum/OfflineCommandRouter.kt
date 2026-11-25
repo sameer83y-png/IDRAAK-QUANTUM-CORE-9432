@@ -8,6 +8,7 @@ import com.idraak.quantum.engine.CameraController
 import com.idraak.quantum.engine.DeviceStatusController
 import com.idraak.quantum.engine.HardwareController
 import com.idraak.quantum.engine.OfflineBrain
+import com.idraak.quantum.engine.OfflineScreenCommandHandler
 
 /**
  * Shared offline command router.
@@ -50,6 +51,22 @@ object OfflineCommandRouter {
                 steps = listOf(message, messageResponse)
             )
             return Result(response = messageResponse, intent = "MESSAGE_COMPOSE")
+        }
+
+        // Screen commands use the user's explicitly enabled Android Accessibility service.
+        // UNKNOWN means this is not a screen command, so normal routing continues.
+        val screenResult = OfflineScreenCommandHandler.execute(message)
+        if (screenResult.intent != "UNKNOWN") {
+            OfflineBrain.recordExperience(
+                context = appContext,
+                intent = screenResult.intent,
+                status = if (screenResult.success) "SUCCESS" else "FAILED",
+                steps = listOf(message, screenResult.message)
+            )
+            return Result(
+                response = screenResult.message,
+                intent = screenResult.intent
+            )
         }
 
         // Battery status is read directly from Android's local battery broadcast.
