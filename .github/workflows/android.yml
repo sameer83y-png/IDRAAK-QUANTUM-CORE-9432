@@ -74,9 +74,7 @@ jobs:
       - name: Download multilingual Whisper Small model for Urdu
         run: |
           mkdir -p app/src/main/assets/models
-          curl -fL --retry 3 \\
-            https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin \\
-            -o app/src/main/assets/models/ggml-small.bin
+          curl -fL --retry 3 "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin" -o app/src/main/assets/models/ggml-small.bin
           test -s app/src/main/assets/models/ggml-small.bin
           MODEL_SIZE=$(stat -c%s app/src/main/assets/models/ggml-small.bin)
           test "$MODEL_SIZE" -gt 400000000
