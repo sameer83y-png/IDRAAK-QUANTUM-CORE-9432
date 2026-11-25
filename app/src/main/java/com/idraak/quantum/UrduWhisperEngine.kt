@@ -11,7 +11,9 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
- * On-device Urdu speech transcription powered by whisper.cpp.
+ * On-device multilingual speech transcription powered by whisper.cpp.
+ * Whisper detects the spoken language automatically; Idraak's command
+ * responses remain Urdu.
  *
  * This first-stage engine accepts recorded audio files. The microphone capture
  * and continuous-listening adapter is integrated separately so the existing
@@ -51,7 +53,7 @@ class UrduWhisperEngine(context: Context) {
             Whisper.transcribe(
                 model,
                 audioFile.absolutePath,
-                WhisperConfig(language = URDU_LANGUAGE)
+                WhisperConfig(language = "auto")
             ).text.trim()
         }
     }
@@ -67,6 +69,5 @@ class UrduWhisperEngine(context: Context) {
 
     companion object {
         private const val MODEL_ASSET = "models/ggml-small.bin"
-        private const val URDU_LANGUAGE = "ur"
-    }
+        }
 }
