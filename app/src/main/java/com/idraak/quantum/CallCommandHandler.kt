@@ -48,7 +48,7 @@ object CallCommandHandler {
         val hasPhoneDeviceWord = listOf(
             "फोन", "मोबाइल", "phone", "mobile", "فون", "موبائل"
         ).any { word ->
-            Regex("""(^|\\s)""" + Regex.escape(word) + """(?=\\s|$)""")
+            Regex("""(^|\s)""" + Regex.escape(word) + """(?=\s|$)""")
                 .containsMatchIn(command)
         }
         val phoneControlTerms = listOf(
@@ -59,7 +59,7 @@ object CallCommandHandler {
             "off", "on", "silent", "mute", "volume", "lock"
         )
         val hasPhoneControlTerm = phoneControlTerms.any { word ->
-            Regex("""(^|\\s)""" + Regex.escape(word) + """(?=\\s|$)""")
+            Regex("""(^|\s)""" + Regex.escape(word) + """(?=\s|$)""")
                 .containsMatchIn(command)
         }
 
