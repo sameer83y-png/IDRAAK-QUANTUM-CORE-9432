@@ -127,6 +127,28 @@ object OfflineCommandRouter {
             )
         }
 
+        // Device radio and display settings are opened through Android's own
+        // local settings screens. Protected toggles are never falsely reported
+        // as changed by an ordinary third-party app.
+        val deviceSettingsResult = com.idraak.quantum.engine.DeviceSettingsCommandHandler.execute(
+            context = appContext,
+            command = message,
+            allowForegroundUi = allowForegroundUi
+        )
+        if (deviceSettingsResult != null) {
+            OfflineBrain.recordExperience(
+                context = appContext,
+                intent = deviceSettingsResult.intent,
+                status = if (deviceSettingsResult.requiresForegroundUi) "AWAITING_FOREGROUND" else "SUCCESS",
+                steps = listOf(message, deviceSettingsResult.response)
+            )
+            return Result(
+                response = deviceSettingsResult.response,
+                requiresForegroundUi = deviceSettingsResult.requiresForegroundUi,
+                intent = deviceSettingsResult.intent
+            )
+        }
+
         // Website and browser-search commands are handed off to an external app.
         // Idraak itself keeps no network permission.
         val webNavigationResponse = WebNavigationCommandHandler.tryHandle(
