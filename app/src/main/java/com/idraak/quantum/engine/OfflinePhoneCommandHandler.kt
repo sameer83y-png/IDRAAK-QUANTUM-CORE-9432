@@ -89,9 +89,9 @@ object OfflinePhoneCommandHandler {
     private fun extractAppName(command: String): String {
         var value = normalize(command)
         val conversationalPrefixes = listOf(
-            "bhai ", "yaar ", "please ", "zara ",
+            "bhai ", "yaar ", "please ", "kindly ", "zara ",
             "भाई ", "यार ", "जरा ", "कृपया ",
-            "بھائی ", "یار ", "ذرا "
+            "بھائی ", "یار ", "ذرا ", "براہ کرم "
         )
         conversationalPrefixes.forEach { if (value.startsWith(it)) value = value.removePrefix(it).trim() }
 
