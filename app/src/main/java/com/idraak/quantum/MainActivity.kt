@@ -706,19 +706,12 @@ fun IdraakHomeScreen() {
             addAction(VoiceForegroundService.ACTION_RESPONSE)
         }
 
-        if (Build.VERSION.SDK_INT >= 33) {
-            context.registerReceiver(
-                backgroundVoiceReceiver,
-                filter,
-                Context.RECEIVER_NOT_EXPORTED
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            context.registerReceiver(
-                backgroundVoiceReceiver,
-                filter
-            )
-        }
+        ContextCompat.registerReceiver(
+            context,
+            backgroundVoiceReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
 
         onDispose {
             try {
