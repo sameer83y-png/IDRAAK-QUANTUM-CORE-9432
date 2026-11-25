@@ -194,7 +194,7 @@ class CameraCaptureActivity : ComponentActivity() {
                 statusView.text = "کیمرہ شروع نہیں ہو سکا۔"
                 Toast.makeText(
                     this,
-                    "کیمرے میں خرابی: " + (error.localizedMessage ?: "Unknown error"),
+                    "کیمرے میں خرابی: " + (error.localizedMessage ?: "نامعلوم خرابی"),
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -298,7 +298,7 @@ class CameraCaptureActivity : ComponentActivity() {
                     statusView.text = "تصویر محفوظ نہیں ہوئی۔ دوبارہ کوشش کریں۔"
                     Toast.makeText(
                         this@CameraCaptureActivity,
-                        "تصویر محفوظ کرنے میں خرابی: " + (exception.localizedMessage ?: "Unknown error"),
+                        "تصویر محفوظ کرنے میں خرابی: " + (exception.localizedMessage ?: "نامعلوم خرابی"),
                         Toast.LENGTH_LONG
                     ).show()
                     if (autoCapture) {
