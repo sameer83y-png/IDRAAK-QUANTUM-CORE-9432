@@ -342,10 +342,12 @@ object OfflineCommandRouter {
         val value = command.trim().lowercase()
         val turnOff = Regex("""\boff\b""").containsMatchIn(value) ||
             listOf("turn off", "switch off", "torch off", "flashlight off",
-                "بند", "بجھا", "بجھا دو", "آف").any { value.contains(it) }
+                "بند", "بجھا", "بجھا دو", "آف", "آف کرو", "بجھا دیں",
+                "أطفئ", "اطفئ", "أغلق", "اغلق", "أوقف", "اوقف").any { value.contains(it) }
         val turnOn = Regex("""\bon\b""").containsMatchIn(value) ||
             listOf("turn on", "switch on", "torch on", "flashlight on",
-                "جلا", "جلا دو", "چالو", "آن").any { value.contains(it) }
+                "جلا", "جلا دو", "چالو", "آن", "آن کرو", "جلا دیں",
+                "شغل", "افتح", "أضيء", "اضئ").any { value.contains(it) }
 
         return when {
             turnOn && !turnOff -> true
