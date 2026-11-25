@@ -33,8 +33,8 @@ class ForegroundCommandActivity : Activity() {
             )
         } catch (_: Exception) {
             OfflineCommandRouter.Result(
-                response = "कमांड पूरी नहीं हो सकी। Idraak खोलकर दोबारा कोशिश करें।",
-                intent = "ERROR"
+                response = "حکم مکمل نہیں ہو سکا۔ ادراک کھول کر دوبارہ کوشش کریں۔",
+                intent = "خرابی"
             )
         }
 
@@ -53,7 +53,7 @@ class ForegroundCommandActivity : Activity() {
             } catch (_: Exception) {
                 Toast.makeText(
                     this,
-                    "Spoken response could not be sent to background voice.",
+                    "آواز میں جواب پس منظر کے نظام تک نہیں پہنچ سکا۔",
                     Toast.LENGTH_LONG
                 ).show()
             }
