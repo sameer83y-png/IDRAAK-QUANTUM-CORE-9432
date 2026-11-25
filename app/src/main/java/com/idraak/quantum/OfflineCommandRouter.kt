@@ -57,10 +57,10 @@ object OfflineCommandRouter {
         // every conversational sentence ending in "na" as a refusal.
         val hasNegationBeforeAction =
             Regex(
-                """(^|\s)(na|naa|ना|نہ)\s+(call|open|send|bhejo|bhejna|kholo|kholna|chalao|click|tap|press|कॉल|खोलो|खोलना|भेजो|भेजना|दबाओ|क्लिक|کال|کھولو|بھیجو|بھیجنا|دباؤ)(?=\s|$)"""
+                """(^|\s)(na|naa|ना|نہ)\s+(call|open|send|search|website|bhejo|bhejna|kholo|kholna|chalao|click|tap|press|कॉल|खोलो|खोलना|भेजो|भेजना|दबाओ|क्लिक|खोज|सर्च|ویب سائٹ|تلاش|کال|کھولو|بھیجو|بھیجنا|دباؤ)(?=\s|$)"""
             ).containsMatchIn(normalizedRefusalText) ||
             Regex(
-                """(^|\s)(call|open|send|bhejo|kholo|click|tap|press|कॉल|खोलो|भेजो|दबाओ|کال|کھولو|بھیجو)\s+(na|naa|ना|نہ)\s+(karo|karna|kar do|bhejo|bhejna|kholo|kholna|करो|करना|कर दो|भेजो|भेजना|खोलो|खोलना|دباؤ|کرو|بھیجو)(?=\s|$)"""
+                """(^|\s)(call|open|send|search|website|bhejo|kholo|click|tap|press|कॉल|खोलो|भेजो|दबाओ|खोज|सर्च|تلاش|کال|کھولو|بھیجو)\s+(na|naa|ना|نہ)\s+(karo|karna|kar do|bhejo|bhejna|kholo|kholna|करो|करना|कर दो|भेजो|भेजना|खोलो|खोलना|دباؤ|کرو|بھیجو)(?=\s|$)"""
             ).containsMatchIn(normalizedRefusalText) ||
             Regex(
                 """(^|\s)(call|open|send|bhejo|kholo|कॉल|खोलो|भेजो|کال|کھولو|بھیجو)\s+(na|naa|ना|نہ)(?=\s|$)"""
@@ -75,6 +75,7 @@ object OfflineCommandRouter {
             "open ", "launch ", "start ", "run ", "call", "phone call",
             "send ", "message", "text ", "take ", "photo", "click ",
             "tap ", "press ", "swipe ", "scroll ", "back", "home",
+            "search", "website", "browser", "वेबसाइट", "खोज", "सर्च", "تلاش", "ویب سائٹ",
             "notification", "lock", "power menu", "quick settings",
             "volume", "brightness", "torch", "flashlight",
             "खोल", "चालू", "कॉल", "भेज", "मैसेज", "संदेश", "फोटो",
@@ -123,6 +124,21 @@ object OfflineCommandRouter {
                 response = messageResponse,
                 requiresForegroundUi = !allowForegroundUi && MessageCommandHandler.requiresForegroundUi(message),
                 intent = "MESSAGE_COMPOSE"
+            )
+        }
+
+        // Website and browser-search commands are handed off to an external app.
+        // Idraak itself keeps no network permission.
+        val webNavigationResponse = WebNavigationCommandHandler.tryHandle(
+            context = context,
+            command = message,
+            launchActivity = allowForegroundUi
+        )
+        if (webNavigationResponse != null) {
+            return Result(
+                response = webNavigationResponse,
+                requiresForegroundUi = !allowForegroundUi,
+                intent = "WEB_NAVIGATION"
             )
         }
 
