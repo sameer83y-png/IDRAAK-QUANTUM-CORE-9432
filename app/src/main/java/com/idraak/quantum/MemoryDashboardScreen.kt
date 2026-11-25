@@ -38,7 +38,7 @@ import java.util.Locale
 @Composable
 fun MemoryDashboardScreen(
     onBack: () -> Unit,
-    accentColor: Color = accentColor
+    accentColor: Color
 ) {
     val context = LocalContext.current
 
@@ -426,6 +426,7 @@ fun MemoryDashboardScreen(
 
                     MemoryRecordCard(
                         memory = memory,
+                        accentColor = accentColor,
                         onVerify = {
                             val updated = LocalMemoryStore.updateStatus(
                                 context = context,
@@ -607,6 +608,7 @@ private fun MemoryCountCard(
 @Composable
 private fun MemoryRecordCard(
     memory: LocalMemoryStore.MemoryRecord,
+    accentColor: Color,
     onVerify: () -> Unit,
     onReject: () -> Unit,
     onEdit: () -> Unit,

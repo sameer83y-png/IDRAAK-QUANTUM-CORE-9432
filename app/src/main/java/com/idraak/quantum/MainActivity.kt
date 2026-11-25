@@ -1461,7 +1461,8 @@ fun SettingsScreen(
 fun SettingsStatusCard(
     title: String,
     status: String,
-    detail: String
+    detail: String,
+    accentColor: Color = Color(0xFF65C8FF)
 ) {
     Surface(
         modifier = Modifier
@@ -1475,7 +1476,7 @@ fun SettingsStatusCard(
         ) {
             Text(
                 text = title,
-                color = themeAccentColor,
+                color = accentColor,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold
             )
