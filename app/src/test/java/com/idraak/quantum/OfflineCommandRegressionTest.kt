@@ -254,4 +254,5 @@ class OfflineCommandRegressionTest {
         assertFalse(MemoryFeedbackHandler.isCorrectionRequest("مجھے یوٹیوب پسند ہے"))
         assertFalse(MemoryFeedbackHandler.isCorrectionRequest("یہ بہت اچھا ہے"))
     }
-\n}\n
+
+}
