@@ -527,7 +527,14 @@ fun IdraakHomeScreen() {
                         OfflineCommandRouter.process(
                             context = context.applicationContext,
                             command = message,
-                            allowForegroundUi = true
+                            allowForegroundUi = true,
+                            onProgress = { progress ->
+                                mainHandler.post {
+                                    messages.add(ChatMessage(progress, false))
+                                    voiceController.speakQueued(progress)
+                                    voiceStatus = progress
+                                }
+                            }
                         )
                     } catch (error: Exception) {
                         OfflineCommandRouter.Result(
