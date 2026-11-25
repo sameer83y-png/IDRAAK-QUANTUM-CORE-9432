@@ -198,6 +198,22 @@ object OfflineBrain {
     }
 
     private fun isOpenAppCommand(message: String): Boolean {
+        // Ignore a small set of conversational lead-ins before checking
+        // the actual app-opening instruction. Keep this conservative so
+        // ordinary conversation mentioning an app is not treated as a command.
+        var command = message
+        val conversationalPrefixes = listOf(
+            "bhai ", "yaar ", "please ", "zara ",
+            "भाई ", "यार ", "कृपया ", "जरा ",
+            "بھائی ", "یار ", "ذرا "
+        )
+        for (prefix in conversationalPrefixes.sortedByDescending { it.length }) {
+            if (command.startsWith(prefix)) {
+                command = command.removePrefix(prefix).trim()
+                break
+            }
+        }
+
         val prefixes = listOf(
             "please open the ", "could you open ",
             "could you please open ", "open up ",
@@ -229,8 +245,8 @@ object OfflineBrain {
             " چلا دو", " چلا دینا", " آن کر دو", " شروع کرو"
         )
 
-        return prefixes.any { message.startsWith(it) } ||
-            suffixes.any { message.endsWith(it) }
+        return prefixes.any { command.startsWith(it) } ||
+            suffixes.any { command.endsWith(it) }
     }
 
     private fun isScreenCommand(message: String): Boolean {
