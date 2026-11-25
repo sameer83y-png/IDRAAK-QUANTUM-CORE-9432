@@ -57,7 +57,7 @@ object CameraController {
             if (!appIsVisible) {
                 return Result(
                     false,
-                    "आवाज़ से फोटो लेने के लिए Idraak को पहले स्क्रीन पर खोलिए। Android बैकग्राउंड में कैमरा अपने-आप शुरू करने की अनुमति नहीं देता।"
+                    "آواز سے تصویر لینے کے لیے پہلے ادراک کو اسکرین پر کھولیں۔ فون پس منظر میں کیمرہ خود شروع کرنے کی اجازت نہیں دیتا۔"
                 )
             }
 
@@ -70,15 +70,15 @@ object CameraController {
             Result(
                 true,
                 if (shouldCapture) {
-                    "Idraak कैमरा खुल रहा है और अनुमति मिलने पर फोटो अपने-आप खींचेगा।"
+                    "ادراک کا کیمرہ کھل رہا ہے اور اجازت ملنے پر تصویر خود لے گا۔"
                 } else {
-                    "Idraak कैमरा खुल रहा है।"
+                    "ادراک کا کیمرہ کھل رہا ہے۔"
                 }
             )
         } catch (error: Exception) {
             Result(
                 false,
-                "Idraak कैमरा शुरू नहीं हो सका: " +
+                "ادراک کا کیمرہ شروع نہیں ہو سکا: " +
                     (error.localizedMessage ?: "Unknown error")
             )
         }
