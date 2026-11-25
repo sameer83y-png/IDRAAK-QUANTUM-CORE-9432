@@ -449,6 +449,13 @@ object OfflineBrain {
             pendingClick = null
         }
 
+        LearnedCommandStore.handleTeaching(
+            context.applicationContext,
+            userMessage
+        )?.let { teachingResponse ->
+            return teachingResponse
+        }
+
         // Explicit voice memory capture: new facts remain PENDING until verified.
         MemoryCommandHandler.handle(
             context.applicationContext,
