@@ -45,19 +45,28 @@ object MessageCommandHandler {
 
         val markers = listOf(
             "whatsapp par message bhejo", "whatsapp pe message bhejo",
+            "whatsapp par message bhej do", "whatsapp pe message bhej do",
+            "whatsapp par msg bhejo", "whatsapp pe msg bhejo",
             "instagram par dm bhejo", "instagram pe dm bhejo",
-            "facebook par message bhejo", "messenger par message bhejo",
-            "telegram par message bhejo", "signal par message bhejo",
+            "instagram par dm bhej do", "instagram pe dm bhej do",
+            "facebook par message bhejo", "facebook par message bhej do",
+            "messenger par message bhejo", "messenger par message bhej do",
+            "telegram par message bhejo", "telegram par message bhej do",
+            "signal par message bhejo", "signal par message bhej do",
             "direct message bhejo", "chat message bhejo",
             "message send karo", "msg send karo",
             "message bhejo", "msg bhejo", "message kar do", "msg kar do",
             "dm bhejo", "dm karo", "send a message", "send message",
             "send a text", "text message", "send dm", "send a dm",
-            "व्हाट्सएप पर मैसेज भेजो", "इंस्टाग्राम पर मैसेज भेजो",
+            "व्हाट्सएप पर मैसेज भेजो", "व्हाट्सएप पे मैसेज भेजो",
+            "व्हाट्सएप पर मैसेज भेज दो", "इंस्टाग्राम पर मैसेज भेजो",
+            "इंस्टाग्राम पर डीएम भेजो", "इंस्टा पर डीएम भेजो",
             "फेसबुक पर मैसेज भेजो", "मैसेंजर पर मैसेज भेजो",
             "मैसेज भेज दो", "मैसेज भेजो", "मैसेज कर दो",
             "संदेश भेजो", "डीएम भेजो", "चैट भेजो",
-            "واٹس ایپ پر میسج بھیجو", "انسٹاگرام پر ڈی ایم بھیجو",
+            "واٹس ایپ پر میسج بھیجو", "واٹس ایپ پہ میسج بھیجو",
+            "واٹس ایپ پر میسج بھیج دو", "انسٹاگرام پر ڈی ایم بھیجو",
+            "انسٹاگرام پہ ڈی ایم بھیجو",
             "میسج بھیج دو", "میسج بھیجو", "پیغام بھیجو"
         )
 
@@ -81,7 +90,7 @@ object MessageCommandHandler {
         val targetPackage = when {
             listOf("whatsapp", "व्हाट्सएप", "واٹس ایپ").any { lower.contains(it) } ->
                 "com.whatsapp"
-            listOf("instagram", "انسٹاگرام").any { lower.contains(it) } ->
+            listOf("instagram", "انسٹاگرام", "انستا").any { lower.contains(it) } ->
                 "com.instagram.android"
             listOf("messenger", "मैसेंजर").any { lower.contains(it) } ->
                 "com.facebook.orca"
