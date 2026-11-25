@@ -61,7 +61,7 @@ object MemoryCommandHandler {
                     return "विषय थोड़ा छोटा करके बताइए।"
                 }
 
-                topic = userMessage.trim().takeLast(payload.length).trim()
+                topic = payload
                 stage = Stage.WAITING_FOR_CONTENT
                 startedAt = now
                 return "समझ गया। अब बताइए कि "$topic" के बारे में क्या याद रखना है?"
