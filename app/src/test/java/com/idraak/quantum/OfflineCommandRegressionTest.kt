@@ -5,6 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import com.idraak.quantum.engine.OfflinePhoneCommandHandler
+import com.idraak.quantum.engine.MemoryFeedbackHandler
 
 class OfflineCommandRegressionTest {
 
@@ -233,3 +234,24 @@ class OfflineCommandRegressionTest {
         assertFalse(VoiceSessionCommandHandler.isStopListeningCommand("بس"))
     }
 }
+
+
+    @Test
+    fun recognizesNaturalUrduCorrectionPhrases() {
+        assertTrue(MemoryFeedbackHandler.isCorrectionRequest("یہ بات درست نہیں"))
+        assertTrue(MemoryFeedbackHandler.isCorrectionRequest("آپ نے غلط بتایا"))
+        assertTrue(MemoryFeedbackHandler.isCorrectionRequest("ذرا درست بتائیں"))
+        assertTrue(MemoryFeedbackHandler.isCorrectionRequest("اسے صحیح کریں"))
+    }
+
+    @Test
+    fun recognizesRomanUrduAndArabicCorrectionPhrases() {
+        assertTrue(MemoryFeedbackHandler.isCorrectionRequest("yeh ghalat hai"))
+        assertTrue(MemoryFeedbackHandler.isCorrectionRequest("إجابتك غير صحيحة"))
+    }
+
+    @Test
+    fun doesNotTreatNormalConversationAsCorrection() {
+        assertFalse(MemoryFeedbackHandler.isCorrectionRequest("مجھے یوٹیوب پسند ہے"))
+        assertFalse(MemoryFeedbackHandler.isCorrectionRequest("یہ بہت اچھا ہے"))
+    }
