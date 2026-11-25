@@ -21,6 +21,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.idraak.quantum.engine.LocalMemoryStore
+import com.idraak.quantum.engine.MemoryBackupManager
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -41,6 +47,68 @@ fun MemoryDashboardScreen(
     accentColor: Color
 ) {
     val context = LocalContext.current
+
+    var backupPassphrase by remember { mutableStateOf("") }
+    var backupMessage by remember { mutableStateOf("") }
+    var showRestoreConfirmation by remember { mutableStateOf(false) }
+
+    val exportBackupLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            val encryptedBackup = MemoryBackupManager.createBackup(
+                context,
+                backupPassphrase.toCharArray()
+            )
+            val saved = try {
+                if (encryptedBackup.isNullOrBlank()) {
+                    false
+                } else {
+                    context.contentResolver.openOutputStream(uri)?.use { stream ->
+                        stream.write(encryptedBackup.toByteArray(Charsets.UTF_8))
+                    } != null
+                }
+            } catch (_: Exception) {
+                false
+            }
+            backupPassphrase = ""
+            backupMessage = if (saved) {
+                "خفیہ یادداشت کا بیک اپ محفوظ ہو گیا۔ پاس فریز الگ محفوظ رکھیں۔"
+            } else {
+                "بیک اپ محفوظ نہیں ہو سکا۔ کم از کم 10 حروف کا پاس فریز استعمال کریں۔"
+            }
+        }
+    }
+
+    val importBackupLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            val restored = try {
+                val backupText = context.contentResolver.openInputStream(uri)
+                    ?.bufferedReader(Charsets.UTF_8)
+                    ?.use { it.readText() }
+                if (backupText.isNullOrBlank()) {
+                    false
+                } else {
+                    MemoryBackupManager.restoreBackup(
+                        context,
+                        backupText,
+                        backupPassphrase.toCharArray()
+                    )
+                }
+            } catch (_: Exception) {
+                false
+            }
+            backupPassphrase = ""
+            backupMessage = if (restored) {
+                refreshKey++
+                "یادداشت بحال ہو گئی۔ موجودہ یادداشت بیک اپ سے بدل دی گئی ہے۔"
+            } else {
+                "بیک اپ بحال نہیں ہوا۔ پاس فریز یا فائل درست نہیں، یا فائل خراب ہے۔"
+            }
+        }
+    }
 
     var searchQuery by remember {
         mutableStateOf("")
@@ -186,6 +254,77 @@ fun MemoryDashboardScreen(
                 accentColor = accentColor,
                 modifier = Modifier.weight(1f)
             )
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF14243D))
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Text(
+                    "یادداشت کا محفوظ بیک اپ",
+                    color = accentColor,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    "اپ ڈیٹ یا فون بدلنے سے پہلے خفیہ بیک اپ بنائیں۔ بحالی موجودہ یادداشت کو بیک اپ سے بدل دے گی۔",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = backupPassphrase,
+                    onValueChange = { backupPassphrase = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text("بیک اپ پاس فریز (کم از کم 10 حروف)") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            if (backupPassphrase.length < 10) {
+                                backupMessage = "کم از کم 10 حروف کا پاس فریز درج کریں۔"
+                            } else {
+                                backupMessage = ""
+                                exportBackupLauncher.launch("idraak-memory-backup.json")
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("بیک اپ بنائیں")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            if (backupPassphrase.length < 10) {
+                                backupMessage = "بحالی کے لیے وہی پاس فریز درج کریں۔"
+                            } else {
+                                showRestoreConfirmation = true
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("بیک اپ بحال کریں")
+                    }
+                }
+                if (backupMessage.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(backupMessage, color = accentColor, style = MaterialTheme.typography.bodySmall)
+                }
+                Text(
+                    "پاس فریز بھولنے پر بیک اپ نہیں کھلے گا۔ اسے کسی محفوظ جگہ پر رکھیں۔",
+                    color = Color.LightGray,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -463,6 +602,29 @@ fun MemoryDashboardScreen(
                 }
             }
         }
+    }
+
+    if (showRestoreConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showRestoreConfirmation = false },
+            title = { Text("یادداشت بحال کریں؟") },
+            text = {
+                Text("بحالی موجودہ مقامی یادداشت کو منتخب بیک اپ سے بدل دے گی۔ پہلے موجودہ یادداشت کا نیا بیک اپ بنا لیں۔ کیا آپ جاری رکھنا چاہتے ہیں؟")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showRestoreConfirmation = false
+                    importBackupLauncher.launch(arrayOf("application/json", "text/*"))
+                }) {
+                    Text("فائل منتخب کریں")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRestoreConfirmation = false }) {
+                    Text("منسوخ کریں")
+                }
+            }
+        )
     }
 
     memoryPendingEdit?.let { memory ->
