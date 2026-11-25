@@ -523,6 +523,67 @@ object LocalMemoryStore {
     }
 
     /**
+     * Export a validated snapshot for the encrypted portable-backup layer.
+     * The returned JSON must never be written to disk without encryption.
+     */
+    fun exportForBackup(context: Context): String {
+        return synchronized(lock) {
+            readArray(context).toString()
+        }
+    }
+
+    /**
+     * Restore a validated portable snapshot. Existing memory is replaced only
+     * after the entire JSON payload passes validation and encryption succeeds.
+     */
+    fun restoreFromBackup(context: Context, backupJson: String): Boolean {
+        return synchronized(lock) {
+            try {
+                val incoming = JSONArray(backupJson)
+                if (incoming.length() > MAX_RECORDS) return@synchronized false
+
+                val validated = JSONArray()
+                val allowedCategories = Category.entries.map { it.name }.toSet()
+                val allowedStatuses = Status.entries.map { it.name }.toSet()
+
+                for (index in 0 until incoming.length()) {
+                    val item = incoming.optJSONObject(index)
+                        ?: return@synchronized false
+                    val id = item.optString("id").trim()
+                    val category = item.optString("category").trim()
+                    val title = item.optString("title").trim()
+                    val content = item.optString("content").trim()
+                    val status = item.optString("status").trim()
+
+                    if (
+                        id.isBlank() || category !in allowedCategories ||
+                        title.isBlank() || content.isBlank() ||
+                        status !in allowedStatuses ||
+                        containsSensitivePattern(title) ||
+                        containsSensitivePattern(content)
+                    ) {
+                        return@synchronized false
+                    }
+
+                    validated.put(JSONObject().apply {
+                        put("id", id)
+                        put("category", category)
+                        put("title", title)
+                        put("content", content)
+                        put("status", status)
+                        put("createdAt", item.optLong("createdAt", 0L))
+                        put("updatedAt", item.optLong("updatedAt", 0L))
+                    })
+                }
+
+                writeArray(context, validated)
+            } catch (_: Exception) {
+                false
+            }
+        }
+    }
+
+    /**
      * Read and validate stored records.
      */
     private fun readAll(
