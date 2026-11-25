@@ -27,22 +27,28 @@ object DeviceSettingsCommandHandler {
     ): Result? {
         val value = command.trim().lowercase()
         val target = when {
-            containsAny(value, "وائی فائی", "وائیفائی", "wifi", "wi-fi") ->
+            containsAny(value, "وائی فائی", "وائیفائی", "وائی فائی کی سیٹنگ", "وائی فائی کی ترتیبات",
+                "wifi", "wi-fi", "إعدادات الواي فاي", "اعدادات الواي فاي", "افتح إعدادات الواي فاي") ->
                 Triple(Settings.ACTION_WIFI_SETTINGS, "وائی فائی", "WIFI_SETTINGS")
 
-            containsAny(value, "بلوٹوتھ", "bluetooth") ->
+            containsAny(value, "بلوٹوتھ", "bluetooth", "إعدادات البلوتوث", "اعدادات البلوتوث", "افتح إعدادات البلوتوث") ->
                 Triple(Settings.ACTION_BLUETOOTH_SETTINGS, "بلوٹوتھ", "BLUETOOTH_SETTINGS")
 
-            containsAny(value, "لوکیشن", "مقام", "location", "gps") ->
+            containsAny(value, "لوکیشن", "مقام", "مقام کی ترتیبات", "location", "gps",
+                "إعدادات الموقع", "اعدادات الموقع", "افتح إعدادات الموقع", "إعدادات GPS") ->
                 Triple(Settings.ACTION_LOCATION_SOURCE_SETTINGS, "مقام", "LOCATION_SETTINGS")
 
-            containsAny(value, "این ایف سی", "nfc") ->
+            containsAny(value, "این ایف سی", "این ایف سی کی ترتیبات", "nfc",
+                "إعدادات NFC", "اعدادات NFC", "افتح إعدادات NFC") ->
                 Triple(Settings.ACTION_NFC_SETTINGS, "این ایف سی", "NFC_SETTINGS")
 
-            containsAny(value, "ڈسپلے سیٹنگ", "اسکرین سیٹنگ", "display settings", "screen settings") ->
+            containsAny(value, "ڈسپلے سیٹنگ", "اسکرین سیٹنگ", "اسکرین کی ترتیبات",
+                "display settings", "screen settings",
+                "إعدادات الشاشة", "اعدادات الشاشة", "إعدادات العرض", "افتح إعدادات الشاشة") ->
                 Triple(Settings.ACTION_DISPLAY_SETTINGS, "اسکرین", "DISPLAY_SETTINGS")
 
-            containsAny(value, "آواز کی سیٹنگ", "sound settings", "آڈیو سیٹنگ") ->
+            containsAny(value, "آواز کی سیٹنگ", "آواز کی ترتیبات", "sound settings", "آڈیو سیٹنگ",
+                "إعدادات الصوت", "اعدادات الصوت", "افتح إعدادات الصوت") ->
                 Triple(Settings.ACTION_SOUND_SETTINGS, "آواز", "SOUND_SETTINGS")
 
             else -> return null
