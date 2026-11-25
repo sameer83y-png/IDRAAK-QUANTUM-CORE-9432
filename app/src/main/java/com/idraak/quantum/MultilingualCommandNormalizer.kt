@@ -9,6 +9,30 @@ import java.util.Locale
  */
 object MultilingualCommandNormalizer {
 
+    /**
+     * Detects explicit multilingual refusals before any phone or screen action is routed.
+     * This deliberately recognizes only clear action-negation patterns.
+     */
+    fun isExplicitRefusal(input: String): Boolean {
+        val value = input.trim()
+            .lowercase(Locale.ROOT)
+            .replace('’', '\'')
+            .replace(Regex("\\s+"), " ")
+        if (value.isBlank()) return false
+
+        val patterns = listOf(
+            Regex("""(?:^|\\s)(?:don't|dont|do not|never)\\s+(?:call|open|launch|send|search|click|tap|press|delete|remove|buy|purchase|pay|transfer|share|post|install|enable|disable|turn|switch)(?=\\s|$)"""),
+            Regex("""(?:^|\\s)(?:मत|नहीं|ना)\\s+(?:कॉल|फोन|खोल|भेज|तलाश|दबाओ|क्लिक|हटाओ|मिटाओ|खरीद|भुगतान|शेयर|पोस्ट|इंस्टॉल|चालू|बंद)(?=\\s|$)"""),
+            Regex("""(?:^|\\s)(?:mat|nahi|nahin|na)\\s+(?:call|khol|bhej|talaash|search|dabao|click|hatao|mitao|khareed|share|post|install|chalu|band)(?=\\s|$)"""),
+            Regex("""(?:^|\\s)(?:مت|نہ|ہرگز)\\s+(?:کال|فون|کھول|بھیج|تلاش|دباؤ|کلک|ہٹاؤ|حذف|خرید|ادا|شیئر|پوسٹ|انسٹال|چالو|بند)(?=\\s|$)"""),
+            Regex("""(?:^|\\s)(?:لا)\\s+(?:تتصل|تفتح|ترسل|تبحث|تضغط|تحذف|تشتري|تدفع|تحول|تنشر|تثبت|تشغل|تغلق)(?=\\s|$)"""),
+            Regex("""(?:^|\\s)(?:call|open|send|click|tap|press|delete|remove|buy|pay|share|post|install)\\s+(?:[\\p{L}\\p{M}\\p{N}_-]+\\s+){0,4}(?:mat|nahi|nahin|don't|do not)(?=\\s|$)"""),
+            Regex("""(?:^|\\s)(?:کال|فون|کھولو|بھیجو|دباؤ|کلک|حذف|خرید|ادا|شیئر|پوسٹ|انسٹال)\\s+(?:[\\p{L}\\p{M}\\p{N}_-]+\\s+){0,4}(?:مت|نہ|نہیں)(?=\\s|$)"""),
+            Regex("""(?:^|\\s)(?:कॉल|फोन|खोलो|भेजो|दबाओ|क्लिक|हटाओ|खरीदो|भुगतान|शेयर|पोस्ट|इंस्टॉल)\\s+(?:[\\p{L}\\p{M}\\p{N}_-]+\\s+){0,4}(?:मत|नहीं|ना)(?=\\s|$)""")
+        )
+        return patterns.any { it.containsMatchIn(value) }
+    }
+
     fun normalize(input: String): String {
         val original = input.trim()
         var value = original.lowercase(Locale.ROOT)

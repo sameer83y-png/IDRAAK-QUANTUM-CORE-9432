@@ -133,6 +133,38 @@ class OfflineCommandRegressionTest {
         assertEquals("CLICK_CONFIRMATION_REQUIRED", result.intent)
     }
 
+
+    @Test
+    fun recognizesEnglishActionRefusal() {
+        assertTrue(MultilingualCommandNormalizer.isExplicitRefusal("don't call Rahul"))
+    }
+
+    @Test
+    fun recognizesHindiActionRefusal() {
+        assertTrue(MultilingualCommandNormalizer.isExplicitRefusal("राहुल को कॉल मत करो"))
+    }
+
+    @Test
+    fun recognizesRomanUrduActionRefusal() {
+        assertTrue(MultilingualCommandNormalizer.isExplicitRefusal("Rahul ko call mat karo"))
+    }
+
+    @Test
+    fun recognizesUrduActionRefusal() {
+        assertTrue(MultilingualCommandNormalizer.isExplicitRefusal("احمد کو کال مت کرو"))
+    }
+
+    @Test
+    fun recognizesArabicActionRefusal() {
+        assertTrue(MultilingualCommandNormalizer.isExplicitRefusal("لا تتصل بأحمد"))
+    }
+
+    @Test
+    fun doesNotTreatNormalCommandAsRefusal() {
+        assertFalse(MultilingualCommandNormalizer.isExplicitRefusal("یوٹیوب کھولو"))
+        assertFalse(MultilingualCommandNormalizer.isExplicitRefusal("call Rahul"))
+    }
+
     @Test
     fun doesNotTreatBareStopAsVoiceStopCommand() {
         assertFalse(VoiceSessionCommandHandler.isStopListeningCommand("بس"))

@@ -45,6 +45,20 @@ object OfflineCommandRouter {
             return Result(response = "براہِ کرم اپنا حکم بتائیں۔", intent = "EMPTY")
         }
 
+        // A clear refusal cancels the entire request before sequence parsing or any action handler.
+        if (MultilingualCommandNormalizer.isExplicitRefusal(originalMessage)) {
+            OfflineBrain.recordExperience(
+                context = appContext,
+                intent = "USER_CANCELLED_ACTION",
+                status = "REJECTED",
+                steps = listOf(originalMessage, "Explicit multilingual refusal detected")
+            )
+            return Result(
+                response = "ٹھیک ہے، آپ نے منع کیا ہے، اس لیے کوئی کارروائی نہیں کی گئی۔",
+                intent = "CANCELLED"
+            )
+        }
+
         // Execute clearly chained commands in order. Only explicit sequence words
         // are treated as separators, so ordinary Urdu "اور" does not split a phrase.
         val sequenceParts = splitSequentialCommands(originalMessage)
