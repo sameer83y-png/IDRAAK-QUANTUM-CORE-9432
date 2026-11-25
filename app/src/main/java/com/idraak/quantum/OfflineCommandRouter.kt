@@ -85,7 +85,7 @@ object OfflineCommandRouter {
                 steps = listOf("Explicit refusal detected")
             )
             return Result(
-                response = "ठीक है। आपने मना किया है, इसलिए कॉल या मैसेज की कोई कार्रवाई नहीं की गई।",
+                response = "ठीक है। आपने मना किया है, इसलिए कोई कार्रवाई नहीं की गई।",
                 intent = "CANCELLED"
             )
         }
