@@ -803,13 +803,7 @@ fun IdraakHomeScreen() {
                                     "Language saved • voice restart pending"
                                 }
                             } else {
-                                voiceStatus = when (language) {
-                                    VoskModelStore.VoskLanguage.HINDI ->
-                                        "HINDI OFFLINE MODEL SELECTED"
-
-                                    VoskModelStore.VoskLanguage.INDIAN_ENGLISH ->
-                                        "INDIAN ENGLISH OFFLINE MODEL SELECTED"
-                                }
+                                voiceStatus = "اردو آف لائن آواز کا نظام منتخب ہے"
                             }
                         }
                     },
@@ -1199,12 +1193,12 @@ fun SettingsScreen(
         SettingsStatusCard(
             title = "VOICE SYSTEM",
             status = "OFFLINE VOSK + ANDROID TEXT TO SPEECH",
-            detail = "Hindi and Indian English speech recognition models are bundled with the app. The selected Vosk model runs locally; Android Text-to-Speech is used for voice output.",
+            detail = "صرف اردو کی آواز پہچاننے کے لیے مقامی Whisper ماڈل استعمال ہوتا ہے۔ جواب کے لیے فون کی آف لائن اردو آواز درکار ہے۔",
             accentColor = themeAccentColor,
         )
 
         Text(
-            text = "OFFLINE SPEECH LANGUAGE",
+            text = "زبانِ گفتگو",
             color = themeAccentColor,
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold
@@ -1213,7 +1207,7 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Choose the language Idraak should recognize while listening.",
+            text = "ادراک صرف اردو میں آپ کی بات سنے گا۔",
             color = Color(0xFF9CB0CC),
             fontSize = 12.sp
         )
@@ -1222,50 +1216,13 @@ fun SettingsScreen(
 
         Button(
             onClick = {
-                onVoiceLanguageSelected(
-                    VoskModelStore.VoskLanguage.HINDI
-                )
+                onVoiceLanguageSelected(VoskModelStore.VoskLanguage.URDU)
             },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor =
-                    if (
-                        selectedVoiceLanguage ==
-                        VoskModelStore.VoskLanguage.HINDI
-                    ) {
-                        themeAccentColor
-                    } else {
-                        Color(0xFF263B59)
-                    }
-            )
+            colors = ButtonDefaults.buttonColors(containerColor = themeAccentColor)
         ) {
-            Text("HINDI OFFLINE")
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Button(
-            onClick = {
-                onVoiceLanguageSelected(
-                    VoskModelStore.VoskLanguage.INDIAN_ENGLISH
-                )
-            },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor =
-                    if (
-                        selectedVoiceLanguage ==
-                        VoskModelStore.VoskLanguage.INDIAN_ENGLISH
-                    ) {
-                        themeAccentColor
-                    } else {
-                        Color(0xFF263B59)
-                    }
-            )
-        ) {
-            Text("INDIAN ENGLISH OFFLINE")
+            Text("صرف اردو")
         }
 
         Spacer(modifier = Modifier.height(18.dp))
