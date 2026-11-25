@@ -17,6 +17,8 @@ object VoiceSessionCommandHandler {
             .replace(Regex("\\s+"), " ")
             .trim()
             .removePrefix("ادراک ")
+            .removePrefix("idraak ")
+            .removePrefix("इद्राक ")
             .trim()
 
         if (normalized.isBlank()) return false
@@ -52,7 +54,36 @@ object VoiceSessionCommandHandler {
             "مائیک بند کریں",
             "اب مت سنو",
             "اب سننا بند کرو",
-            "بس اب سننا بند کرو"
+            "بس اب سننا بند کرو",
+
+            // English and Roman Urdu
+            "stop listening",
+            "stop hearing",
+            "stop voice",
+            "stop background listening",
+            "stop listening now",
+            "sunna band karo",
+            "sunna band kar do",
+            "awaz sunna band karo",
+            "awaaz sunna band karo",
+            "mic band karo",
+            "mic band kar do",
+
+            // Hindi
+            "सुनना बंद करो",
+            "सुनना बंद कर दो",
+            "आवाज़ सुनना बंद करो",
+            "आवाज सुनना बंद करो",
+            "माइक बंद करो",
+            "माइक बंद कर दो",
+            "अब मत सुनो",
+
+            // Arabic
+            "توقف عن الاستماع",
+            "أوقف الاستماع",
+            "أوقف الاستماع الآن",
+            "أوقف الميكروفون",
+            "أوقف سماع الصوت"
         )
 
         return normalized in stopPhrases
