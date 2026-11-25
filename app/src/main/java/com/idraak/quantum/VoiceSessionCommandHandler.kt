@@ -20,6 +20,7 @@ object VoiceSessionCommandHandler {
             .removePrefix("idraak ")
             .removePrefix("इद्राक ")
             .trim()
+            .removeLeadingPoliteness()
 
         if (normalized.isBlank()) return false
 
@@ -62,9 +63,21 @@ object VoiceSessionCommandHandler {
             "stop voice",
             "stop background listening",
             "stop listening now",
+            "please stop listening",
+            "please stop listening now",
+            "kindly stop listening",
+            "stop listening please",
+            "stop hearing me",
+            "turn off listening",
+            "disable listening",
             "sunna band karo",
             "sunna band kar do",
+            "sunna band kar dein",
+            "sunna band kijiye",
+            "sunna rok do",
+            "sunna rok dein",
             "awaz sunna band karo",
+            "awaaz sunna band kar dein",
             "awaaz sunna band karo",
             "mic band karo",
             "mic band kar do",
@@ -77,9 +90,15 @@ object VoiceSessionCommandHandler {
             "माइक बंद करो",
             "माइक बंद कर दो",
             "अब मत सुनो",
+            "सुनना बंद कीजिए",
+            "सुनना रोक दो",
+            "सुनना रोक दीजिए",
+            "अब सुनना बंद करें",
 
             // Arabic
             "توقف عن الاستماع",
+            "توقف عن الاستماع الآن",
+            "من فضلك توقف عن الاستماع",
             "أوقف الاستماع",
             "أوقف الاستماع الآن",
             "أوقف الميكروفون",
@@ -87,5 +106,18 @@ object VoiceSessionCommandHandler {
         )
 
         return normalized in stopPhrases
+    }
+
+    private fun String.removeLeadingPoliteness(): String {
+        val prefixes = listOf(
+            "please ", "kindly ", "just ", "zara ", "please just ",
+            "براہ کرم ", "مہربانی کرکے ", "مہربانی کر کے ", "ذرا ",
+            "کرم کرکے ", "کرم کر کے ",
+            "कृपया ", "ज़रा ", "जरा ",
+            "من فضلك ", "رجاء ", "لو سمحت "
+        )
+        return prefixes.firstOrNull { startsWith(it) }
+            ?.let { removePrefix(it).trim() }
+            ?: this
     }
 }
