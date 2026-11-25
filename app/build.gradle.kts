@@ -52,6 +52,4 @@ dependencies {
     // Urdu offline speech recognition using whisper.cpp (file-based inference).
     implementation("dev.ffmpegkit-maintained:whisper-android:1.0.0")
 
-    // Vosk remains temporarily during the staged migration; it will be removed
-    // after the Urdu microphone pipeline is integrated and verified.
 }
