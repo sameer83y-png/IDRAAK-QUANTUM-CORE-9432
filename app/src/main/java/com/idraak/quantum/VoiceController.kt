@@ -22,9 +22,10 @@ import kotlin.math.abs
 import kotlinx.coroutines.runBlocking
 
 /**
- * Urdu-only offline voice controller.
- * Captures 16 kHz mono PCM, writes a WAV file, and transcribes it locally
- * with whisper.cpp. No Android online speech-recognition service is used.
+ * Multilingual offline voice controller.
+ * Captures 16 kHz mono PCM, writes a WAV file, and lets the multilingual
+ * whisper.cpp model detect the spoken language locally. Idraak's responses
+ * remain Urdu. No Android online speech-recognition service is used.
  */
 class VoiceController(
     context: Context,
@@ -118,7 +119,7 @@ class VoiceController(
             return false
         }
         isListening = true
-        onStatusChanged("اردو میں سن رہا ہوں")
+        onStatusChanged("آپ کی آواز سن رہا ہوں")
         try {
             executor.execute { captureAndTranscribe() }
         } catch (_: Exception) {
@@ -134,7 +135,7 @@ class VoiceController(
         var wav: File? = null
         try {
             if (loadedModel == null) {
-                onStatusChanged("اردو آف لائن ماڈل لوڈ ہو رہا ہے")
+                onStatusChanged("آف لائن آواز کا ماڈل لوڈ ہو رہا ہے")
                 loadedModel = runBlocking { Whisper.loadModelFromAsset(appContext, MODEL_ASSET) }
             }
             if (isShutdown || !isListening) return
@@ -200,12 +201,12 @@ class VoiceController(
 
             wav = File(appContext.cacheDir, "idraak_urdu_${SystemClock.elapsedRealtime()}.wav")
             writeWav(wav, pcm.toByteArray())
-            onStatusChanged("اردو آواز سمجھ رہا ہوں")
+            onStatusChanged("آپ کی بات سمجھ رہا ہوں")
             val result = runBlocking {
                 Whisper.transcribe(
                     loadedModel ?: throw IllegalStateException("Urdu model not loaded"),
                     wav.absolutePath,
-                    WhisperConfig(language = "ur")
+                    WhisperConfig(language = "auto")
                 ).text.trim()
             }
 
