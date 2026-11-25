@@ -38,6 +38,15 @@ object OfflineCommandRouter {
             return Result(response = "براہِ کرم اپنا حکم بتائیں۔", intent = "EMPTY")
         }
 
+        LearnedCommandStore.handleTeaching(appContext, originalMessage)?.let { response ->
+            OfflineBrain.recordExperience(
+                context = appContext,
+                intent = "COMMAND_ALIAS_TEACHING",
+                status = "PENDING_VERIFICATION"
+            )
+            return Result(response = response, intent = "COMMAND_ALIAS_TEACHING")
+        }
+
         // A clear refusal must take priority over call/message handlers.
         // Otherwise phrases such as "Rahul ko call mat karo" could be
         // mistaken for a request to open the call flow.
