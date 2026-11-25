@@ -103,7 +103,7 @@ object OfflinePhoneCommandHandler {
 
         val prefixes = listOf(
             "could you please open ", "please open the ", "could you open ", "please launch ",
-            "open the app ", "open app ", "open the ", "open up ", "launch the app ", "launch ",
+            "open the app ", "open app ", "open the ", "open up ", "open ", "launch the app ", "launch ",
             "start the app ", "start app ", "start ", "run the app ", "run ",
             "app open karo ", "app kholo ", "app khol do ", "zara kholo ", "zara khol do ",
             "khol do ", "kholo ", "kholiye ", "chalu karo ", "ऐप खोल दो ", "ऐप खोलो ",
