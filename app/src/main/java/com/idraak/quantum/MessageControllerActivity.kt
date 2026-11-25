@@ -11,11 +11,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import com.idraak.quantum.engine.CallController
 
 /**
- * Safe SMS composition:
- * - User selects the recipient with Android's contact picker.
- * - Idraak shows the exact recipient and message for confirmation.
- * - Android's SMS app opens with the message filled in.
- * - The user presses Send manually; Idraak never sends silently.
+ * Safe local message composition:
+ * - The user chooses SMS or another installed sharing app (such as WhatsApp).
+ * - SMS recipient is selected with Android's contact picker and confirmed.
+ * - WhatsApp/share text is handed to Android's app chooser.
+ * - Idraak never sends a message silently.
  */
 class MessageControllerActivity : ComponentActivity() {
 
@@ -42,7 +42,7 @@ class MessageControllerActivity : ComponentActivity() {
                 return@registerForActivityResult
             }
 
-            showMessageConfirmation(contact.name, contact.phoneNumber)
+            showSmsConfirmation(contact.name, contact.phoneNumber)
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,6 +55,24 @@ class MessageControllerActivity : ComponentActivity() {
             return
         }
 
+        showDeliveryChoice()
+    }
+
+    private fun showDeliveryChoice() {
+        AlertDialog.Builder(this)
+            .setTitle("मैसेज किस ऐप से तैयार करना है?")
+            .setItems(arrayOf("SMS", "WhatsApp / दूसरा ऐप")) { _, which ->
+                when (which) {
+                    0 -> openContactPicker()
+                    1 -> openShareChooser()
+                    else -> finish()
+                }
+            }
+            .setOnCancelListener { finish() }
+            .show()
+    }
+
+    private fun openContactPicker() {
         try {
             contactPicker.launch(CallController.createContactPickerIntent())
         } catch (_: ActivityNotFoundException) {
@@ -66,7 +84,7 @@ class MessageControllerActivity : ComponentActivity() {
         }
     }
 
-    private fun showMessageConfirmation(name: String, number: String) {
+    private fun showSmsConfirmation(name: String, number: String) {
         val confirmationText = listOf(
             "किसे मैसेज भेजना है:",
             name,
@@ -108,6 +126,23 @@ class MessageControllerActivity : ComponentActivity() {
             finish()
         } catch (_: Exception) {
             showMessage("SMS ऐप नहीं खुल सका।")
+            finish()
+        }
+    }
+
+    private fun openShareChooser() {
+        try {
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, messageBody)
+            }
+            startActivity(Intent.createChooser(shareIntent, "मैसेज भेजने के लिए ऐप चुनें"))
+            finish()
+        } catch (_: ActivityNotFoundException) {
+            showMessage("मैसेज शेयर करने के लिए कोई ऐप उपलब्ध नहीं है।")
+            finish()
+        } catch (_: Exception) {
+            showMessage("शेयर स्क्रीन नहीं खुल सकी।")
             finish()
         }
     }
