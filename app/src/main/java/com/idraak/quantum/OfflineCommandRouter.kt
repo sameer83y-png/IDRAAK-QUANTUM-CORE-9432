@@ -50,7 +50,7 @@ object OfflineCommandRouter {
             "मत", "मत करो", "नहीं", "नही",
             "نہیں", "مت", "مت کرو"
         ).any { phrase ->
-            Regex("(^|\\\\s)" + Regex.escape(phrase) + "(?=\\\\s|$)")
+            Regex("(^|\\s)" + Regex.escape(phrase) + "(?=\\s|$)")
                 .containsMatchIn(normalizedRefusalText)
         }
         val mentionsCallAction = listOf(
