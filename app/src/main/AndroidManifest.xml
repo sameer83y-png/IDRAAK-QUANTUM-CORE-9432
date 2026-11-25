@@ -70,6 +70,13 @@
             android:name=".MessageControllerActivity"
             android:exported="false" />
 
+        <!-- Runs a queued voice command only after the user taps the notification action. -->
+        <activity
+            android:name=".ForegroundCommandActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <!-- Background Voice Service -->
         <service
             android:name=".VoiceForegroundService"

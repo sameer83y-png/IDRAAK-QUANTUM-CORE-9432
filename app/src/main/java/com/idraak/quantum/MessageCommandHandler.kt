@@ -14,10 +14,15 @@ object MessageCommandHandler {
         val targetPackage: String?
     )
 
-    fun tryHandle(context: Context, command: String): String? {
+    fun tryHandle(context: Context, command: String, launchActivity: Boolean = true): String? {
         val request = extractRequest(command) ?: return null
         if (request.body.isBlank()) {
             return "मैसेज का टेक्स्ट बताइए। उदाहरण: राहुल को WhatsApp पर मैसेज भेजो कि मैं घर आ रहा हूँ।"
+        }
+
+        if (!launchActivity) {
+            val destination = request.targetPackage?.let { "चुने हुए ऐप" } ?: "SMS या उपलब्ध मैसेजिंग ऐप"
+            return "मैसेज तैयार है। Idraak खोलकर पुष्टि करें और $destination में प्राप्तकर्ता चुनें।"
         }
 
         return try {

@@ -17,9 +17,8 @@ object CameraController {
         val message: String
     )
 
-    fun executeCameraCommand(context: Context, command: String): Result? {
+    fun isCameraCommand(command: String): Boolean {
         val value = command.trim().lowercase(Locale.ROOT)
-
         val cameraPhrases = listOf(
             "open camera", "launch camera", "start camera", "camera kholo",
             "camera khol do", "कैमरा खोलो", "कैमरा खोल दो", "कैमरा चालू करो",
@@ -33,10 +32,19 @@ object CameraController {
             "तस्वीर लो", "تصویر لو", "تصویر کھینچو"
         )
 
-        val shouldCapture = photoPhrases.any { value.contains(it) }
-        val shouldOpenCamera = shouldCapture ||
-            cameraPhrases.any { value.contains(it) }
+        return photoPhrases.any { value.contains(it) } || cameraPhrases.any { value.contains(it) }
+    }
 
+    fun executeCameraCommand(context: Context, command: String): Result? {
+        val value = command.trim().lowercase(Locale.ROOT)
+        val photoPhrases = listOf(
+            "take photo", "take a photo", "click photo", "snap photo",
+            "photo lo", "photo lena", "photo kheecho", "photo khincho",
+            "फोटो लो", "फोटो लेना है", "फोटो खींचो", "फोटो खींच दो",
+            "तस्वीर लो", "تصویر لو", "تصویر کھینچو"
+        )
+        val shouldCapture = photoPhrases.any { value.contains(it) }
+        val shouldOpenCamera = isCameraCommand(command)
         if (!shouldOpenCamera) return null
 
         return try {

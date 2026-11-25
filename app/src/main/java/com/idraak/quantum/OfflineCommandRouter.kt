@@ -23,10 +23,11 @@ object OfflineCommandRouter {
         val requiresCameraPermission: Boolean = false,
         val torchEnabled: Boolean? = null,
         val requiresBrightnessPermission: Boolean = false,
+        val requiresForegroundUi: Boolean = false,
         val intent: String = "UNKNOWN"
     )
 
-    fun process(context: Context, command: String): Result {
+    fun process(context: Context, command: String, allowForegroundUi: Boolean = true): Result {
         val appContext = context.applicationContext
         val message = command.trim()
 
@@ -34,15 +35,16 @@ object OfflineCommandRouter {
             return Result(response = "कृपया कोई कमांड बोलिए।", intent = "EMPTY")
         }
 
-        if (CallCommandHandler.tryHandle(context, message)) {
+        if (CallCommandHandler.tryHandle(context, message, launchActivity = allowForegroundUi)) {
             return Result(
-                response = "कॉन्टैक्ट चुनिए। उसके बाद Dialer खोलने से पहले पुष्टि होगी।",
+                response = if (allowForegroundUi) "कॉन्टैक्ट चुनिए। उसके बाद Dialer खोलने से पहले पुष्टि होगी।" else "कॉल कमांड तैयार है।",
+                requiresForegroundUi = !allowForegroundUi,
                 intent = "SAFE_CALL"
             )
         }
 
         // Prepare an SMS offline and let the user confirm before opening the SMS app.
-        val messageResponse = MessageCommandHandler.tryHandle(context, message)
+        val messageResponse = MessageCommandHandler.tryHandle(context, message, launchActivity = allowForegroundUi)
         if (messageResponse != null) {
             OfflineBrain.recordExperience(
                 context = appContext,
@@ -50,7 +52,7 @@ object OfflineCommandRouter {
                 status = "AWAITING_USER_CONFIRMATION",
                 steps = listOf(message, messageResponse)
             )
-            return Result(response = messageResponse, intent = "MESSAGE_COMPOSE")
+            return Result(response = messageResponse, requiresForegroundUi = !allowForegroundUi, intent = "MESSAGE_COMPOSE")
         }
 
         // Screen commands use the user's explicitly enabled Android Accessibility service.
@@ -118,6 +120,13 @@ object OfflineCommandRouter {
         }
 
         // Open the installed camera app; the user controls capture and saving.
+        if (!allowForegroundUi && CameraController.isCameraCommand(message)) {
+            return Result(
+                response = "कैमरा कमांड तैयार है। आगे बढ़ने के लिए Idraak नोटिफिकेशन में OPEN & RUN दबाइए।",
+                requiresForegroundUi = true,
+                intent = "CAMERA_OPEN"
+            )
+        }
         val cameraResult = CameraController.executeCameraCommand(appContext, message)
         if (cameraResult != null) {
             OfflineBrain.recordExperience(
@@ -133,6 +142,14 @@ object OfflineCommandRouter {
         }
 
         val decision = OfflineBrain.understand(message)
+
+        if (!allowForegroundUi && decision.intent == "OPEN_APP") {
+            return Result(
+                response = "ऐप खोलने की कमांड तैयार है। आगे बढ़ने के लिए Idraak नोटिफिकेशन में OPEN & RUN दबाइए।",
+                requiresForegroundUi = true,
+                intent = "OPEN_APP"
+            )
+        }
 
         if (decision.intent == "FLASHLIGHT") {
             val enabled = requestedTorchState(message)

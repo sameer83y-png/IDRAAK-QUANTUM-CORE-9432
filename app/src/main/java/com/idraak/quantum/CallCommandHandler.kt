@@ -15,7 +15,8 @@ object CallCommandHandler {
 
     fun tryHandle(
         context: Context,
-        message: String
+        message: String,
+        launchActivity: Boolean = true
     ): Boolean {
 
         val command = message
@@ -112,6 +113,8 @@ object CallCommandHandler {
         ) {
             return false
         }
+
+        if (!launchActivity) return true
 
         return try {
             val intent = Intent(

@@ -150,7 +150,8 @@ class VoiceForegroundService : Service() {
         val result = try {
             OfflineCommandRouter.process(
                 context = applicationContext,
-                command = command
+                command = command,
+                allowForegroundUi = false
             )
         } catch (error: Exception) {
             OfflineCommandRouter.Result(
@@ -161,6 +162,14 @@ class VoiceForegroundService : Service() {
         }
 
         if (!serviceActive) return
+
+        if (result.requiresForegroundUi) {
+            showForegroundCommandAction(command)
+            val response = "कमांड तैयार है। Idraak के नोटिफिकेशन में OPEN & RUN दबाकर इसे आगे बढ़ाइए।"
+            sendResponse(response)
+            voiceController?.speak(response)
+            return
+        }
 
         // Android permission screens must be opened from the visible app.
         // Never try to bypass background-activity or runtime-permission rules.
@@ -232,7 +241,12 @@ class VoiceForegroundService : Service() {
         }
     }
 
-    private fun createNotification(): Notification {
+    private fun showForegroundCommandAction(command: String) {
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.notify(NOTIFICATION_ID, createNotification(command))
+    }
+
+    private fun createNotification(pendingCommand: String? = null): Notification {
         val openAppIntent = Intent(
             this,
             MainActivity::class.java
@@ -267,24 +281,36 @@ class VoiceForegroundService : Service() {
                     PendingIntent.FLAG_IMMUTABLE
             )
 
-        return NotificationCompat.Builder(
-            this,
-            CHANNEL_ID
-        )
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentTitle("IDRAAK is listening")
             .setContentText(
-                "Offline voice control is active. Tap STOP to end listening."
+                if (pendingCommand.isNullOrBlank()) {
+                    "Offline voice control is active. Tap STOP to end listening."
+                } else {
+                    "कमांड तैयार है। आगे बढ़ने के लिए OPEN & RUN दबाइए।"
+                }
             )
             .setContentIntent(openAppPendingIntent)
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .addAction(
-                android.R.drawable.ic_media_pause,
-                "STOP",
-                stopPendingIntent
+
+        if (!pendingCommand.isNullOrBlank()) {
+            val commandIntent = Intent(this, ForegroundCommandActivity::class.java).apply {
+                putExtra(ForegroundCommandActivity.EXTRA_COMMAND, pendingCommand)
+            }
+            val commandPendingIntent = PendingIntent.getActivity(
+                this,
+                102,
+                commandIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            .build()
+            builder.addAction(android.R.drawable.ic_media_play, "OPEN & RUN", commandPendingIntent)
+        }
+
+        builder.addAction(android.R.drawable.ic_media_pause, "STOP", stopPendingIntent)
+        return builder.build()
     }
 
     private fun sendStatus(status: String) {
