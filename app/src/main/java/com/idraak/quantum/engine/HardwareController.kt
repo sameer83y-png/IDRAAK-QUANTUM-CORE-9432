@@ -137,11 +137,17 @@ object HardwareController {
                 else -> 0
             }
 
-            Settings.System.putInt(
+            val brightnessSaved = Settings.System.putInt(
                 context.contentResolver,
                 Settings.System.SCREEN_BRIGHTNESS,
                 next
             )
+            if (!brightnessSaved) {
+                return Result(
+                    success = false,
+                    message = "Android ने स्क्रीन ब्राइटनेस बदलने की अनुमति नहीं दी। Settings में Modify System Settings जाँचें।"
+                )
+            }
             Result(
                 success = true,
                 message = when (action) {
