@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
+import android.media.audiofx.AcousticEchoCanceler
 import android.media.MediaRecorder
 import android.os.Bundle
 import android.os.SystemClock
@@ -38,6 +39,7 @@ class VoiceController(
         LANGUAGE_PREFERENCES, Context.MODE_PRIVATE
     )
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
+    private val transcriptionExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private var textToSpeech: TextToSpeech? = null
     @Volatile private var isTtsReady = false
     @Volatile private var isTtsInitializationComplete = false
@@ -45,6 +47,7 @@ class VoiceController(
     @Volatile private var isShutdown = false
     @Volatile private var isListening = false
     @Volatile private var activeRecorder: AudioRecord? = null
+    @Volatile private var activeEchoCanceler: AcousticEchoCanceler? = null
     @Volatile private var loadedModel: WhisperModel? = null
     @Volatile private var lastDeliveredText = ""
     @Volatile private var lastDeliveredTime = 0L
@@ -159,7 +162,7 @@ class VoiceController(
                 throw SecurityException("مائیکروفون کی اجازت دستیاب نہیں ہے")
             }
             recorder = AudioRecord(
-                MediaRecorder.AudioSource.MIC, SAMPLE_RATE,
+                MediaRecorder.AudioSource.VOICE_COMMUNICATION, SAMPLE_RATE,
                 AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT,
                 maxOf(minBuffer, SAMPLE_RATE * 2)
             )
@@ -167,6 +170,11 @@ class VoiceController(
                 throw IllegalStateException("Microphone could not be initialized")
             }
             activeRecorder = recorder
+            activeEchoCanceler = if (AcousticEchoCanceler.isAvailable()) {
+                AcousticEchoCanceler.create(recorder.audioSessionId)?.also { effect ->
+                    if (!effect.enabled) effect.enabled = true
+                }
+            } else null
             recorder.startRecording()
 
             val pcm = java.io.ByteArrayOutputStream()
@@ -222,32 +230,42 @@ class VoiceController(
             wav = File(appContext.cacheDir, "idraak_urdu_${SystemClock.elapsedRealtime()}.wav")
             writeWav(wav, pcm.toByteArray())
             onStatusChanged("آپ کی بات سمجھ رہا ہوں")
-            val result = runBlocking {
-                Whisper.transcribe(
-                    loadedModel ?: throw IllegalStateException("Urdu model not loaded"),
-                    wav.absolutePath,
-                    WhisperConfig(language = "auto")
-                ).text.trim()
-            }
 
-            if (isShutdown || !isListening) return
-            if (result.isNotBlank()) {
-                val now = SystemClock.elapsedRealtime()
-                if (result != lastDeliveredText || now - lastDeliveredTime > 1200L) {
-                    lastDeliveredText = result
-                    lastDeliveredTime = now
-                    isListening = false
-                    onStatusChanged("آپ کی بات سمجھ لی")
-                    onSpeechResult(result)
-                } else {
-                    // A duplicate transcript is still the end of this capture.
-                    isListening = false
-                    onSpeechFinished()
+            // Resume microphone capture immediately while Whisper works on the
+            // previous segment. This enables listening during command processing
+            // and, when AEC is active, while Urdu TTS is speaking.
+            isListening = false
+            onSpeechFinished()
+            val transcriptionFile = wav
+            wav = null
+            transcriptionExecutor.execute {
+                try {
+                    val result = runBlocking {
+                        Whisper.transcribe(
+                            loadedModel ?: throw IllegalStateException("Urdu model not loaded"),
+                            transcriptionFile.absolutePath,
+                            WhisperConfig(language = "auto")
+                        ).text.trim()
+                    }
+                    if (isShutdown) return@execute
+                    if (result.isNotBlank()) {
+                        val now = SystemClock.elapsedRealtime()
+                        if (result != lastDeliveredText || now - lastDeliveredTime > 1200L) {
+                            lastDeliveredText = result
+                            lastDeliveredTime = now
+                            onStatusChanged("آپ کی بات سمجھ لی")
+                            onSpeechResult(result)
+                        }
+                    } else {
+                        onStatusChanged("بات سمجھ نہیں آئی، ذرا دوبارہ کہیں")
+                    }
+                } catch (error: Exception) {
+                    if (!isShutdown) {
+                        onStatusChanged("اردو آف لائن آواز میں مسئلہ: ${error.localizedMessage ?: "نامعلوم خرابی"}")
+                    }
+                } finally {
+                    transcriptionFile.delete()
                 }
-            } else {
-                isListening = false
-                onStatusChanged("بات سمجھ نہیں آئی، ذرا دوبارہ کہیں")
-                onSpeechFinished()
             }
         } catch (error: Exception) {
             if (!isShutdown) {
@@ -259,6 +277,8 @@ class VoiceController(
             try { recorder?.let { if (it.recordingState == AudioRecord.RECORDSTATE_RECORDING) it.stop() } } catch (_: Exception) {}
             try { recorder?.release() } catch (_: Exception) {}
             activeRecorder = null
+            try { activeEchoCanceler?.release() } catch (_: Exception) {}
+            activeEchoCanceler = null
             wav?.delete()
         }
     }
@@ -298,11 +318,16 @@ class VoiceController(
     fun cancelListening() {
         isListening = false
         try { activeRecorder?.stop() } catch (_: Exception) {}
+        try { activeEchoCanceler?.release() } catch (_: Exception) {}
+        activeEchoCanceler = null
         if (!isShutdown) onStatusChanged("سننا روک دیا گیا")
     }
 
     fun speak(text: String) {
         if (isShutdown || text.isBlank()) return
+        // Never keep an unfiltered microphone open during speaker output.
+        // Devices without working AEC retain the safe listen-then-speak fallback.
+        if (isListening && activeEchoCanceler?.enabled != true) cancelListening()
         val tts = textToSpeech
         if (tts == null || !isTtsReady) {
             if (isTtsInitializationComplete) {
@@ -331,6 +356,8 @@ class VoiceController(
         isShutdown = true
         isListening = false
         try { activeRecorder?.stop() } catch (_: Exception) {}
+        try { activeEchoCanceler?.release() } catch (_: Exception) {}
+        activeEchoCanceler = null
         activeRecorder = null
         val modelToRelease = loadedModel
         loadedModel = null
@@ -341,9 +368,11 @@ class VoiceController(
                 }
             }
             executor.shutdown()
+            transcriptionExecutor.shutdown()
         } catch (_: Exception) {
             try { modelToRelease?.let { Whisper.releaseModel(it) } } catch (_: Exception) {}
             executor.shutdown()
+            transcriptionExecutor.shutdownNow()
         }
         textToSpeech?.stop()
         textToSpeech?.shutdown()
