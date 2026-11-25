@@ -30,7 +30,7 @@ object WebNavigationCommandHandler {
         val request = parseRequest(command) ?: return null
 
         if (!launchActivity) {
-            return "वेबसाइट या सर्च तैयार है। आगे बढ़ने के लिए Idraak नोटिफिकेशन में OPEN & RUN दबाइए।"
+            return "ویب سائٹ یا تلاش تیار ہے۔ جاری رکھنے کے لیے ادراک کی اطلاع میں کھولنے کا اختیار دبائیں۔"
         }
 
         return try {
@@ -40,9 +40,9 @@ object WebNavigationCommandHandler {
             context.applicationContext.startActivity(intent)
             request.description
         } catch (_: ActivityNotFoundException) {
-            "इस लिंक को खोलने के लिए कोई समर्थित Browser या ऐप उपलब्ध नहीं है।"
+            "اس لنک کو کھولنے کے لیے کوئی موزوں براؤزر یا ایپ دستیاب نہیں۔"
         } catch (_: Exception) {
-            "वेबसाइट या सर्च स्क्रीन नहीं खुल सकी। कृपया दोबारा कोशिश करें।"
+            "ویب سائٹ یا تلاش نہیں کھل سکی۔ دوبارہ کوشش کریں۔"
         }
     }
 
@@ -130,9 +130,9 @@ object WebNavigationCommandHandler {
             return Request(
                 uri = uri,
                 description = if (isYouTube) {
-                    "YouTube सर्च बाहरी ऐप या Browser में खोल रहा हूँ।"
+                    "یوٹیوب پر تلاش کھول رہا ہوں۔"
                 } else {
-                    "वेब सर्च बाहरी Browser में खोल रहा हूँ।"
+                    "ویب تلاش کھول رہا ہوں۔"
                 }
             )
         }
@@ -199,7 +199,7 @@ object WebNavigationCommandHandler {
 
         return Request(
             uri = uri,
-            description = "वेबसाइट बाहरी Browser में खोल रहा हूँ।"
+            description = "ویب سائٹ کھول رہا ہوں۔"
         )
     }
 
