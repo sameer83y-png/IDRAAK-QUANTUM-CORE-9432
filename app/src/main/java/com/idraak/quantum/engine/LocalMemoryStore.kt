@@ -423,6 +423,53 @@ object LocalMemoryStore {
     }
 
     /**
+     * Edit an existing memory.
+     *
+     * Edited information is always returned to PENDING so a previously
+     * verified fact cannot silently remain trusted after being changed.
+     */
+    fun update(
+        context: Context,
+        memoryId: String,
+        title: String,
+        content: String
+    ): Boolean {
+        val safeTitle = title.trim()
+        val safeContent = content.trim()
+
+        if (memoryId.isBlank() || safeTitle.isBlank() || safeContent.isBlank()) {
+            return false
+        }
+
+        if (containsSensitivePattern(safeTitle) || containsSensitivePattern(safeContent)) {
+            return false
+        }
+
+        return synchronized(lock) {
+            try {
+                val memories = readArray(context)
+                var found = false
+
+                for (index in 0 until memories.length()) {
+                    val item = memories.optJSONObject(index) ?: continue
+                    if (item.optString("id") == memoryId) {
+                        item.put("title", safeTitle)
+                        item.put("content", safeContent)
+                        item.put("status", Status.PENDING.name)
+                        item.put("updatedAt", System.currentTimeMillis())
+                        found = true
+                        break
+                    }
+                }
+
+                if (found) writeArray(context, memories) else false
+            } catch (_: Exception) {
+                false
+            }
+        }
+    }
+
+    /**
      * Delete one memory.
      */
     fun delete(
