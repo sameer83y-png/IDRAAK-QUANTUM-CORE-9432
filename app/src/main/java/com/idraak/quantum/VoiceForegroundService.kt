@@ -147,17 +147,34 @@ class VoiceForegroundService : Service() {
         voiceController?.cancelListening()
         sendCommand(command)
 
-        val response = try {
+        val result = try {
             OfflineCommandRouter.process(
                 context = applicationContext,
                 command = command
-            ).response
+            )
         } catch (error: Exception) {
-            "कमांड पूरी नहीं हो सकी। " +
-                (error.localizedMessage ?: "Unknown error")
+            OfflineCommandRouter.Result(
+                response = "कमांड पूरी नहीं हो सकी। " +
+                    (error.localizedMessage ?: "Unknown error"),
+                intent = "ERROR"
+            )
         }
 
         if (!serviceActive) return
+
+        // Android permission screens must be opened from the visible app.
+        // Never try to bypass background-activity or runtime-permission rules.
+        val response = when {
+            result.requiresBrightnessPermission ->
+                result.response +
+                    " ब्राइटनेस की अनुमति देने के लिए Idraak ऐप खोलिए, फिर यही कमांड दोबारा बोलिए।"
+
+            result.requiresCameraPermission ->
+                result.response +
+                    " टॉर्च की अनुमति देने के लिए Idraak ऐप खोलिए, फिर यही कमांड दोबारा बोलिए।"
+
+            else -> result.response
+        }
 
         sendResponse(response)
         voiceController?.speak(response)
