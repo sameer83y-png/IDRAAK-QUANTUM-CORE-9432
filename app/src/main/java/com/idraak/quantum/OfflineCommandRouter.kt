@@ -40,6 +40,54 @@ object OfflineCommandRouter {
             return Result(response = "براہِ کرم اپنا حکم بتائیں۔", intent = "EMPTY")
         }
 
+        // Execute clearly chained commands in order. Only explicit sequence words
+        // are treated as separators, so ordinary Urdu "اور" does not split a phrase.
+        val sequenceParts = splitSequentialCommands(originalMessage)
+        if (sequenceParts.size in 2..4) {
+            val completedSteps = mutableListOf<String>()
+            for ((index, step) in sequenceParts.withIndex()) {
+                val stepResult = process(
+                    context = appContext,
+                    command = step,
+                    allowForegroundUi = allowForegroundUi
+                )
+                completedSteps += "${index + 1}. ${stepResult.response}"
+
+                val mustStop = stepResult.requiresCameraPermission ||
+                    stepResult.requiresBrightnessPermission ||
+                    stepResult.requiresForegroundUi ||
+                    stepResult.intent in setOf(
+                        "CLICK_CONFIRMATION_REQUIRED",
+                        "CANCELLED",
+                        "UNKNOWN",
+                        "EMPTY",
+                        "SERVICE_DISABLED",
+                        "SCREEN_READ_EMPTY",
+                        "TYPE_TEXT_FAILED",
+                        "ACTION_FAILED",
+                        "ACTION_ERROR"
+                    ) ||
+                    stepResult.intent.endsWith("_FAILED")
+
+                if (mustStop) {
+                    completedSteps += "اگلا مرحلہ روک دیا گیا ہے۔ پہلے اس مرحلے کو مکمل یا منظور کریں۔"
+                    return Result(
+                        response = "ترتیب وار کام کی رپورٹ:\\n" + completedSteps.joinToString("\\n"),
+                        requiresCameraPermission = stepResult.requiresCameraPermission,
+                        torchEnabled = stepResult.torchEnabled,
+                        requiresBrightnessPermission = stepResult.requiresBrightnessPermission,
+                        requiresForegroundUi = stepResult.requiresForegroundUi,
+                        intent = "SEQUENCE_PAUSED"
+                    )
+                }
+            }
+
+            return Result(
+                response = "ترتیب وار کام مکمل ہوا:\\n" + completedSteps.joinToString("\\n"),
+                intent = "SEQUENCE_COMPLETED"
+            )
+        }
+
         LearnedCommandStore.handleTeaching(appContext, originalMessage)?.let { response ->
             OfflineBrain.recordExperience(
                 context = appContext,
@@ -304,6 +352,16 @@ object OfflineCommandRouter {
                 intent = decision.intent
             )
         }
+    }
+
+    private fun splitSequentialCommands(command: String): List<String> {
+        val separator = Regex(
+            """(?i)\\s+(?:اور\\s+پھر|اس\\s+کے\\s+بعد|and\\s+then|then|پھر|ثم)\\s+"""
+        )
+        return command.split(separator)
+            .map { it.trim().trim(',', '،', ';', '؛', '.') }
+            .filter { it.isNotBlank() }
+            .take(5)
     }
 
     fun executeTorch(context: Context, originalCommand: String, enabled: Boolean): Result {
