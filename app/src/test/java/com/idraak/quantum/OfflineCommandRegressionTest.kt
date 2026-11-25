@@ -345,4 +345,21 @@ class OfflineCommandRegressionTest {
         assertFalse(VoiceSessionCommandHandler.isStopListeningCommand("من فضلك افتح الكاميرا"))
     }
 
+
+    @Test
+    fun extractsAppNameWhenAssistantNameAndPoliteWordsAreIncluded() {
+        assertEquals(
+            "youtube",
+            OfflinePhoneCommandHandler.extractAppName("Idraak, please open YouTube")
+        )
+        assertEquals(
+            "یوٹیوب",
+            OfflinePhoneCommandHandler.extractAppName("ادراک، ذرا یوٹیوب کھول دو")
+        )
+        assertEquals(
+            "यूट्यूब",
+            OfflinePhoneCommandHandler.extractAppName("इद्राक, कृपया यूट्यूब खोलो")
+        )
+    }
+
 }
