@@ -5,6 +5,7 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
 import android.os.Build
+import android.os.Bundle
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import java.util.Locale
@@ -36,6 +37,73 @@ class ScreenControlService : AccessibilityService() {
     override fun onUnbind(intent: android.content.Intent?): Boolean {
         ScreenControlBridge.detach(this)
         return super.onUnbind(intent)
+    }
+
+    internal fun readVisibleScreenText(): String? {
+        val root = rootInActiveWindow ?: return null
+        val collected = linkedSetOf<String>()
+        collectVisibleText(root, collected, 0)
+        return collected.joinToString(". ").take(1200).ifBlank { null }
+    }
+
+    private fun collectVisibleText(
+        node: AccessibilityNodeInfo,
+        collected: MutableSet<String>,
+        depth: Int
+    ) {
+        if (depth > 40 || collected.sumOf { it.length } >= 1200) return
+        try {
+            if (node.isVisibleToUser && !node.isPassword && !node.isEditable) {
+                val text = node.text?.toString()?.trim().orEmpty()
+                val description = node.contentDescription?.toString()?.trim().orEmpty()
+                if (text.isNotBlank()) collected.add(text)
+                if (description.isNotBlank()) collected.add(description)
+            }
+            for (index in 0 until node.childCount) {
+                if (collected.sumOf { it.length } >= 1200) break
+                val child = node.getChild(index) ?: continue
+                collectVisibleText(child, collected, depth + 1)
+            }
+        } catch (_: Exception) {
+            // Some apps expose only part of their accessibility tree.
+        }
+    }
+
+    internal fun typeTextInFocusedField(text: String): Boolean {
+        if (text.isBlank() || text.length > 2000) return false
+        val root = rootInActiveWindow ?: return false
+        val target = findFocusedEditableNode(root, 0) ?: return false
+        return try {
+            val arguments = Bundle().apply {
+                putCharSequence(
+                    AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+                    text
+                )
+            }
+            target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun findFocusedEditableNode(
+        node: AccessibilityNodeInfo,
+        depth: Int
+    ): AccessibilityNodeInfo? {
+        if (depth > 40) return null
+        try {
+            if (node.isVisibleToUser && node.isEnabled && node.isEditable && node.isFocused) {
+                return node
+            }
+            for (index in 0 until node.childCount) {
+                val child = node.getChild(index) ?: continue
+                val match = findFocusedEditableNode(child, depth + 1)
+                if (match != null) return match
+            }
+        } catch (_: Exception) {
+            return null
+        }
+        return null
     }
 
     internal fun clickTextOnScreen(text: String): Boolean {
@@ -340,6 +408,15 @@ object ScreenControlBridge {
 
     fun isServiceConnected(): Boolean {
         return activeService != null
+    }
+
+    fun readVisibleScreenText(): String? {
+        return activeService?.readVisibleScreenText()
+    }
+
+    fun typeTextInFocusedField(text: String): Boolean {
+        if (text.isBlank() || text.length > 2000) return false
+        return activeService?.typeTextInFocusedField(text) ?: false
     }
 
     fun tapText(text: String): Boolean {
