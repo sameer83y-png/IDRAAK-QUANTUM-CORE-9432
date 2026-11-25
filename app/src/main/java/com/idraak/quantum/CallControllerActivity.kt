@@ -50,11 +50,11 @@ class CallControllerActivity : ComponentActivity() {
                 CallController.createContactPickerIntent()
             )
         } catch (_: ActivityNotFoundException) {
-            showMessage("आपके फोन में Contact Picker उपलब्ध नहीं है।")
+            showMessage("آپ کے فون میں رابطہ منتخب کرنے کی سہولت دستیاب نہیں۔")
             finish()
         } catch (error: Exception) {
             showMessage(
-                "Contact Picker नहीं खुल सका: " +
+                "رابطہ منتخب کرنے کی اسکرین نہیں کھل سکی: " +
                     (error.localizedMessage ?: "Unknown error")
             )
             finish()
@@ -66,14 +66,14 @@ class CallControllerActivity : ComponentActivity() {
         number: String
     ) {
         AlertDialog.Builder(this)
-            .setTitle("Confirm Contact")
+            .setTitle("رابطے کی تصدیق")
             .setMessage(
-                "क्या आप इस कॉन्टैक्ट का नंबर Dialer में खोलना चाहते हैं?\n\n" +
-                    "नाम: $name\n" +
-                    "नंबर: $number\n\n" +
-                    "कॉल करने से पहले आप Dialer में नंबर जाँच सकते हैं।"
+                "کیا آپ اس رابطے کا نمبر فون ایپ میں کھولنا چاہتے ہیں؟\n\n" +
+                    "نام: $name\n" +
+                    "نمبر: $number\n\n" +
+                    "کال سے پہلے آپ فون ایپ میں نمبر دیکھ سکتے ہیں۔"
             )
-            .setPositiveButton("OPEN DIALER") { _, _ ->
+            .setPositiveButton("فون ایپ کھولیں") { _, _ ->
 
                 val result = CallController.openDialer(
                     context = this,
@@ -83,8 +83,8 @@ class CallControllerActivity : ComponentActivity() {
                 showMessage(result.message)
                 finish()
             }
-            .setNegativeButton("CANCEL") { _, _ ->
-                showMessage("कॉल करने की प्रक्रिया रद्द कर दी गई।")
+            .setNegativeButton("منسوخ کریں") { _, _ ->
+                showMessage("کال کا عمل منسوخ کر دیا گیا ہے۔")
                 finish()
             }
             .setOnCancelListener {
