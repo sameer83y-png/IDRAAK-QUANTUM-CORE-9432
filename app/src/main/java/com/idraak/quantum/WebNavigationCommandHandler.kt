@@ -64,6 +64,9 @@ object WebNavigationCommandHandler {
             "यूट्यूब पर खोजो ",
             "यूट्यूब में खोजो ",
             "یوٹیوب پر تلاش کرو ",
+            "یوٹیوب میں تلاش کرو ",
+            "یوٹیوب پر سرچ کرو ",
+            "یوٹیوب میں سرچ کرو ",
             "search google for ",
             "search on google for ",
             "google search for ",
@@ -85,6 +88,29 @@ object WebNavigationCommandHandler {
         val marker = searchMarkers
             .sortedByDescending { it.length }
             .firstOrNull { value.startsWith(it) }
+
+        // Natural Urdu word order: "یوٹیوب پر [موضوع] تلاش کرو".
+        if (marker == null) {
+            val youtubeLead = listOf("یوٹیوب پر ", "یوٹیوب میں ")
+                .firstOrNull { value.startsWith(it) }
+            val youtubeTail = listOf(
+                " تلاش کرو", " تلاش کریں", " ڈھونڈو", " ڈھونڈیں",
+                " سرچ کرو", " سرچ کریں"
+            ).firstOrNull { value.endsWith(it) }
+            if (youtubeLead != null && youtubeTail != null) {
+                val query = command.trim()
+                    .drop(youtubeLead.length)
+                    .dropLast(youtubeTail.length)
+                    .trim()
+                if (query.isNotBlank()) {
+                    val encoded = Uri.encode(query)
+                    return Request(
+                        uri = Uri.parse("https://www.youtube.com/results?search_query=$encoded"),
+                        description = "یوٹیوب پر آپ کی تلاش کھول رہا ہوں۔"
+                    )
+                }
+            }
+        }
 
         if (marker != null) {
             val query = command.trim().drop(marker.length).trim()
