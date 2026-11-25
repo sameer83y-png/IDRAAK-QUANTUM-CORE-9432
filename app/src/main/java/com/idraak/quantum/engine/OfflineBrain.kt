@@ -98,7 +98,7 @@ object OfflineBrain {
         if (flashlight) {
             return Decision(
                 "FLASHLIGHT",
-                "टॉर्च कंट्रोल की कमांड समझ गया हूँ। Hardware Controller अभी जोड़ना बाकी है।"
+                "टॉर्च कंट्रोल की कमांड समझ गया हूँ।"
             )
         }
 
@@ -583,7 +583,8 @@ object OfflineBrain {
             "kar do", "kar dijiye",
             "कर दो", "कर दीजिए",
             "हाँ", "हां", "जी हाँ", "जी हां", "जी",
-            "جی ہاں", "ہاں", "کر دو"
+            "हाँ कर दो", "हां कर दो", "जी कर दीजिए",
+            "جی ہاں", "ہاں", "کر دو", "جی کر دیں", "ہاں کر دیں", "بالکل"
         ).any { message == normalize(it) }
     }
 
@@ -606,7 +607,8 @@ object OfflineBrain {
             "click on ", "click ",
             "tap on ", "tap ",
             "press ",
-            "क्लिक करो ", "दबाओ "
+            "क्लिक करो ", "दबाओ ",
+            "کلک کرو ", "کلک کریں ", "دباؤ ", "دبائیں "
         )
 
         for (prefix in prefixes) {
@@ -618,7 +620,11 @@ object OfflineBrain {
         val suffixes = listOf(
             " पर क्लिक करो",
             " को क्लिक करो",
-            " दबाओ"
+            " दबाओ",
+            " پر کلک کرو",
+            " کو کلک کرو",
+            " دباؤ",
+            " دبائیں"
         )
 
         for (suffix in suffixes) {
