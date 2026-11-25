@@ -51,6 +51,30 @@ object DeviceSettingsCommandHandler {
                 "إعدادات الصوت", "اعدادات الصوت", "افتح إعدادات الصوت") ->
                 Triple(Settings.ACTION_SOUND_SETTINGS, "آواز", "SOUND_SETTINGS")
 
+            containsAny(value, "airplane mode", "flight mode", "aeroplane mode",
+                "ہوائی جہاز موڈ", "فلائٹ موڈ", "ہوائی جہاز کی ترتیبات",
+                "हवाई जहाज मोड", "एयरप्लेन मोड",
+                "وضع الطيران", "إعدادات وضع الطيران") ->
+                Triple(Settings.ACTION_AIRPLANE_MODE_SETTINGS, "ہوائی جہاز موڈ", "AIRPLANE_MODE_SETTINGS")
+
+            containsAny(value, "battery saver", "battery saving mode", "power saving mode",
+                "بیٹری سیور", "بیٹری بچت موڈ", "توانائی کی بچت",
+                "बैटरी सेवर", "बैटरी बचत मोड",
+                "توفير الطاقة", "وضع توفير الطاقة") ->
+                Triple(Settings.ACTION_BATTERY_SAVER_SETTINGS, "بیٹری سیور", "BATTERY_SAVER_SETTINGS")
+
+            containsAny(value, "accessibility settings", "accessibility options",
+                "رسائی کی ترتیبات", "اسکرین ریڈر کی ترتیبات",
+                "एक्सेसिबिलिटी सेटिंग", "सुलभता सेटिंग",
+                "إعدادات إمكانية الوصول", "إمكانية الوصول") ->
+                Triple(Settings.ACTION_ACCESSIBILITY_SETTINGS, "رسائی کی ترتیبات", "ACCESSIBILITY_SETTINGS")
+
+            containsAny(value, "app settings", "apps settings", "installed apps", "application settings",
+                "ایپس کی ترتیبات", "ایپ کی ترتیبات", "نصب شدہ ایپس",
+                "ऐप सेटिंग", "ऐप्स की सेटिंग", "इंस्टॉल ऐप",
+                "إعدادات التطبيقات", "التطبيقات المثبتة") ->
+                Triple(Settings.ACTION_APPLICATION_SETTINGS, "ایپس", "APPLICATION_SETTINGS")
+
             else -> return null
         }
 
