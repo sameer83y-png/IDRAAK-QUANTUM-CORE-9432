@@ -177,7 +177,8 @@ fun IdraakHomeScreen() {
             onSpeechResult = { result ->
                 mainHandler.post {
                     recognizedSpeech = result
-                    isListening = false
+                    // Capture is restarted before transcription finishes, so
+                    // do not clear the live microphone state here.
                 }
             },
             onStatusChanged = { status ->
@@ -191,11 +192,7 @@ fun IdraakHomeScreen() {
                             status.contains("آواز سننے کا عمل جاری ہے", true) -> {
                             isListening = true
                         }
-                        status.contains("بات سمجھ", true) ||
-                            status.contains("سمجھ رہا ہوں", true) ||
-                            status.contains("جواب دیا جا رہا ہے", true) ||
-                            status.contains("جواب مکمل ہو گیا", true) ||
-                            status.contains("سننا روک دیا گیا", true) ||
+                        status.contains("سننا روک دیا گیا", true) ||
                             status.contains("آواز سننا بند", true) ||
                             status.contains("واضح نہیں آئی", true) ||
                             status.contains("دوبارہ کہیں", true) ||
@@ -407,10 +404,8 @@ fun IdraakHomeScreen() {
         val message = messageText.trim()
         if (message.isEmpty()) return
 
-        // Stop Urdu microphone capture before processing a command or speaking.
-        // This prevents Idraak from hearing its own TTS output as a new command.
-        voiceController.cancelListening()
-
+        // Keep the independent microphone capture active while the offline
+        // command is processed. VoiceController gates speaker overlap on AEC.
         messages.add(ChatMessage(message, true))
         inputText = ""
 
