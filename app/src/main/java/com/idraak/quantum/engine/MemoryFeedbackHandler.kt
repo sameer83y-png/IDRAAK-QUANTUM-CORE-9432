@@ -50,13 +50,13 @@ object MemoryFeedbackHandler {
             now - startedAt > TIMEOUT_MS
         ) {
             reset()
-            return "Correction का समय समाप्त हो गया। कृपया दोबारा बताइए कि क्या गलत था।"
+            return "درستگی کا وقت ختم ہو گیا۔ دوبارہ بتائیں کہ کیا غلط تھا۔"
         }
 
         if (isCancel(message)) {
             if (stage != Stage.IDLE) {
                 reset()
-                return "ठीक है। Correction रद्द कर दिया गया है।"
+                return "ٹھیک ہے، درستگی کا عمل منسوخ کر دیا گیا ہے۔"
             }
             return null
         }
@@ -71,34 +71,34 @@ object MemoryFeedbackHandler {
                 stage = Stage.WAITING_FOR_TOPIC
                 startedAt = now
 
-                return "माफ कीजिए। बताइए, किस जानकारी या विषय में गलती हुई थी?"
+                return "معذرت، بتائیں کس معلومات یا موضوع میں غلطی ہوئی تھی؟"
             }
 
             Stage.WAITING_FOR_TOPIC -> {
                 if (message.length < 2) {
-                    return "कृपया उस जानकारी का विषय थोड़ा स्पष्ट बताइए।"
+                    return "اس معلومات کا موضوع ذرا واضح بتائیں۔"
                 }
 
                 if (message.length > 120) {
-                    return "विषय थोड़ा छोटा करके बताइए।"
+                    return "موضوع ذرا مختصر بتائیں۔"
                 }
 
                 topic = userMessage.trim()
                 stage = Stage.WAITING_FOR_CORRECTION
                 startedAt = now
 
-                return "समझ गया। अब बताइए कि \"$topic\" के बारे में सही जानकारी क्या है?"
+                return "سمجھ گیا۔ اب بتائیں کہ \"$topic\" کے بارے میں درست معلومات کیا ہیں؟"
             }
 
             Stage.WAITING_FOR_CORRECTION -> {
                 val correction = userMessage.trim()
 
                 if (correction.length < 2) {
-                    return "कृपया सही जानकारी स्पष्ट रूप से बताइए।"
+                    return "درست معلومات واضح طور پر بتائیں۔"
                 }
 
                 if (correction.length > 2000) {
-                    return "जानकारी बहुत लंबी है। कृपया इसे 2000 अक्षरों के अंदर लिखें।"
+                    return "معلومات بہت طویل ہیں۔ انہیں دو ہزار حروف کے اندر رکھیں۔"
                 }
 
                 val saved = try {
@@ -114,9 +114,9 @@ object MemoryFeedbackHandler {
                 reset()
 
                 return if (saved) {
-                    "धन्यवाद। आपकी Correction Local Memory में PENDING के रूप में सेव हो गई है। इसे Verified बनाने के लिए Memory Dashboard में जाकर खुद Verify करना होगा।"
+                    "شکریہ۔ آپ کی درستگی مقامی یادداشت میں زیرِ تصدیق محفوظ ہو گئی ہے۔ اسے قابلِ اعتماد بنانے کے لیے یادداشت کے صفحے میں خود تصدیق کریں۔"
                 } else {
-                    "Correction सेव नहीं हो सकी। जानकारी में कोई संवेदनशील विवरण हो सकता है या Storage में समस्या आई है।"
+                    "درستگی محفوظ نہیں ہو سکی۔ معلومات میں نجی تفصیل ہو سکتی ہے یا محفوظ جگہ میں مسئلہ آیا ہے۔"
                 }
             }
         }
