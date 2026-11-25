@@ -408,19 +408,18 @@ fun IdraakHomeScreen() {
             messages.add(ChatMessage(result.response, false))
             voiceController.speakQueued(result.response)
             voiceStatus = "اسکرین کی روشنی کی اجازت درکار ہے"
-            if (PermissionRequestGate.tryMarkSpecialSettingsOpened(context, "modify_system_settings")) {
-                try {
-                    context.startActivity(
-                        Intent(
-                            Settings.ACTION_MANAGE_WRITE_SETTINGS,
-                            Uri.parse("package:${context.packageName}")
-                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    )
-                } catch (error: Exception) {
-                    voiceStatus = "روشنی کی اجازت کی ترتیبات نہیں کھل سکیں"
-                }
-            } else {
-                val response = "روشنی کی خصوصی اجازت پہلے مانگی جا چکی ہے۔ فون کی ترتیبات میں ادراک کے لیے نظام کی ترتیبات بدلنے کی اجازت فعال کریں۔"
+            // Special app access is a settings page, not a one-shot runtime prompt.
+            // If the user returns without granting it, a later explicit brightness
+            // command should be able to reopen the page instead of becoming stuck.
+            try {
+                context.startActivity(
+                    Intent(
+                        Settings.ACTION_MANAGE_WRITE_SETTINGS,
+                        Uri.parse("package:${context.packageName}")
+                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+            } catch (_: Exception) {
+                val response = "روشنی کی اجازت کی ترتیبات نہیں کھل سکیں۔ فون کی ایپ ترتیبات سے ادراک کے لیے نظام کی ترتیبات بدلنے کی اجازت فعال کریں۔"
                 messages.add(ChatMessage(response, false))
                 voiceController.speakQueued(response)
                 voiceStatus = "روشنی کی اجازت کے لیے ترتیبات کھولیں"
