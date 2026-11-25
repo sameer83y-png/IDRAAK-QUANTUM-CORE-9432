@@ -48,37 +48,37 @@ object HardwareController {
 
         return try {
             when {
-                listOf("volume up", "increase volume", "आवाज बढ़ाओ", "वॉल्यूम बढ़ाओ", "आवाज़ तेज करो")
+                listOf("volume up", "increase volume", "आवाज बढ़ाओ", "वॉल्यूम बढ़ाओ", "आवाज़ तेज करो", "volume badhao", "volume tez karo", "awaz badhao", "awaaz tez karo", "آواز بڑھاؤ", "والیوم بڑھاؤ", "آواز تیز کرو")
                     .any { value.contains(it) } -> {
                     audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_RAISE, 0)
                     Result(true, "मीडिया वॉल्यूम बढ़ा दिया गया है।")
                 }
 
-                listOf("volume down", "decrease volume", "आवाज कम करो", "वॉल्यूम कम करो", "आवाज़ धीमी करो")
+                listOf("volume down", "decrease volume", "आवाज कम करो", "वॉल्यूम कम करो", "आवाज़ धीमी करो", "volume kam karo", "awaz kam karo", "awaaz dheemi karo", "آواز کم کرو", "والیوم کم کرو", "آواز آہستہ کرو")
                     .any { value.contains(it) } -> {
                     audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_LOWER, 0)
                     Result(true, "मीडिया वॉल्यूम कम कर दिया गया है।")
                 }
 
-                listOf("mute volume", "mute sound", "आवाज बंद करो", "वॉल्यूम म्यूट करो", "आवाज़ म्यूट")
+                listOf("mute volume", "mute sound", "आवाज बंद करो", "वॉल्यूम म्यूट करो", "आवाज़ म्यूट", "awaz mute karo", "awaaz band karo", "آواز خاموش کرو", "والیوم میوٹ کرو")
                     .any { value.contains(it) } -> {
                     audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_MUTE, 0)
                     Result(true, "मीडिया आवाज़ म्यूट कर दी गई है।")
                 }
 
-                listOf("unmute volume", "sound on", "आवाज चालू करो", "वॉल्यूम अनम्यूट")
+                listOf("unmute volume", "sound on", "आवाज चालू करो", "वॉल्यूम अनम्यूट", "awaz chalu karo", "awaaz on karo", "آواز کھولو", "والیوم اَن میوٹ کرو")
                     .any { value.contains(it) } -> {
                     audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_UNMUTE, 0)
                     Result(true, "मीडिया आवाज़ चालू कर दी गई है।")
                 }
 
-                listOf("maximum volume", "volume full", "आवाज फुल करो", "वॉल्यूम फुल करो")
+                listOf("maximum volume", "volume full", "आवाज फुल करो", "वॉल्यूम फुल करो", "volume maximum karo", "awaz full karo", "آواز پوری کرو", "والیوم فل کرو")
                     .any { value.contains(it) } -> {
                     audioManager.setStreamVolume(stream, maximum, 0)
                     Result(true, "मीडिया वॉल्यूम अधिकतम कर दिया गया है।")
                 }
 
-                listOf("minimum volume", "volume zero", "आवाज बिल्कुल कम करो")
+                listOf("minimum volume", "volume zero", "आवाज बिल्कुल कम करो", "volume zero karo", "awaz bilkul kam karo", "آواز بالکل کم کرو")
                     .any { value.contains(it) } -> {
                     audioManager.setStreamVolume(stream, 0, 0)
                     Result(true, "मीडिया वॉल्यूम शून्य कर दिया गया है।")
@@ -105,13 +105,13 @@ object HardwareController {
     ): Result? {
         val value = command.trim().lowercase(Locale.ROOT)
         val action = when {
-            listOf("brightness up", "increase brightness", "screen brighter", "चमक बढ़ाओ", "ब्राइटनेस बढ़ाओ", "रोशनी बढ़ाओ")
+            listOf("brightness up", "increase brightness", "screen brighter", "चमक बढ़ाओ", "ब्राइटनेस बढ़ाओ", "रोशनी बढ़ाओ", "brightness badhao", "screen bright karo", "roshni badhao", "روشنی بڑھاؤ", "برائٹنس بڑھاؤ")
                 .any { value.contains(it) } -> "UP"
-            listOf("brightness down", "decrease brightness", "screen dim", "चमक कम करो", "ब्राइटनेस कम करो", "रोशनी कम करो")
+            listOf("brightness down", "decrease brightness", "screen dim", "चमक कम करो", "ब्राइटनेस कम करो", "रोशनी कम करो", "brightness kam karo", "screen dim karo", "roshni kam karo", "روشنی کم کرو", "برائٹنس کم کرو")
                 .any { value.contains(it) } -> "DOWN"
-            listOf("maximum brightness", "brightness full", "चमक पूरी करो", "ब्राइटनेस फुल करो")
+            listOf("maximum brightness", "brightness full", "चमक पूरी करो", "ब्राइटनेस फुल करो", "brightness full karo", "roshni full karo", "روشنی پوری کرو", "برائٹنس فل کرو")
                 .any { value.contains(it) } -> "MAX"
-            listOf("minimum brightness", "brightness minimum", "चमक सबसे कम करो", "ब्राइटनेस जीरो करो")
+            listOf("minimum brightness", "brightness minimum", "चमक सबसे कम करो", "ब्राइटनेस जीरो करो", "brightness minimum karo", "roshni bilkul kam karo", "روشنی کم سے کم کرو", "برائٹنس زیرو کرو")
                 .any { value.contains(it) } -> "MIN"
             else -> return null
         }
