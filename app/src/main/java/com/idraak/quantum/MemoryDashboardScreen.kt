@@ -48,6 +48,7 @@ fun MemoryDashboardScreen(
 ) {
     val context = LocalContext.current
 
+    var refreshKey by remember { mutableStateOf(0) }
     var backupPassphrase by remember { mutableStateOf("") }
     var backupMessage by remember { mutableStateOf("") }
     var showRestoreConfirmation by remember { mutableStateOf(false) }
@@ -112,10 +113,6 @@ fun MemoryDashboardScreen(
 
     var searchQuery by remember {
         mutableStateOf("")
-    }
-
-    var refreshKey by remember {
-        mutableStateOf(0)
     }
 
     var memoryPendingDeletion by remember {
