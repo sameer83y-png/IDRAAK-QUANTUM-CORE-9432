@@ -41,6 +41,16 @@ class VoiceForegroundService : Service() {
                 return START_NOT_STICKY
             }
 
+            ACTION_SPEAK_RESULT -> {
+                val response = intent.getStringExtra(EXTRA_TEXT).orEmpty()
+                if (serviceActive && response.isNotBlank()) {
+                    voiceController?.cancelListening()
+                    voiceController?.speak(response)
+                } else {
+                    sendStatus("Background voice is not active for spoken response")
+                }
+            }
+
             ACTION_SET_LANGUAGE -> {
                 val languageName = intent.getStringExtra(EXTRA_LANGUAGE)
                 val language = try {
@@ -101,6 +111,7 @@ class VoiceForegroundService : Service() {
             }
 
             serviceActive = true
+            isRunning = true
             sendStatus("Background voice service starting")
 
             voiceController = VoiceController(
@@ -227,6 +238,7 @@ class VoiceForegroundService : Service() {
     private fun stopVoiceService() {
         if (!serviceActive) return
         serviceActive = false
+        isRunning = false
         stopAfterSpeech = false
 
         try {
@@ -359,6 +371,7 @@ class VoiceForegroundService : Service() {
 
     override fun onDestroy() {
         serviceActive = false
+        isRunning = false
 
         try {
             voiceController?.shutdown()
@@ -380,6 +393,13 @@ class VoiceForegroundService : Service() {
 
         const val ACTION_SET_LANGUAGE =
             "com.idraak.quantum.action.SET_BACKGROUND_VOICE_LANGUAGE"
+
+        const val ACTION_SPEAK_RESULT =
+            "com.idraak.quantum.action.SPEAK_BACKGROUND_RESULT"
+
+        @Volatile
+        var isRunning: Boolean = false
+            private set
 
         const val EXTRA_LANGUAGE = "language"
 

@@ -2,6 +2,7 @@ package com.idraak.quantum
 
 import android.app.Activity
 import android.os.Bundle
+import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
@@ -38,6 +39,27 @@ class ForegroundCommandActivity : Activity() {
         }
 
         Toast.makeText(this, result.response, Toast.LENGTH_LONG).show()
+
+        if (VoiceForegroundService.isRunning) {
+            try {
+                val speakIntent = Intent(
+                    this,
+                    VoiceForegroundService::class.java
+                ).apply {
+                    action = VoiceForegroundService.ACTION_SPEAK_RESULT
+                    putExtra(VoiceForegroundService.EXTRA_TEXT, result.response)
+                }
+                startService(speakIntent)
+            } catch (_: Exception) {
+                Toast.makeText(
+                    this,
+                    "Spoken response could not be sent to background voice.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            finish()
+            return
+        }
 
         responseVoice = VoiceController(
             context = applicationContext,
