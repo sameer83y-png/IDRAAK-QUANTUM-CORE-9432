@@ -11,7 +11,7 @@ object ReminderCommandParser {
         data object NotReminder : ParseResult()
         data object NeedsTime : ParseResult()
         data object NeedsTitle : ParseResult()
-        data class Ready(val title: String, val triggerAtMillis: Long) : ParseResult()
+        data class Ready(val title: String, val triggerAtMillis: Long, val repeatIntervalMillis: Long = 0L) : ParseResult()
     }
 
     private val reminderMarkers = listOf(
@@ -48,9 +48,15 @@ object ReminderCommandParser {
 
         val title = extractTitle(normalized)
         if (title.isBlank()) return ParseResult.NeedsTitle
+        val repeatInterval = when {
+            listOf("every day", "daily", "rozana", "har roz", "روزانہ", "ہر روز", "روزانہ").any { normalized.contains(it) } -> 24L * 60L * 60L * 1000L
+            listOf("every week", "weekly", "har haftay", "haftawar", "ہر ہفتے", "ہفتہ وار", "हर हफ्ते").any { normalized.contains(it) } -> 7L * 24L * 60L * 60L * 1000L
+            else -> 0L
+        }
         return ParseResult.Ready(
             title,
-            trigger.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            trigger.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+            repeatInterval
         )
     }
 
@@ -113,6 +119,7 @@ object ReminderCommandParser {
             Regex("""\d+\s*(?:मिनट|मिनिट|घंटा|घंटे|सेकंड)\s*(?:बाद|में)"""),
             Regex("""(?:at|around)\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)?"""),
             Regex("""(?:tomorrow|kal|کل|صبح|شام|رات|بجے|सुबह|शाम|बजे)"""),
+            Regex("""(?:every day|daily|rozana|har roz|روزانہ|ہر روز|every week|weekly|har haftay|haftawar|ہر ہفتے|ہفتہ وار|हर हफ्ते)"""),
             Regex("""(?:please|kindly|mujhe|mujhay|yaad dila dena|yaad dilana|yaad dila|yaad dila do)"""),
             Regex("""(?:مجھے|براہ کرم|ذرا|یاد دلاؤ|یاد دلانا|یاد دلا دیں|یاد دلا دینا|یاد دہانی)"""),
             Regex("""(?:मुझे|कृपया|जरा|याद दिलाना|याद दिला देना|याद दिला दो|रिमाइंडर)"""),

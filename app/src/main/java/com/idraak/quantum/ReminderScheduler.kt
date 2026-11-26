@@ -13,7 +13,7 @@ import androidx.core.app.NotificationManagerCompat
 import org.json.JSONArray
 import org.json.JSONObject
 
-data class IdraakReminder(val id: Int, val title: String, val triggerAtMillis: Long)
+data class IdraakReminder(val id: Int, val title: String, val triggerAtMillis: Long, val repeatIntervalMillis: Long = 0L)
 
 /** Local AlarmManager + SharedPreferences reminder store. */
 object ReminderScheduler {
@@ -21,10 +21,10 @@ object ReminderScheduler {
     private const val KEY_ITEMS = "items"
     private const val CHANNEL_ID = "idraak_reminders"
 
-    fun schedule(context: Context, title: String, triggerAtMillis: Long): IdraakReminder {
+    fun schedule(context: Context, title: String, triggerAtMillis: Long, repeatIntervalMillis: Long = 0L): IdraakReminder {
         val app = context.applicationContext
         val id = (System.currentTimeMillis() % Int.MAX_VALUE).toInt().coerceAtLeast(1)
-        val reminder = IdraakReminder(id, title.take(100), triggerAtMillis)
+        val reminder = IdraakReminder(id, title.take(100), triggerAtMillis, repeatIntervalMillis.coerceAtLeast(0L))
         val items = readAll(app).toMutableList()
         items.removeAll { it.id == id }
         items.add(reminder)
@@ -53,11 +53,32 @@ object ReminderScheduler {
         saveAll(app, pending)
     }
 
-    internal fun consume(context: Context, id: Int): IdraakReminder? {
+    fun cancelMatching(context: Context, query: String): Int {
+        val app = context.applicationContext
+        val normalized = query.lowercase().trim()
+        if (normalized.isBlank()) return 0
+        val items = readAll(app)
+        val removed = items.filter { it.title.lowercase().contains(normalized) }
+        val manager = app.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        removed.forEach { manager.cancel(pendingIntent(app, it.id)) }
+        saveAll(app, items.filterNot { it.id in removed.map(IdraakReminder::id) })
+        return removed.size
+    }
+
+    internal fun deliver(context: Context, id: Int): IdraakReminder? {
         val app = context.applicationContext
         val items = readAll(app)
         val found = items.firstOrNull { it.id == id } ?: return null
-        saveAll(app, items.filterNot { it.id == id })
+        if (found.repeatIntervalMillis > 0L) {
+            var nextTime = found.triggerAtMillis + found.repeatIntervalMillis
+            val now = System.currentTimeMillis()
+            while (nextTime <= now && nextTime > 0L) nextTime += found.repeatIntervalMillis
+            val updated = found.copy(triggerAtMillis = nextTime)
+            saveAll(app, items.map { if (it.id == id) updated else it })
+            scheduleAlarm(app, updated)
+        } else {
+            saveAll(app, items.filterNot { it.id == id })
+        }
         return found
     }
 
@@ -99,7 +120,8 @@ object ReminderScheduler {
                     val id = item.optInt("id", 0)
                     val title = item.optString("title", "")
                     val time = item.optLong("triggerAt", 0L)
-                    if (id > 0 && title.isNotBlank() && time > 0L) add(IdraakReminder(id, title, time))
+                    val repeat = item.optLong("repeatInterval", 0L)
+                    if (id > 0 && title.isNotBlank() && time > 0L) add(IdraakReminder(id, title, time, repeat))
                 }
             }
         } catch (_: Exception) {
@@ -110,7 +132,7 @@ object ReminderScheduler {
     private fun saveAll(context: Context, items: List<IdraakReminder>) {
         val array = JSONArray()
         items.forEach { item ->
-            array.put(JSONObject().put("id", item.id).put("title", item.title).put("triggerAt", item.triggerAtMillis))
+            array.put(JSONObject().put("id", item.id).put("title", item.title).put("triggerAt", item.triggerAtMillis).put("repeatInterval", item.repeatIntervalMillis))
         }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_ITEMS, array.toString()).apply()
     }
@@ -150,7 +172,7 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val id = intent.getIntExtra(EXTRA_ID, 0)
         if (id <= 0) return
-        val reminder = ReminderScheduler.consume(context, id) ?: return
+        val reminder = ReminderScheduler.deliver(context, id) ?: return
         ReminderScheduler.showNotification(context, reminder)
     }
     companion object { const val EXTRA_ID = "reminder_id" }

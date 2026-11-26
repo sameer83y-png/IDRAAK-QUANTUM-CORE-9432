@@ -418,4 +418,14 @@ class OfflineCommandRegressionTest {
         assertTrue(ProactiveAssistantScheduler.shouldNotifyAt(18, true))
     }
 
+    @Test
+    fun parsesDailyRecurringReminder() {
+        val now = java.time.LocalDateTime.of(2026, 11, 26, 10, 0)
+            .atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val result = ReminderCommandParser.parse("remind me to walk in 30 minutes every day", now)
+        assertTrue(result is ReminderCommandParser.ParseResult.Ready)
+        result as ReminderCommandParser.ParseResult.Ready
+        assertEquals(24L * 60L * 60L * 1000L, result.repeatIntervalMillis)
+    }
+
 }
