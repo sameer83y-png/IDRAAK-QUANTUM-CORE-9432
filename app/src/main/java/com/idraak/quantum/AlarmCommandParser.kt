@@ -50,7 +50,7 @@ object AlarmCommandParser {
         val label = text
             .replace(Regex("""(?:set an alarm|set alarm|alarm at|alarm for|alarm laga do|alarm lagao|alarm lagana|wake me up|اضبط المنبه|ضبط المنبه)"""), " ")
             .replace(Regex("""\d{1,2}(?::\d{2})?\s*(?:am|pm)?"""), " ")
-            .replace(Regex("""(?:morning|evening|night|subah|shaam|raat|صبح|شام|رات|सुबह|शाम|रात|بجے|बजे)"""), " ")
+            .replace(Regex("""(?:morning|evening|night|subah|shaam|raat|صبح|شام|رات|सुबह|शाम|रात|بجے|بजे|الساعة|صباح|صباحا|صباحًا|مساء|مساءً|ليلا|ليلاً)"""), " ")
             .replace(Regex("""[^\p{L}\p{M}\p{N} ]"""), " ")
             .replace(Regex("""\s+"""), " ")
             .trim()

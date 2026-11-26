@@ -102,6 +102,7 @@ object ReminderCommandParser {
         if (meridiem == "am" && hour == 12) hour = 0
         if (meridiem.isEmpty()) {
             if ((text.contains("شام") || text.contains("shaam") || text.contains("مساء")) && hour in 1..11) hour += 12
+            if (text.contains("صباح") && hour == 12) hour = 0
             if ((text.contains("رات") || text.contains("night") || text.contains("مساء") || text.contains("ليلا") || text.contains("ليلاً")) && hour in 1..11) hour += 12
         }
         var target = now.with(LocalTime.of(hour, minute, 0))
