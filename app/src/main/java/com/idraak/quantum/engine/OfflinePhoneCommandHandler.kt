@@ -32,20 +32,39 @@ object OfflinePhoneCommandHandler {
             return null
         }
         val answer = normalize(userCommand)
-        val selected = waiting.filter { app ->
-            answer == normalize(app.label) ||
-                aliasesFor(answer).contains(normalize(app.label)) ||
-                normalize(app.label) == answer.removePrefix("open ").trim()
+        if (isChoiceCancellation(answer)) {
+            pendingChoices = emptyList()
+            return Result(true, false, "ٹھیک ہے، ایپ کا انتخاب منسوخ کر دیا گیا ہے۔")
+        }
+
+        val index = resolveChoiceIndex(answer, waiting.size)
+        val selected = if (index != null) {
+            listOf(waiting[index])
+        } else {
+            waiting.filter { app ->
+                answer == normalize(app.label) ||
+                    aliasesFor(answer).contains(normalize(app.label)) ||
+                    normalize(app.label) == answer.removePrefix("open ").trim()
+            }
         }
         if (selected.size == 1) {
             pendingChoices = emptyList()
             return launchSelected(context, selected.single())
         }
-        val names = waiting.take(5).joinToString(" یا ") { it.label }
+
+        // A different, complete command should not be trapped by an old
+        // app-choice question. Clear the old choice and let the router handle it.
+        if (isClearlyNewCommand(answer)) {
+            pendingChoices = emptyList()
+            return null
+        }
+
+        val names = waiting.take(5).mapIndexed { i, app -> "${i + 1}. ${app.label}" }
+            .joinToString("، ")
         return Result(
             true,
             false,
-            "براہِ کرم ان میں سے ایک ایپ کا نام بتائیں: $names۔",
+            "براہِ کرم ایک ایپ منتخب کریں: $names۔ نام یا نمبر بتائیں، یا منسوخ کہیں۔",
             ""
         )
     }
@@ -147,6 +166,41 @@ object OfflinePhoneCommandHandler {
             Result(true, false, "${selected.label} نہیں کھل سکی۔ فون نے اسے کھولنے سے روک دیا۔", selected.label)
         }
     }
+
+    internal fun resolveChoiceIndex(answer: String, count: Int): Int? {
+        if (count <= 0) return null
+        val value = normalize(answer)
+        val number = Regex("""^(?:number\\s*)?([1-5])$""").matchEntire(value)
+            ?.groupValues?.get(1)?.toIntOrNull()
+        if (number != null && number <= count) return number - 1
+
+        val first = setOf("first", "one", "pehla", "pehli", "پہلا", "پہلی", "اول", "पहला", "पहली", "एक")
+        val second = setOf("second", "two", "doosra", "doosri", "دوسرا", "دوسری", "دوم", "दूसरा", "दूसरी", "दो")
+        val third = setOf("third", "three", "teesra", "teesri", "تیسرا", "تیسری", "سوم", "तीसरा", "तीसरी", "तीन")
+        val fourth = setOf("fourth", "four", "chautha", "چوتھا", "चौथा")
+        val fifth = setOf("fifth", "five", "paanchwa", "پانچواں", "पाँचवाँ")
+        return when (value) {
+            in first -> 0.takeIf { count >= 1 }
+            in second -> 1.takeIf { count >= 2 }
+            in third -> 2.takeIf { count >= 3 }
+            in fourth -> 3.takeIf { count >= 4 }
+            in fifth -> 4.takeIf { count >= 5 }
+            else -> null
+        }
+    }
+
+    private fun isChoiceCancellation(value: String): Boolean =
+        value in setOf("cancel", "cancel it", "no", "stop", "منسوخ", "منسوخ کرو", "رہنے دو", "چھوڑ دو", "रद्द", "रद्द करो", "नहीं", "मत")
+
+    private fun isClearlyNewCommand(value: String): Boolean =
+        value.startsWith("open ") || value.startsWith("launch ") ||
+            value.startsWith("search ") || value.startsWith("call ") ||
+            value.startsWith("send ") || value.startsWith("set ") ||
+            value.startsWith("remind ") || value.startsWith("play ") ||
+            value.startsWith("کھولو ") || value.startsWith("کھول دو ") ||
+            value.startsWith("یوٹیوب پر ") || value.startsWith("واٹس ایپ ") ||
+            value.startsWith("खोलो ") || value.startsWith("खोल दो ") ||
+            value.startsWith("यूट्यूब पर ") || value.startsWith("कॉल ")
 
     internal fun splitAppChoices(target: String): List<String> =
         target.split(
