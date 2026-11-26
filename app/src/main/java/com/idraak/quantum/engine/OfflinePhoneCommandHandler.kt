@@ -192,15 +192,33 @@ object OfflinePhoneCommandHandler {
     private fun isChoiceCancellation(value: String): Boolean =
         value in setOf("cancel", "cancel it", "no", "stop", "منسوخ", "منسوخ کرو", "رہنے دو", "چھوڑ دو", "रद्द", "रद्द करो", "नहीं", "मत")
 
-    private fun isClearlyNewCommand(value: String): Boolean =
-        value.startsWith("open ") || value.startsWith("launch ") ||
-            value.startsWith("search ") || value.startsWith("call ") ||
-            value.startsWith("send ") || value.startsWith("set ") ||
-            value.startsWith("remind ") || value.startsWith("play ") ||
-            value.startsWith("کھولو ") || value.startsWith("کھول دو ") ||
-            value.startsWith("یوٹیوب پر ") || value.startsWith("واٹس ایپ ") ||
-            value.startsWith("खोलो ") || value.startsWith("खोल दो ") ||
-            value.startsWith("यूट्यूब पर ") || value.startsWith("कॉल ")
+    internal fun isClearlyNewCommand(value: String): Boolean {
+        val command = normalize(value)
+        val prefixes = listOf(
+            // English
+            "open ", "launch ", "start ", "run ", "search ", "find ",
+            "call ", "send ", "set ", "remind ", "play ", "turn on ",
+            "turn off ", "take a photo", "take a picture",
+            // Roman Urdu / Hindi
+            "kholo ", "khol do ", "kholiye ", "zara kholo ", "zara khol do ",
+            "app kholo ", "app khol do ", "youtube par ", "whatsapp par ",
+            "khojo ", "talash karo ", "call karo ", "message bhejo ",
+            "yaad dilana ", "alarm lagao ", "torch chalu ",
+            // Hindi
+            "खोलो ", "खोल दो ", "खोलिए ", "जरा खोलो ", "ऐप खोलो ",
+            "यूट्यूब पर ", "खोजो ", "ढूँढो ", "कॉल ", "मैसेज भेजो ",
+            "याद दिलाओ ", "अलार्म लगाओ ", "टॉर्च जलाओ ",
+            // Urdu
+            "کھولو ", "کھول دو ", "کھولیں ", "ذرا کھولو ", "ایپ کھولو ",
+            "یوٹیوب پر ", "تلاش کرو ", "ڈھونڈو ", "کال کرو ",
+            "پیغام بھیجو ", "یاد دلاؤ ", "یاد دلانا ", "الارم لگاؤ ",
+            "ٹارچ جلاؤ ", "ٹارچ آن کرو ",
+            // Arabic
+            "افتح ", "شغل ", "أغلق ", "اغلق ", "ابحث ", "اتصل ",
+            "أرسل ", "ارسل ", "ذكّرني ", "اضبط المنبه ", "شغّل "
+        )
+        return prefixes.any { command.startsWith(it) }
+    }
 
     internal fun splitAppChoices(target: String): List<String> =
         target.split(
