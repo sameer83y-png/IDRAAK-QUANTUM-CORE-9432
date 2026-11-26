@@ -9,7 +9,11 @@ Idraak Quantum is an Android voice assistant built with Kotlin and Jetpack Compo
 - Optional continuous foreground voice session with a persistent notification.
 - Accessibility-based screen reading, clicking, scrolling and gestures after the user explicitly enables the service in Android Settings.
 - Local memory with review/verification states, correction feedback, search and encrypted backup/restore.
-- Context-aware suggestions, selectable visual themes and speech-rate settings.
+- Encrypted local memory with review/verification, correction feedback, searchable categories and passphrase-protected backup/restore.
+- Voice reminders with relative/clock times, daily/weekly repeats, listing, individual/all cancellation and reboot rescheduling.
+- Alarm Clock handoff for setting, showing and dismissing alarms; Android Clock confirms the final alarm action.
+- Opt-in daily proactive check-in notification with quiet hours; it never starts the microphone in the background.
+- Context-aware suggestions, selectable visual themes, Urdu speech-rate settings and a proactive-assistant toggle.
 - Regression tests for supported command phrases and safety confirmations.
 
 ## Android requirements and permissions
@@ -27,6 +31,10 @@ Idraak Quantum is an Android voice assistant built with Kotlin and Jetpack Compo
 Idraak itself is built without the INTERNET and network-state permissions. The Whisper model is bundled into the APK by the GitHub Actions build, so the APK is large (roughly 440–460 MB). The CI workflow downloads/caches this model while building; that build-time download does not add network access to the installed app.
 
 Opening an external app such as YouTube or a browser is a handoff. That external app may need its own Internet access for online content. Local Idraak command processing does not provide offline access to online videos or websites.
+
+Reminder delivery uses exact alarms when Android allows them and falls back to inexact scheduling when exact-alarm access is unavailable; timing can therefore be delayed by Android power management. Notifications must be allowed by the user. Alarm creation is handed to the device Clock app for final confirmation.
+
+Proactive check-ins are opt-in notifications (daily at 9:00 local time, subject to Android's inexact alarm scheduling) and respect quiet hours from 22:00 to 08:00. Android does not permit Idraak to start a microphone conversation automatically from the background; the user opens the notification to continue.
 
 Urdu speech output depends on an Urdu-capable text-to-speech voice already installed on the Android device. If no local Urdu voice is available, speech output may be unavailable even though text responses work.
 
