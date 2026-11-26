@@ -261,11 +261,19 @@ class VoiceController(
                     transcriptionFile.delete()
                     return
                 }
+                // Capture the model while holding the lifecycle lock. Shutdown may
+                // clear the shared field immediately, but this task must keep using
+                // the same native model until its executor has fully terminated.
+                val modelForTranscription = loadedModel
+                if (modelForTranscription == null) {
+                    transcriptionFile.delete()
+                    throw IllegalStateException("Urdu model not loaded")
+                }
                 transcriptionExecutor.execute {
                 try {
                     val result = runBlocking {
                         Whisper.transcribe(
-                            loadedModel ?: throw IllegalStateException("Urdu model not loaded"),
+                            modelForTranscription,
                             transcriptionFile.absolutePath,
                             WhisperConfig(language = "auto")
                         ).text.trim()
