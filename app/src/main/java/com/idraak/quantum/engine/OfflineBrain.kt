@@ -497,13 +497,6 @@ object OfflineBrain {
             return choiceResult.message
         }
 
-        LearnedCommandStore.handleTeaching(
-            context.applicationContext,
-            userMessage
-        )?.let { teachingResponse ->
-            return teachingResponse
-        }
-
         respondToMemory(context.applicationContext, userMessage)?.let { memoryResponse ->
             return memoryResponse
         }
