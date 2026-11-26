@@ -23,6 +23,33 @@ object OfflinePhoneCommandHandler {
     private var pendingChoicesAt: Long = 0L
     private const val CHOICE_TIMEOUT_MS = 30_000L
 
+    @Synchronized
+    fun resolvePendingChoice(context: Context, userCommand: String): Result? {
+        val waiting = pendingChoices
+        if (waiting.isEmpty()) return null
+        if (System.currentTimeMillis() - pendingChoicesAt > CHOICE_TIMEOUT_MS) {
+            pendingChoices = emptyList()
+            return null
+        }
+        val answer = normalize(userCommand)
+        val selected = waiting.filter { app ->
+            answer == normalize(app.label) ||
+                aliasesFor(answer).contains(normalize(app.label)) ||
+                normalize(app.label) == answer.removePrefix("open ").trim()
+        }
+        if (selected.size == 1) {
+            pendingChoices = emptyList()
+            return launchSelected(context, selected.single())
+        }
+        val names = waiting.take(5).joinToString(" یا ") { it.label }
+        return Result(
+            true,
+            false,
+            "براہِ کرم ان میں سے ایک ایپ کا نام بتائیں: $names۔",
+            ""
+        )
+    }
+
     fun execute(context: Context, userCommand: String): Result? {
         val target = extractAppName(userCommand)
         if (target.isBlank()) {

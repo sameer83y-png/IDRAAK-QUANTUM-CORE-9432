@@ -458,6 +458,19 @@ object OfflineBrain {
             pendingClick = null
         }
 
+        OfflinePhoneCommandHandler.resolvePendingChoice(
+            context.applicationContext,
+            userMessage
+        )?.let { choiceResult ->
+            recordExperience(
+                context,
+                "OPEN_APP_CHOICE",
+                if (choiceResult.success) "SUCCESS" else "NEEDS_CLARIFICATION",
+                listOf(userMessage, choiceResult.appName, choiceResult.message)
+            )
+            return choiceResult.message
+        }
+
         LearnedCommandStore.handleTeaching(
             context.applicationContext,
             userMessage
