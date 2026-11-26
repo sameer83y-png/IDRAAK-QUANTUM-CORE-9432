@@ -204,7 +204,7 @@ object OfflinePhoneCommandHandler {
 
     internal fun splitAppChoices(target: String): List<String> =
         target.split(
-            Regex("\\s+(?:or|ya|ya phir|या|या फिर|یا|یا پھر)\\s+"),
+            Regex("\\s+(?:ya phir|یا پھر|या फिर|or|ya|या|یا)\\s+"),
             limit = 5
         ).map { normalize(it) }.filter { it.isNotBlank() }
 
