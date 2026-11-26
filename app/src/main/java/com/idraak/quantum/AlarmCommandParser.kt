@@ -34,8 +34,8 @@ object AlarmCommandParser {
         if (minute !in 0..59 || hour !in 0..23) return Result.NeedsTime
 
         val meridiem = timeMatch.groupValues[3]
-        val isMorning = listOf("morning", "subah", "صبح", "सुबह").any { text.contains(it) }
-        val isEvening = listOf("evening", "night", "shaam", "raat", "شام", "رات", "مساء", "ليلا", "ليلاً", "صباح", "शाम", "रात")
+        val isMorning = listOf("morning", "subah", "صبح", "सुबह", "صباح", "صباحا", "صباحًا").any { text.contains(it) }
+        val isEvening = listOf("evening", "night", "shaam", "raat", "شام", "رات", "مساء", "مساءً", "ليلا", "ليلاً", "शाम", "रात")
             .any { text.contains(it) }
         if (meridiem == "pm" || (meridiem.isEmpty() && isEvening && hour in 1..11)) {
             if (hour in 1..11) hour += 12
@@ -48,7 +48,7 @@ object AlarmCommandParser {
         }
 
         val label = text
-            .replace(Regex("""(?:set an alarm|set alarm|alarm at|alarm for|alarm laga do|alarm lagao|alarm lagana|wake me up)"""), " ")
+            .replace(Regex("""(?:set an alarm|set alarm|alarm at|alarm for|alarm laga do|alarm lagao|alarm lagana|wake me up|اضبط المنبه|ضبط المنبه)"""), " ")
             .replace(Regex("""\d{1,2}(?::\d{2})?\s*(?:am|pm)?"""), " ")
             .replace(Regex("""(?:morning|evening|night|subah|shaam|raat|صبح|شام|رات|सुबह|शाम|रात|بجے|बजे)"""), " ")
             .replace(Regex("""[^\p{L}\p{M}\p{N} ]"""), " ")
