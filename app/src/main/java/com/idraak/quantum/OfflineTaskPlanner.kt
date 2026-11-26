@@ -4,7 +4,7 @@ package com.idraak.quantum
 object OfflineTaskPlanner {
     fun split(command: String): List<String> {
         val separator = Regex(
-            """(?i)\\s+(?:and\\s+then|after\\s+that|then|next|اور\\s+پھر|اس\\s+کے\\s+بعد|پھر|بعد\\s+میں|ثم|uske\\s+baad|phir|fir)\\s+"""
+            """(?i)\s+(?:and\s+then|after\s+that|then|next|اور\s+پھر|اس\s+کے\s+بعد|پھر|بعد\s+میں|ثم|uske\s+baad|phir|fir)\s+"""
         )
         val parts = command.trim().split(separator)
             .map { it.trim().trim(',', '،', ';', '؛', '.') }
@@ -13,7 +13,7 @@ object OfflineTaskPlanner {
             .toMutableList()
         if (parts.isNotEmpty()) {
             parts[0] = parts[0].replace(
-                Regex("""(?i)^(?:first|firstly|pehle|pehlay|sabse\\s+pehle|پہلے|سب سے پہلے|पहले|सबसे पहले)\\s+"""),
+                Regex("""(?i)^(?:first|firstly|pehle|pehlay|sabse\s+pehle|پہلے|سب سے پہلے|पहले|सबसे पहले)\s+"""),
                 ""
             ).trim()
         }
