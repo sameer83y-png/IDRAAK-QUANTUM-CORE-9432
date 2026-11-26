@@ -19,6 +19,10 @@ object OfflinePhoneCommandHandler {
 
     private data class InstalledApp(val packageName: String, val label: String)
 
+    private var pendingChoices: List<InstalledApp> = emptyList()
+    private var pendingChoicesAt: Long = 0L
+    private const val CHOICE_TIMEOUT_MS = 30_000L
+
     fun execute(context: Context, userCommand: String): Result? {
         val target = extractAppName(userCommand)
         if (target.isBlank()) {
@@ -45,38 +49,72 @@ object OfflinePhoneCommandHandler {
             return Result(true, false, "فون میں دستیاب ایپس کی فہرست نہیں مل سکی۔ فون کی ایپ ترتیبات دیکھیں۔", target)
         }
 
-        val normalizedTarget = normalize(target)
-        val aliases = aliasesFor(normalizedTarget)
-        val exactMatches = installedApps.filter { app ->
-            val label = normalize(app.label)
-            label == normalizedTarget || aliases.contains(label)
-        }
-        // Fallback matching is token-based, not arbitrary substring matching.
-        // This prevents a short target such as "book" from accidentally opening
-        // an unrelated app whose label merely contains those letters (for example, Facebook).
-        val targetTokens = normalizedTarget.split(" ").filter { it.isNotBlank() }
-        val matches = if (exactMatches.isNotEmpty()) {
-            exactMatches
-        } else {
-            installedApps.filter { app ->
-                val labelTokens = normalize(app.label).split(" ").filter { it.isNotBlank() }
-                targetTokens.isNotEmpty() &&
-                    labelTokens.size >= targetTokens.size &&
-                    labelTokens.windowed(targetTokens.size).any { it == targetTokens }
+        // If Idraak previously asked the user to choose between installed apps,
+        // accept the next clear app name instead of treating it as a new command.
+        val waiting = pendingChoices
+        if (waiting.isNotEmpty()) {
+            if (System.currentTimeMillis() - pendingChoicesAt > CHOICE_TIMEOUT_MS) {
+                pendingChoices = emptyList()
+            } else {
+                val answer = normalize(userCommand)
+                val selectedByAnswer = waiting.filter { app ->
+                    answer == normalize(app.label) ||
+                        aliasesFor(answer).contains(normalize(app.label)) ||
+                        normalize(app.label) == answer.removePrefix("open ").trim()
+                }
+                if (selectedByAnswer.size == 1) {
+                    pendingChoices = emptyList()
+                    return launchSelected(context, selectedByAnswer.single())
+                }
+                if (selectedByAnswer.size > 1) {
+                    return Result(true, false, "ایک ہی نام کی کئی ایپس ہیں۔ براہِ کرم مکمل نام بتائیں۔", target)
+                }
             }
         }
 
-        if (matches.isEmpty()) {
+        // Support explicit alternatives such as "open YouTube or WhatsApp".
+        // Each candidate is resolved against the launchable apps on this phone.
+        val candidateTargets = target.split(
+            Regex("\\s+(?:or|ya|ya phir|या|या फिर|یا|یا پھر)\\s+"),
+            limit = 5
+        ).map { normalize(it) }.filter { it.isNotBlank() }
+        val resolved = candidateTargets.flatMap { candidate ->
+            val aliases = aliasesFor(candidate)
+            val exact = installedApps.filter { app ->
+                val label = normalize(app.label)
+                label == candidate || aliases.contains(label)
+            }
+            if (exact.isNotEmpty()) exact else {
+                val tokens = candidate.split(" ").filter { it.isNotBlank() }
+                installedApps.filter { app ->
+                    val labelTokens = normalize(app.label).split(" ").filter { it.isNotBlank() }
+                    tokens.isNotEmpty() && labelTokens.size >= tokens.size &&
+                        labelTokens.windowed(tokens.size).any { it == tokens }
+                }
+            }
+        }.distinctBy { it.packageName }
+
+        if (resolved.isEmpty()) {
             return Result(true, false, "فون میں \"$target\" نام کی ایپ نہیں ملی۔ اگر ایپ نصب ہے تو اس کا درست نام بتائیں۔", target)
         }
-        if (matches.size > 1) {
-            val names = matches.take(4).joinToString(", ") { it.label }
-            return Result(true, false, "ایک سے زیادہ ملتی جلتی ایپس ملیں: $names۔ براہِ کرم مکمل نام بتائیں۔", target)
+        if (resolved.size > 1) {
+            pendingChoices = resolved
+            pendingChoicesAt = System.currentTimeMillis()
+            val names = resolved.take(5).joinToString(" یا ") { it.label }
+            return Result(
+                true,
+                false,
+                "ایک سے زیادہ ایپس سمجھ آ رہی ہیں: $names۔ آپ کون سی ایپ کھولنا چاہتے ہیں؟ صرف اس کا نام بتائیں۔",
+                target
+            )
         }
 
-        val selected = matches.single()
+        return launchSelected(context, resolved.single())
+    }
+
+    private fun launchSelected(context: Context, selected: InstalledApp): Result {
         return try {
-            val launchIntent = packageManager.getLaunchIntentForPackage(selected.packageName)
+            val launchIntent = context.packageManager.getLaunchIntentForPackage(selected.packageName)
                 ?: return Result(true, false, "${selected.label} مل گئی، لیکن فون نے اسے کھولنے کی اجازت نہیں دی۔", selected.label)
             launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.applicationContext.startActivity(launchIntent)
