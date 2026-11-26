@@ -13,7 +13,7 @@ object AlarmCommandParser {
 
     private val markers = listOf(
         "set alarm", "alarm for", "alarm at", "alarm laga", "alarm lagao",
-        "alarm lagana", "wake me up", "set an alarm",
+        "alarm lagana", "wake me up", "set an alarm", "अलार्म", "अलार्म लगा", "अलार्म लगाओ", "अलार्म बजाओ",
         "الارم لگا", "الارم لگاؤ", "الارم لگانا", "الارم مقرر",
         "الارم بند", "الارم دکھاؤ", "صبح کا الارم", "شام کا الارم", "اضبط المنبه", "ضبط المنبه", "المنبه", "منبه",
         "الارم بجا", "الارم"

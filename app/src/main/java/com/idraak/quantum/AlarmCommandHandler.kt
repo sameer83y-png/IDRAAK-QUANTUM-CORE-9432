@@ -14,10 +14,10 @@ object AlarmCommandHandler {
 
     fun tryHandle(context: Context, command: String, allowForegroundUi: Boolean): Result? {
         val text = command.lowercase()
-        val show = listOf("show alarms", "list alarms", "الارم دکھاؤ", "الارم کی فہرست", "اعرض المنبهات", "أظهر المنبهات").any { text.contains(it) }
+        val show = listOf("show alarms", "list alarms", "الارم دکھاؤ", "الارم کی فہرست", "अलार्म दिखाओ", "अलार्म की सूची", "اعرض المنبهات", "أظهر المنبهات").any { text.contains(it) }
         val cancel = listOf(
             "cancel alarm", "delete alarm", "stop alarm", "turn off alarm",
-            "الارم بند کرو", "الارم ختم کرو", "الارم منسوخ", "الارم بند", "ألغ المنبه", "الغ المنبه", "إلغاء المنبه", "أوقف المنبه", "اوقف المنبه"
+            "الارم بند کرو", "الارم ختم کرو", "الارم منسوخ", "الارم بند", "अलार्म बंद करो", "अलार्म हटाओ", "ألغ المنبه", "الغ المنبه", "إلغاء المنبه", "أوقف المنبه", "اوقف المنبه"
         ).any { text.contains(it) }
         if (show || cancel) {
             if (!allowForegroundUi) return Result(
