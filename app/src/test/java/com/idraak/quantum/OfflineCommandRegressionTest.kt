@@ -409,4 +409,13 @@ class OfflineCommandRegressionTest {
         assertEquals(AlarmCommandParser.Result.NotAlarm, AlarmCommandParser.parse("I like alarms"))
     }
 
+    @Test
+    fun proactiveCheckInRespectsOptInAndQuietHours() {
+        assertFalse(ProactiveAssistantScheduler.shouldNotifyAt(9, false))
+        assertFalse(ProactiveAssistantScheduler.shouldNotifyAt(7, true))
+        assertFalse(ProactiveAssistantScheduler.shouldNotifyAt(22, true))
+        assertTrue(ProactiveAssistantScheduler.shouldNotifyAt(9, true))
+        assertTrue(ProactiveAssistantScheduler.shouldNotifyAt(18, true))
+    }
+
 }

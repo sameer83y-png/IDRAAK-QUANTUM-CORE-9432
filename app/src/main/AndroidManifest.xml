@@ -60,6 +60,7 @@
                 android:resource="@xml/idraak_accessibility_service" />
         </service>
         <receiver android:name=".ReminderAlarmReceiver" android:exported="false" />
+        <receiver android:name=".ProactiveAssistantReceiver" android:exported="false" />
         <receiver
             android:name=".ReminderBootReceiver"
             android:enabled="true"

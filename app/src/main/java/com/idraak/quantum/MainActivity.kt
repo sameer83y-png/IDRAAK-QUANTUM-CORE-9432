@@ -1161,6 +1161,10 @@ fun SettingsScreen(
         mutableStateOf<String?>(null)
     }
 
+    var proactiveEnabled by remember {
+        mutableStateOf(ProactiveAssistantScheduler.isEnabled(context))
+    }
+
     DisposableEffect(activity) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -1333,6 +1337,27 @@ fun SettingsScreen(
                 )
             }
         }
+        Spacer(modifier = Modifier.height(18.dp))
+
+        SettingsStatusCard(
+            title = "خودکار مدد",
+            status = if (proactiveEnabled) "روزانہ یاد دہانی اور مدد فعال ہے" else "خودکار مدد بند ہے",
+            detail = "ادراک روزانہ صبح ایک مقامی اطلاع دے سکتا ہے۔ یہ پس منظر میں مائیکروفون شروع نہیں کرتا؛ اطلاع کھولنے پر گفتگو شروع ہوگی۔ خاموش اوقات رات 10 بجے سے صبح 8 بجے تک ہیں۔",
+            accentColor = themeAccentColor
+        )
+
+        Button(
+            onClick = {
+                proactiveEnabled = !proactiveEnabled
+                ProactiveAssistantScheduler.setEnabled(context, proactiveEnabled)
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = themeAccentColor)
+        ) {
+            Text(if (proactiveEnabled) "خودکار مدد بند کریں" else "خودکار مدد فعال کریں")
+        }
+
         Spacer(modifier = Modifier.height(18.dp))
 
         SettingsStatusCard(
