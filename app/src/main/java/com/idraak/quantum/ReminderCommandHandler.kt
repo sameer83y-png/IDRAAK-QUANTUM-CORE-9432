@@ -18,7 +18,7 @@ object ReminderCommandHandler {
         if (listRequested) {
             val reminders = ReminderScheduler.list(context)
             val response = if (reminders.isEmpty()) "اس وقت کوئی یاد دہانی محفوظ نہیں ہے۔"
-            else reminders.joinToString("\\n") {
+            else reminders.joinToString("\n") {
                 val time = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
                     .format(Date(it.triggerAtMillis))
                 "$time — ${it.title}"
