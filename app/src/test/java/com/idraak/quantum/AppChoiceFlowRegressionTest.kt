@@ -42,4 +42,35 @@ class AppChoiceFlowRegressionTest {
             OfflinePhoneCommandHandler.splitAppChoices("यूट्यूब या व्हाट्सएप")
         )
     }
+    @Test
+    fun splitsMultiwordRomanUrduSeparatorWithoutLeavingItsSecondWord() {
+        assertEquals(
+            listOf("youtube", "instagram"),
+            OfflinePhoneCommandHandler.splitAppChoices("YouTube ya phir Instagram")
+        )
+    }
+
+    @Test
+    fun splitsMultiwordHindiSeparatorWithoutLeavingItsSecondWord() {
+        assertEquals(
+            listOf("यूट्यूब", "व्हाट्सएप"),
+            OfflinePhoneCommandHandler.splitAppChoices("यूट्यूब या फिर व्हाट्सएप")
+        )
+    }
+
+    @Test
+    fun splitsMultiwordUrduSeparatorWithoutLeavingItsSecondWord() {
+        assertEquals(
+            listOf("یوٹیوب", "واٹس ایپ"),
+            OfflinePhoneCommandHandler.splitAppChoices("یوٹیوب یا پھر واٹس ایپ")
+        )
+    }
+
+    @Test
+    fun rejectsOutOfRangeAndUnknownOrdinalChoices() {
+        assertEquals(null, OfflinePhoneCommandHandler.resolveChoiceIndex("5", 2))
+        assertEquals(null, OfflinePhoneCommandHandler.resolveChoiceIndex("fourth", 2))
+        assertEquals(2, OfflinePhoneCommandHandler.resolveChoiceIndex("third", 3))
+    }
+
 }
