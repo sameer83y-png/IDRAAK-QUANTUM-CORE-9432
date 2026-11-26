@@ -15,7 +15,7 @@ object AlarmCommandParser {
         "set alarm", "alarm for", "alarm at", "alarm laga", "alarm lagao",
         "alarm lagana", "wake me up", "set an alarm",
         "الارم لگا", "الارم لگاؤ", "الارم لگانا", "الارم مقرر",
-        "الارم بند", "الارم دکھاؤ", "صبح کا الارم", "شام کا الارم",
+        "الارم بند", "الارم دکھاؤ", "صبح کا الارم", "شام کا الارم", "اضبط المنبه", "ضبط المنبه", "المنبه", "منبه",
         "الارم بجا", "الارم"
     )
 
@@ -35,7 +35,7 @@ object AlarmCommandParser {
 
         val meridiem = timeMatch.groupValues[3]
         val isMorning = listOf("morning", "subah", "صبح", "सुबह").any { text.contains(it) }
-        val isEvening = listOf("evening", "night", "shaam", "raat", "شام", "رات", "शाम", "रात")
+        val isEvening = listOf("evening", "night", "shaam", "raat", "شام", "رات", "مساء", "ليلا", "ليلاً", "صباح", "शाम", "रात")
             .any { text.contains(it) }
         if (meridiem == "pm" || (meridiem.isEmpty() && isEvening && hour in 1..11)) {
             if (hour in 1..11) hour += 12

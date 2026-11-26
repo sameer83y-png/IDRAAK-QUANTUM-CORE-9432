@@ -450,4 +450,22 @@ class OfflineCommandRegressionTest {
         assertTrue(OfflineTaskPlanner.isMultiStep("open YouTube then search music"))
     }
 
+    @Test
+    fun parsesArabicRelativeReminderOffline() {
+        val now = java.time.LocalDateTime.of(2026, 11, 26, 10, 0)
+            .atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val result = ReminderCommandParser.parse("ذكرني بشرب الماء بعد 10 دقائق", now)
+        assertTrue(result is ReminderCommandParser.ParseResult.Ready)
+        result as ReminderCommandParser.ParseResult.Ready
+        assertEquals(now + 10 * 60 * 1000L, result.triggerAtMillis)
+    }
+
+    @Test
+    fun parsesArabicAlarmWithExplicitMorning() {
+        val result = AlarmCommandParser.parse("اضبط المنبه الساعة 7 صباحا")
+        assertTrue(result is AlarmCommandParser.Result.Ready)
+        result as AlarmCommandParser.Result.Ready
+        assertEquals(7, result.hour)
+    }
+
 }

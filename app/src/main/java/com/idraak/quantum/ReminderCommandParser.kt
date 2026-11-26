@@ -15,7 +15,7 @@ object ReminderCommandParser {
     }
 
     private val reminderMarkers = listOf(
-        "remind me", "set reminder", "set a reminder", "reminder at", "reminder for",
+        "remind me", "set reminder", "set a reminder", "reminder at", "reminder for", "ذكرني", "ذكّرني", "تذكير",
         "yaad dila", "yaad dilana", "yaad dila dena", "mujhe yaad",
         "یاد دلاؤ", "یاد دلانا", "یاد دہانی", "یاد دلا دینا", "یاد کرانا",
         "याद दिला", "याद दिलाना", "याद दिला देना", "रिमाइंडर"
@@ -74,10 +74,10 @@ object ReminderCommandParser {
             if (amount <= 0L) return null
             val unit = match.groupValues.getOrNull(2).orEmpty()
             val multiplier = when {
-                unit.startsWith("sec") || unit == "سیکنڈ" || unit == "सेकंड" -> 1L
+                unit.startsWith("sec") || unit == "سیکنڈ" || unit == "सेकंड" || unit.startsWith("ثانية") || unit.startsWith("ثوان") -> 1L
                 unit.startsWith("hour") || unit.startsWith("hr") ||
                     unit.startsWith("ghanta") || unit.startsWith("ghante") ||
-                    unit.startsWith("گھنٹ") || unit.startsWith("घंट") || unit == "گھنٹہ" || unit == "گھنٹے" -> 3600L
+                    unit.startsWith("گھنٹ") || unit.startsWith("घंट") || unit == "گھنٹہ" || unit == "گھنٹے" || unit.startsWith("ساعة") || unit.startsWith("ساعات") -> 3600L
                 else -> 60L
             }
             return (amount * multiplier).coerceAtMost(30L * 24L * 3600L)
@@ -88,7 +88,7 @@ object ReminderCommandParser {
     private fun clockTime(text: String, now: LocalDateTime): LocalDateTime? {
         val hasClockMarker = listOf(
             "at ", "around ", "tomorrow", "kal", "کل", "صبح", "شام",
-            "بجے", "सुबह", "शाम", "बजे", "am", "pm"
+            "بجے", "सुबह", "शाम", "बजे", "am", "pm", "الساعة", "غدا", "غدًا", "صباح", "مساء", "ليلا", "ليلاً"
         ).any { text.contains(it) }
         if (!hasClockMarker) return null
         val match = Regex("""(\d{1,2})(?::(\d{2}))?\s*(am|pm)?""")
@@ -100,11 +100,11 @@ object ReminderCommandParser {
         if (meridiem == "pm" && hour in 1..11) hour += 12
         if (meridiem == "am" && hour == 12) hour = 0
         if (meridiem.isEmpty()) {
-            if ((text.contains("شام") || text.contains("shaam")) && hour in 1..11) hour += 12
-            if ((text.contains("رات") || text.contains("night")) && hour in 1..11) hour += 12
+            if ((text.contains("شام") || text.contains("shaam") || text.contains("مساء")) && hour in 1..11) hour += 12
+            if ((text.contains("رات") || text.contains("night") || text.contains("مساء") || text.contains("ليلا") || text.contains("ليلاً")) && hour in 1..11) hour += 12
         }
         var target = now.with(LocalTime.of(hour, minute, 0))
-        val tomorrow = listOf("tomorrow", "kal", "کل", "कल").any { text.contains(it) }
+        val tomorrow = listOf("tomorrow", "kal", "کل", "कल", "غدا", "غدًا").any { text.contains(it) }
         if (tomorrow || !target.isAfter(now)) target = target.plusDays(1)
         return target
     }
@@ -118,10 +118,10 @@ object ReminderCommandParser {
             Regex("""\d+\s*(?:منٹ|منٹوں|گھنٹہ|گھنٹے|سیکنڈ)\s*(?:بعد|میں)"""),
             Regex("""\d+\s*(?:मिनट|मिनिट|घंटा|घंटे|सेकंड)\s*(?:बाद|में)"""),
             Regex("""(?:at|around)\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)?"""),
-            Regex("""(?:tomorrow|kal|کل|صبح|شام|رات|بجے|सुबह|शाम|बजे)"""),
+            Regex("""(?:tomorrow|kal|کل|صبح|شام|رات|بجے|सुबह|शाम|बजे|الساعة|غدا|غدًا|صباح|مساء|ليلا|ليلاً)"""),
             Regex("""(?:every day|daily|rozana|har roz|روزانہ|ہر روز|every week|weekly|har haftay|haftawar|ہر ہفتے|ہفتہ وار|हर हफ्ते)"""),
             Regex("""(?:please|kindly|mujhe|mujhay|yaad dila dena|yaad dilana|yaad dila|yaad dila do)"""),
-            Regex("""(?:مجھے|براہ کرم|ذرا|یاد دلاؤ|یاد دلانا|یاد دلا دیں|یاد دلا دینا|یاد دہانی)"""),
+            Regex("""(?:مجھے|براہ کرم|ذرا|یاد دلاؤ|یاد دلانا|یاد دلا دیں|یاد دلا دینا|یاد دہانی|ذكرني|ذكّرني|تذكير)"""),
             Regex("""(?:मुझे|कृपया|जरा|याद दिलाना|याद दिला देना|याद दिला दो|रिमाइंडर)"""),
             Regex("""^\s*to\s+""")
         )
