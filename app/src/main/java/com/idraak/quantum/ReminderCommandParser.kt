@@ -67,7 +67,7 @@ object ReminderCommandParser {
             Regex("""(\d+)\s*(?:second|seconds|minute|minutes|min|mins|hour|hours|ghanta|ghante)\s*(?:baad|bad|mein|me)"""),
             Regex("""(\d+)\s*(منٹ|منٹوں|گھنٹہ|گھنٹے|سیکنڈ)\s*(?:بعد|میں)"""),
             Regex("""(\d+)\s*(मिनट|मिनिट|घंटा|घंटे|सेकंड)\s*(?:बाद|में)""")
-            Regex("""(\\d+)\\s*(ثانية|ثواني|دقيقة|دقائق|ساعة|ساعات)\\s*(?:بعد|خلال)""")
+            Regex("""(\d+)\s*(ثانية|ثواني|دقيقة|دقائق|ساعة|ساعات)\s*(?:بعد|خلال)""")
         )
         for (pattern in patterns) {
             val match = pattern.find(text) ?: continue
