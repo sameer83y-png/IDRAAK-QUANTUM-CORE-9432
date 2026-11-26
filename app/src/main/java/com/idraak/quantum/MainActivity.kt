@@ -564,6 +564,16 @@ fun IdraakHomeScreen() {
         }
     }
 
+    LaunchedEffect(showSettings, voiceController) {
+        if (showSettings) {
+            val voices = voiceController.getAvailableUrduVoiceNames()
+            if (voices.isNotEmpty()) {
+                availableUrduVoices = voices
+                selectedUrduVoiceName = voiceController.getSelectedUrduVoiceName()
+            }
+        }
+    }
+
     LaunchedEffect(recognizedSpeech) {
         val spokenText = recognizedSpeech
 
