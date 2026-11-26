@@ -51,6 +51,15 @@ class VoiceForegroundService : Service() {
                 }
             }
 
+            ACTION_SET_VOICE -> {
+                val voiceName = intent.getStringExtra(EXTRA_VOICE_NAME).orEmpty()
+                if (serviceActive && voiceName.isNotBlank()) {
+                    if (voiceController?.setUrduVoice(voiceName) != true) {
+                        sendStatus("منتخب اردو آواز دستیاب نہیں")
+                    }
+                }
+            }
+
             ACTION_SET_LANGUAGE -> {
                 val languageName = intent.getStringExtra(EXTRA_LANGUAGE)
                 val language = try {
@@ -400,6 +409,11 @@ class VoiceForegroundService : Service() {
 
         const val ACTION_SET_LANGUAGE =
             "com.idraak.quantum.action.SET_BACKGROUND_VOICE_LANGUAGE"
+
+        const val ACTION_SET_VOICE =
+            "com.idraak.quantum.action.SET_BACKGROUND_VOICE_TTS_VOICE"
+
+        const val EXTRA_VOICE_NAME = "voice_name"
 
         const val ACTION_SPEAK_RESULT =
             "com.idraak.quantum.action.SPEAK_BACKGROUND_RESULT"

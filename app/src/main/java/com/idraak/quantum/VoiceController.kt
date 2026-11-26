@@ -59,6 +59,34 @@ class VoiceController(
     fun getRecognitionLanguage(): UrduVoiceLanguage =
         UrduVoiceLanguage.URDU
 
+    fun getAvailableUrduVoiceNames(): List<String> =
+        textToSpeech?.voices.orEmpty()
+            .filter { it.locale.language.equals("ur", true) && !it.isNetworkConnectionRequired }
+            .map { it.name }
+            .distinct()
+            .sorted()
+
+    fun getSelectedUrduVoiceName(): String =
+        preferences.getString(VOICE_NAME_KEY, textToSpeech?.voice?.name.orEmpty()).orEmpty()
+
+    fun setUrduVoice(name: String): Boolean {
+        val voice = textToSpeech?.voices.orEmpty().firstOrNull {
+            it.name == name &&
+                it.locale.language.equals("ur", true) &&
+                !it.isNetworkConnectionRequired
+        } ?: return false
+        return try {
+            val applied = textToSpeech?.setVoice(voice) == TextToSpeech.SUCCESS
+            if (applied) {
+                preferences.edit().putString(VOICE_NAME_KEY, voice.name).apply()
+                onStatusChanged("اردو کی آواز تبدیل کر دی گئی ہے")
+            }
+            applied
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     fun setRecognitionLanguage(
         @Suppress("UNUSED_PARAMETER") language: UrduVoiceLanguage,
         resumeListening: Boolean = false
@@ -82,9 +110,12 @@ class VoiceController(
                 onSpeechFinished()
                 return@TextToSpeech
             }
-            val urduVoice = textToSpeech?.voices.orEmpty()
+            val availableVoices = textToSpeech?.voices.orEmpty()
                 .filter { it.locale.language.equals("ur", true) && !it.isNetworkConnectionRequired }
-                .maxByOrNull { if (it.locale.country.equals("PK", true)) 1 else 0 }
+                .sortedBy { it.name }
+            val preferredVoiceName = preferences.getString(VOICE_NAME_KEY, null)
+            val urduVoice = availableVoices.firstOrNull { it.name == preferredVoiceName }
+                ?: availableVoices.maxByOrNull { if (it.locale.country.equals("PK", true)) 1 else 0 }
             if (urduVoice == null || textToSpeech?.setVoice(urduVoice) != TextToSpeech.SUCCESS) {
                 isTtsInitializationComplete = true
                 isTtsReady = false
@@ -95,6 +126,7 @@ class VoiceController(
             }
             isTtsInitializationComplete = true
             isTtsReady = true
+            preferences.edit().putString(VOICE_NAME_KEY, urduVoice.name).apply()
             textToSpeech?.setSpeechRate(getSpeechRate())
             onStatusChanged("اردو آواز تیار ہے")
             val queued = pendingSpeech
@@ -457,6 +489,7 @@ class VoiceController(
     companion object {
         private const val LANGUAGE_PREFERENCES = "idraak_voice_preferences"
         private const val LANGUAGE_KEY = "selected_recognition_language"
+        private const val VOICE_NAME_KEY = "selected_urdu_voice_name"
         private const val SPEECH_RATE_KEY = "speech_output_rate"
         private const val MODEL_ASSET = "models/ggml-small.bin"
         private const val SAMPLE_RATE = 16000

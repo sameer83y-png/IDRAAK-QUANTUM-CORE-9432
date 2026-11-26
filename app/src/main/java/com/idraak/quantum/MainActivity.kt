@@ -155,6 +155,8 @@ fun IdraakHomeScreen() {
     var microphonePermissionRequest by remember {
         mutableStateOf(false)
     }
+    var availableUrduVoices by remember { mutableStateOf(emptyList<String>()) }
+    var selectedUrduVoiceName by remember { mutableStateOf("") }
 
     var pendingTorchCommand by remember {
         mutableStateOf<Pair<String, Boolean>?>(null)
@@ -186,6 +188,13 @@ fun IdraakHomeScreen() {
             onStatusChanged = { status ->
                 mainHandler.post {
                     voiceStatus = status
+                    controllerReference[0]?.let { controller ->
+                        val options = controller.getAvailableUrduVoiceNames()
+                        if (options.isNotEmpty()) {
+                            availableUrduVoices = options
+                            selectedUrduVoiceName = controller.getSelectedUrduVoiceName()
+                        }
+                    }
 
                     // Keep the microphone indicator aligned with the real capture state.
                     // Whisper transcription and Urdu TTS happen after recording has stopped.
@@ -863,6 +872,25 @@ fun IdraakHomeScreen() {
                     onThemeSelected = { theme ->
                         selectedTheme = theme
                         theme.save(context)
+                    },
+                    availableUrduVoices = availableUrduVoices,
+                    selectedUrduVoiceName = selectedUrduVoiceName,
+                    onUrduVoiceSelected = { voiceName ->
+                        selectedUrduVoiceName = voiceName
+                        if (isBackgroundVoiceActive) {
+                            val intent = Intent(context, VoiceForegroundService::class.java).apply {
+                                action = VoiceForegroundService.ACTION_SET_VOICE
+                                putExtra(VoiceForegroundService.EXTRA_VOICE_NAME, voiceName)
+                            }
+                            try {
+                                context.startService(intent)
+                                voiceStatus = "پس منظر کی اردو آواز تبدیل ہو رہی ہے"
+                            } catch (_: Exception) {
+                                voiceStatus = "پس منظر کی آواز تبدیل نہیں ہو سکی"
+                            }
+                        } else if (!voiceController.setUrduVoice(voiceName)) {
+                            voiceStatus = "منتخب آواز اس فون پر دستیاب نہیں"
+                        }
                     }
                 )
             }
@@ -1132,7 +1160,10 @@ fun SettingsScreen(
     selectedSpeechRate: Float,
     onSpeechRateChanged: (Float) -> Unit,
     selectedTheme: IdraakTheme,
-    onThemeSelected: (IdraakTheme) -> Unit
+    onThemeSelected: (IdraakTheme) -> Unit,
+    availableUrduVoices: List<String>,
+    selectedUrduVoiceName: String,
+    onUrduVoiceSelected: (String) -> Unit
 ) {
     val context = LocalContext.current
     val activity = context as? ComponentActivity
@@ -1303,6 +1334,45 @@ fun SettingsScreen(
             onValueChange = onSpeechRateChanged,
             valueRange = 0.75f..1.5f
         )
+
+        Spacer(modifier = Modifier.height(18.dp))
+
+        Text(
+            text = "اردو آواز کا انتخاب",
+            color = themeAccentColor,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "فون میں نصب آف لائن اردو آوازوں میں سے منتخب کریں۔ آوازوں کے نام اور دستیابی TTS انجن کے مطابق مختلف ہو سکتے ہیں۔",
+            color = Color(0xFF9CB0CC),
+            fontSize = 12.sp
+        )
+        if (availableUrduVoices.isEmpty()) {
+            Text(
+                text = "کوئی آف لائن اردو آواز دستیاب نہیں۔ فون میں اردو TTS voice data نصب کریں۔",
+                color = Color(0xFFFFC857),
+                fontSize = 12.sp
+            )
+        } else {
+            availableUrduVoices.forEach { voiceName ->
+                Button(
+                    onClick = { onUrduVoiceSelected(voiceName) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (voiceName == selectedUrduVoiceName) themeAccentColor else Color(selectedTheme.surfaceColor)
+                    )
+                ) {
+                    Text(
+                        text = if (voiceName == selectedUrduVoiceName) "✓ $voiceName" else voiceName,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(18.dp))
 
         Spacer(modifier = Modifier.height(18.dp))
 
