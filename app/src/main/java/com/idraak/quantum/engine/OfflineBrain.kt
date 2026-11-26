@@ -400,6 +400,28 @@ object OfflineBrain {
         )
     }
 
+    /**
+     * Handles memory and learning conversations before the general local model.
+     * This keeps remember/correct/retrieve flows reachable even when Qwen is enabled.
+     */
+    @Synchronized
+    fun respondToMemory(context: Context, userMessage: String): String? {
+        val appContext = context.applicationContext
+
+        LearnedCommandStore.handleTeaching(appContext, userMessage)?.let { return it }
+        MemoryCommandHandler.handle(appContext, userMessage)?.let { return it }
+        MemoryFeedbackHandler.handle(appContext, userMessage)?.let { return it }
+
+        if (understand(userMessage).intent == "UNKNOWN") {
+            return try {
+                VerifiedMemoryResponder.answer(appContext, userMessage)
+            } catch (_: Exception) {
+                null
+            }
+        }
+        return null
+    }
+
     @Synchronized
     fun respond(
         context: Context,
@@ -482,41 +504,13 @@ object OfflineBrain {
             return teachingResponse
         }
 
-        // Explicit voice memory capture: new facts remain PENDING until verified.
-        MemoryCommandHandler.handle(
-            context.applicationContext,
-            userMessage
-        )?.let { memoryResponse ->
+        respondToMemory(context.applicationContext, userMessage)?.let { memoryResponse ->
             return memoryResponse
-        }
-
-        // Handle explicit user corrections before normal command detection.
-        // Corrections are saved as PENDING and require user verification.
-        MemoryFeedbackHandler.handle(
-            context.applicationContext,
-            userMessage
-        )?.let { correctionResponse ->
-            return correctionResponse
         }
 
         val decision = understand(userMessage)
 
-        // Use only explicitly verified local memory as a fallback.
-        // Normal commands and known OfflineBrain responses keep priority.
         if (decision.intent == "UNKNOWN") {
-            val memoryAnswer = try {
-                VerifiedMemoryResponder.answer(
-                    context.applicationContext,
-                    userMessage
-                )
-            } catch (_: Exception) {
-                null
-            }
-
-            if (!memoryAnswer.isNullOrBlank()) {
-                return memoryAnswer
-            }
-
             // Keep unclear requests as unverified learning examples.
             // They are never promoted to executable rules without correction.
             recordExperience(
