@@ -523,4 +523,13 @@ class OfflineCommandRegressionTest {
             com.idraak.quantum.engine.OfflineBrain.understand("ماذا تستطيع أن تفعل").intent
         )
     }
+
+    @Test
+    fun unknownCommandDoesNotSayItIsTryingToUnderstand() {
+        val decision = com.idraak.quantum.engine.OfflineBrain.understand("some unsupported request")
+        assertEquals("UNKNOWN", decision.intent)
+        assertFalse(decision.response.contains("سمجھنے کی کوشش"))
+        assertTrue(decision.response.contains("غلط کام نہیں کروں گا"))
+        assertTrue(decision.response.contains("صاف بتاؤں گا"))
+    }
 }
