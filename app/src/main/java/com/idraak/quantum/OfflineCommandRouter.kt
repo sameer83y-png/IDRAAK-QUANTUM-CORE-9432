@@ -128,6 +128,17 @@ object OfflineCommandRouter {
             )
         }
 
+        // Offline reminders are parsed and scheduled locally before general chat handling.
+        ReminderCommandHandler.tryHandle(appContext, message)?.let { reminderResult ->
+            OfflineBrain.recordExperience(
+                context = appContext,
+                intent = reminderResult.intent,
+                status = if (reminderResult.intent == "REMINDER_SET") "SUCCESS" else "INFO",
+                steps = listOf(originalMessage, reminderResult.response)
+            )
+            return Result(response = reminderResult.response, intent = reminderResult.intent)
+        }
+
         LearnedCommandStore.handleTeaching(appContext, originalMessage)?.let { response ->
             OfflineBrain.recordExperience(
                 context = appContext,
