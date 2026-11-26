@@ -480,4 +480,29 @@ class OfflineCommandRegressionTest {
         assertEquals("DATE", com.idraak.quantum.engine.OfflineBrain.understand("تاريخ اليوم").intent)
     }
 
+    @Test
+    fun recognizesNaturalRomanUrduAndHindiTimeQuestionsOffline() {
+        listOf(
+            "abhi time kya hai",
+            "abhi kitne baje hain",
+            "waqt kya hua",
+            "अभी कितने बजे हैं"
+        ).forEach { phrase ->
+            assertEquals(phrase, "TIME", com.idraak.quantum.engine.OfflineBrain.understand(phrase).intent)
+        }
+    }
+
+    @Test
+    fun recognizesNaturalRomanUrduAndHindiDateQuestionsOffline() {
+        listOf(
+            "aaj ki tareekh kya hai",
+            "aaj ki date kya hai",
+            "aaj kya tareekh hai",
+            "आज कौन सी तारीख है",
+            "آج کون سی تاریخ ہے"
+        ).forEach { phrase ->
+            assertEquals(phrase, "DATE", com.idraak.quantum.engine.OfflineBrain.understand(phrase).intent)
+        }
+    }
+
 }
