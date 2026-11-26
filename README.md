@@ -15,7 +15,8 @@ Idraak Quantum is an Android voice assistant built with Kotlin and Jetpack Compo
 - Voice alarm requests in supported languages are handed to the Android Clock app; ambiguous AM/PM is clarified rather than guessed.
 - Alarm Clock handoff for setting, showing and dismissing alarms; Android Clock confirms the final alarm action.
 - Opt-in daily proactive check-in notification with quiet hours; it never starts the microphone in the background.
-- Context-aware suggestions, selectable visual themes, Urdu speech-rate settings and a proactive-assistant toggle.
+- Context-aware suggestions, eight visual themes, Urdu speech-rate controls and selectable locally installed offline Urdu TTS voices.
+- A proactive-assistant toggle for opt-in daily check-ins.
 - Regression tests for supported command phrases and safety confirmations.
 
 ## Android requirements and permissions
