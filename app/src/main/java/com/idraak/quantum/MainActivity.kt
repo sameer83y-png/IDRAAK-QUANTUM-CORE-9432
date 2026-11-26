@@ -363,9 +363,15 @@ fun IdraakHomeScreen() {
             ) == PackageManager.PERMISSION_GRANTED
 
         if (permissionGranted) {
-            speakDashboardSuggestions()
-            isListening = false
-            voiceStatus = "آف لائن آواز شروع ہو رہی ہے"
+            // Start microphone capture immediately. Speaking the dashboard
+            // suggestions first delayed listening until TTS finished and could
+            // leave the user talking while the microphone was still inactive.
+            isListening = voiceController.startListening()
+            voiceStatus = if (isListening) {
+                "آف لائن آواز فعال ہے، آپ بول سکتے ہیں"
+            } else {
+                "مائیکروفون شروع نہیں ہو سکا"
+            }
         } else {
             voiceStatus = "مائیکروفون کی اجازت مانگی جا رہی ہے"
             microphonePermissionRequest = true
@@ -590,9 +596,14 @@ fun IdraakHomeScreen() {
         ) { granted ->
             PermissionRequestGate.markResult(context, Manifest.permission.RECORD_AUDIO, granted)
             if (granted && isContinuousVoiceChat) {
-                speakDashboardSuggestions()
-                isListening = false
-                voiceStatus = "آف لائن آواز شروع ہو رہی ہے"
+                // Permission approval should begin capture immediately; do not
+                // wait for a spoken welcome/suggestions utterance to finish.
+                isListening = voiceController.startListening()
+                voiceStatus = if (isListening) {
+                    "آف لائن آواز فعال ہے، آپ بول سکتے ہیں"
+                } else {
+                    "مائیکروفون شروع نہیں ہو سکا"
+                }
             } else {
                 isContinuousVoiceChat = false
                 isListening = false
