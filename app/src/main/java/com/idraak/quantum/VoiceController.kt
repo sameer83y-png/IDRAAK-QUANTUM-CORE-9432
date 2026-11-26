@@ -333,9 +333,15 @@ class VoiceController(
             }
         } catch (error: Exception) {
             if (!isShutdown) {
+                // Cancellation is intentional when speech output starts on devices
+                // without a working echo canceller. Do not report it as a failed
+                // capture or restart the microphone while TTS is speaking.
+                val captureWasActive = isListening
                 isListening = false
-                onStatusChanged("اردو آف لائن آواز میں مسئلہ: ${error.localizedMessage ?: "نامعلوم خرابی"}")
-                onSpeechFinished()
+                if (captureWasActive) {
+                    onStatusChanged("اردو آف لائن آواز میں مسئلہ: ${error.localizedMessage ?: "نامعلوم خرابی"}")
+                    onSpeechFinished()
+                }
             }
         } finally {
             try { recorder?.let { if (it.recordingState == AudioRecord.RECORDSTATE_RECORDING) it.stop() } } catch (_: Exception) {}
