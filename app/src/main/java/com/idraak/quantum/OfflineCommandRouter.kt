@@ -407,6 +407,12 @@ object OfflineCommandRouter {
         }
 
         return try {
+            // Memory capture, corrections, and verified-memory retrieval must
+            // run before the general language model can answer an unknown utterance.
+            OfflineBrain.respondToMemory(appContext, message)?.let { memoryResponse ->
+                return Result(response = memoryResponse, intent = "MEMORY")
+            }
+
             // All explicit device actions have already been handled above.
             // Use the local language model only for ordinary, unrecognized chat.
             val generatedAnswer = if (decision.intent == "UNKNOWN") {
