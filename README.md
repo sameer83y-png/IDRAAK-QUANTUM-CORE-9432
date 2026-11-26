@@ -6,11 +6,13 @@ Idraak Quantum is an Android voice assistant built with Kotlin and Jetpack Compo
 
 - Local multilingual speech recognition with a bundled Whisper Small model; spoken responses are in Urdu.
 - Offline command routing for supported phone, app, call, camera, torch, device-status and screen-control actions.
+- Explicit multi-step task planning across Urdu, Hindi, Roman Urdu and English phrasing.
 - Optional continuous foreground voice session with a persistent notification.
 - Accessibility-based screen reading, clicking, scrolling and gestures after the user explicitly enables the service in Android Settings.
 - Local memory with review/verification states, correction feedback, search and encrypted backup/restore.
 - Encrypted local memory with review/verification, correction feedback, searchable categories and passphrase-protected backup/restore.
-- Voice reminders with relative/clock times, daily/weekly repeats, listing, individual/all cancellation and reboot rescheduling.
+- Voice reminders with relative/clock times, daily/weekly repeats, listing, individual/all cancellation and reboot rescheduling across English, Urdu, Hindi, Roman Urdu and Arabic.
+- Voice alarm requests in supported languages are handed to the Android Clock app; ambiguous AM/PM is clarified rather than guessed.
 - Alarm Clock handoff for setting, showing and dismissing alarms; Android Clock confirms the final alarm action.
 - Opt-in daily proactive check-in notification with quiet hours; it never starts the microphone in the background.
 - Context-aware suggestions, selectable visual themes, Urdu speech-rate settings and a proactive-assistant toggle.
