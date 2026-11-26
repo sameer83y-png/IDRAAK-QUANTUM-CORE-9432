@@ -101,10 +101,7 @@ object OfflinePhoneCommandHandler {
 
         // Support explicit alternatives such as "open YouTube or WhatsApp".
         // Each candidate is resolved against the launchable apps on this phone.
-        val candidateTargets = target.split(
-            Regex("\\s+(?:or|ya|ya phir|या|या फिर|یا|یا پھر)\\s+"),
-            limit = 5
-        ).map { normalize(it) }.filter { it.isNotBlank() }
+        val candidateTargets = splitAppChoices(target)
         val resolved = candidateTargets.flatMap { candidate ->
             val aliases = aliasesFor(candidate)
             val exact = installedApps.filter { app ->
@@ -150,6 +147,12 @@ object OfflinePhoneCommandHandler {
             Result(true, false, "${selected.label} نہیں کھل سکی۔ فون نے اسے کھولنے سے روک دیا۔", selected.label)
         }
     }
+
+    internal fun splitAppChoices(target: String): List<String> =
+        target.split(
+            Regex("\\s+(?:or|ya|ya phir|या|या फिर|یا|یا پھر)\\s+"),
+            limit = 5
+        ).map { normalize(it) }.filter { it.isNotBlank() }
 
     internal fun extractAppName(command: String): String {
         var value = normalize(command)
