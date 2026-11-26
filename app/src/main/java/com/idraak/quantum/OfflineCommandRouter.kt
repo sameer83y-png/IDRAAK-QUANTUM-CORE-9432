@@ -9,6 +9,7 @@ import com.idraak.quantum.engine.DeviceStatusController
 import com.idraak.quantum.engine.HardwareController
 import com.idraak.quantum.engine.LearnedCommandStore
 import com.idraak.quantum.engine.OfflineBrain
+import com.idraak.quantum.engine.OfflineLanguageModel
 import com.idraak.quantum.engine.OfflineScreenCommandHandler
 
 /**
