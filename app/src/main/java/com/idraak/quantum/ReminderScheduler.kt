@@ -48,7 +48,19 @@ object ReminderScheduler {
     fun rescheduleAll(context: Context) {
         val app = context.applicationContext
         val now = System.currentTimeMillis()
-        val pending = readAll(app).filter { it.triggerAtMillis > now }
+        val pending = readAll(app).mapNotNull { reminder ->
+            if (reminder.triggerAtMillis > now) {
+                reminder
+            } else if (reminder.repeatIntervalMillis > 0L) {
+                var nextTime = reminder.triggerAtMillis
+                while (nextTime <= now && nextTime > 0L) {
+                    nextTime += reminder.repeatIntervalMillis
+                }
+                if (nextTime > 0L) reminder.copy(triggerAtMillis = nextTime) else null
+            } else {
+                null
+            }
+        }
         pending.forEach { scheduleAlarm(app, it) }
         saveAll(app, pending)
     }
