@@ -6,6 +6,16 @@ import org.junit.Test
 
 class AppChoiceFlowRegressionTest {
     @Test
+    fun resolvesNumberedAndOrdinalAppChoicesAcrossLanguages() {
+        assertEquals(0, OfflinePhoneCommandHandler.resolveChoiceIndex("1", 2))
+        assertEquals(1, OfflinePhoneCommandHandler.resolveChoiceIndex("number 2", 2))
+        assertEquals(0, OfflinePhoneCommandHandler.resolveChoiceIndex("pehla", 2))
+        assertEquals(1, OfflinePhoneCommandHandler.resolveChoiceIndex("دوسرا", 2))
+        assertEquals(1, OfflinePhoneCommandHandler.resolveChoiceIndex("दूसरा", 2))
+        assertEquals(null, OfflinePhoneCommandHandler.resolveChoiceIndex("third", 2))
+    }
+
+    @Test
     fun splitsEnglishAppAlternatives() {
         assertEquals(
             listOf("youtube", "whatsapp"),
