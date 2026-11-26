@@ -61,8 +61,8 @@ object OfflineCommandRouter {
 
         // Execute clearly chained commands in order. Only explicit sequence words
         // are treated as separators, so ordinary Urdu "اور" does not split a phrase.
-        val sequenceParts = splitSequentialCommands(originalMessage)
-        if (sequenceParts.size in 2..4) {
+        val sequenceParts = OfflineTaskPlanner.split(originalMessage)
+        if (sequenceParts.size in 2..5) {
             // Preflight must not execute any part of a sequence. MainActivity
             // re-enters once with foreground UI allowed, avoiding duplicate actions.
             if (!allowForegroundUi) {
@@ -419,15 +419,6 @@ object OfflineCommandRouter {
         }
     }
 
-    private fun splitSequentialCommands(command: String): List<String> {
-        val separator = Regex(
-            """(?i)\s+(?:اور\s+پھر|اس\s+کے\s+بعد|and\s+then|then|پھر|ثم)\s+"""
-        )
-        return command.split(separator)
-            .map { it.trim().trim(',', '،', ';', '؛', '.') }
-            .filter { it.isNotBlank() }
-            .take(5)
-    }
 
     fun executeTorch(context: Context, originalCommand: String, enabled: Boolean): Result {
         val appContext = context.applicationContext

@@ -428,4 +428,26 @@ class OfflineCommandRegressionTest {
         assertEquals(24L * 60L * 60L * 1000L, result.repeatIntervalMillis)
     }
 
+    @Test
+    fun plansSequentialCommandsAcrossUrduRomanUrduAndEnglish() {
+        assertEquals(
+            listOf("یوٹیوب کھولو", "ویڈیو تلاش کرو"),
+            OfflineTaskPlanner.split("پہلے یوٹیوب کھولو پھر ویڈیو تلاش کرو")
+        )
+        assertEquals(
+            listOf("open YouTube", "search music"),
+            OfflineTaskPlanner.split("first open YouTube and then search music")
+        )
+        assertEquals(
+            listOf("camera kholo", "photo lo"),
+            OfflineTaskPlanner.split("pehle camera kholo phir photo lo")
+        )
+    }
+
+    @Test
+    fun rejectsSingleStepAsMultiStepPlan() {
+        assertFalse(OfflineTaskPlanner.isMultiStep("open YouTube"))
+        assertTrue(OfflineTaskPlanner.isMultiStep("open YouTube then search music"))
+    }
+
 }
