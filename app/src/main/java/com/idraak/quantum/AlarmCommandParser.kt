@@ -41,6 +41,8 @@ object AlarmCommandParser {
             if (hour in 1..11) hour += 12
         } else if (meridiem == "am" || (meridiem.isEmpty() && isMorning && hour == 12)) {
             if (hour == 12) hour = 0
+        } else if (meridiem.isEmpty() && isMorning) {
+            // Explicit morning wording makes 1..11 unambiguous.
         } else if (hour in 1..11) {
             return Result.NeedsMeridiem
         }
