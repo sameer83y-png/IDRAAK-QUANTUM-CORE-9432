@@ -406,9 +406,17 @@ object OfflineCommandRouter {
         }
 
         return try {
+            // All explicit device actions have already been handled above.
+            // Use the local language model only for ordinary, unrecognized chat.
+            val generatedAnswer = if (decision.intent == "UNKNOWN") {
+                OfflineLanguageModel.respond(appContext, message)
+            } else {
+                null
+            }
             Result(
-                response = OfflineBrain.respond(context = appContext, userMessage = message),
-                intent = decision.intent
+                response = generatedAnswer
+                    ?: OfflineBrain.respond(context = appContext, userMessage = message),
+                intent = if (generatedAnswer != null) "OFFLINE_AI" else decision.intent
             )
         } catch (error: Exception) {
             Result(

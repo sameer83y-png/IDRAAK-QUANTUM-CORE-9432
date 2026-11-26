@@ -16,6 +16,11 @@ android {
         versionName = "1.0"
     }
 
+    // Keep large GGUF model assets uncompressed inside the APK.
+    androidResources {
+        noCompress += "gguf"
+    }
+
     buildFeatures {
         compose = true
     }
@@ -49,10 +54,10 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
 
-    // Urdu offline speech recognition using whisper.cpp (file-based inference).
+    // Offline speech recognition and local language-model inference.
     implementation("dev.ffmpegkit-maintained:whisper-android:1.0.0")
+    implementation("dev.ffmpegkit-maintained:llama-android:0.1.1")
 
     // Lightweight JVM regression tests for offline command parsing.
     testImplementation("junit:junit:4.13.2")
-
 }

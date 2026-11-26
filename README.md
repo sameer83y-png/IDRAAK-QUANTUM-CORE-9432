@@ -5,6 +5,7 @@ Idraak Quantum is an Android voice assistant built with Kotlin and Jetpack Compo
 ## Current capabilities
 
 - Local multilingual speech recognition with a bundled Whisper Small model; spoken responses are in Urdu.
+- Open-ended offline conversation through Qwen2.5 0.5B Instruct (Q4_K_M) running locally with llama.cpp; the model is bundled in the APK and no app network permission is added.
 - Offline command routing for supported phone, app, call, camera, torch, device-status and screen-control actions.
 - Explicit multi-step task planning across Urdu, Hindi, Roman Urdu and English phrasing.
 - Optional continuous foreground voice session with a persistent notification.
@@ -31,7 +32,7 @@ Idraak Quantum is an Android voice assistant built with Kotlin and Jetpack Compo
 
 ## Offline behavior
 
-Idraak itself is built without the INTERNET and network-state permissions. The Whisper model is bundled into the APK by the GitHub Actions build, so the APK is large (roughly 440–460 MB). The CI workflow downloads/caches this model while building; that build-time download does not add network access to the installed app.
+Idraak itself is built without the INTERNET and network-state permissions. GitHub Actions downloads and bundles the multilingual Whisper Small model (roughly 440–460 MB) and the Qwen2.5 0.5B Q4_K_M language model (roughly 490 MB) into the APK. The combined APK is therefore expected to be close to 1 GB. These are build-time downloads; the installed app does not need network access. On the first open-ended AI question, Idraak copies the GGUF model into its app-specific model folder before loading it, so the phone also needs additional free storage for that private working copy.
 
 Opening an external app such as YouTube or a browser is a handoff. That external app may need its own Internet access for online content. Local Idraak command processing does not provide offline access to online videos or websites.
 
@@ -48,8 +49,9 @@ GitHub Actions runs the following checks on every push to main:
 1. Build the Debug APK.
 2. Run offline command regression tests.
 3. Run Android Lint.
-4. Inspect the built APK and fail if Internet/network-state permissions are present.
-5. Upload the IDRAAK-QUANTUM-DEBUG-APK artifact.
+4. Verify the offline language model asset is present in the APK build.
+5. Inspect the built APK and fail if Internet/network-state permissions are present.
+6. Upload the IDRAAK-QUANTUM-DEBUG-APK artifact.
 
 Open GitHub Actions and select the latest successful IDRAAK QUANTUM APK Build run to download its APK artifact:
 https://github.com/sameer83y-png/IDRAAK-QUANTUM-CORE-9432/actions
