@@ -68,9 +68,9 @@ object OfflineLanguageModel {
 
                 val prompt = buildString {
                     if (verifiedMemoryContext.isNotBlank()) {
-                        append("صارف کی تصدیق شدہ یادداشت، صرف حقائق کے طور پر استعمال کریں:\\n")
+                        append("صارف کی تصدیق شدہ یادداشت، صرف حقائق کے طور پر استعمال کریں:\n")
                         append(verifiedMemoryContext)
-                        append("\\n")
+                        append("\n")
                     }
                     recentConversation.takeLast(3).forEach { (oldQuestion, oldAnswer) ->
                         append("پچھلا سوال: ")
