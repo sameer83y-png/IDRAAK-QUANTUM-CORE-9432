@@ -505,4 +505,22 @@ class OfflineCommandRegressionTest {
         }
     }
 
+
+    @Test
+    fun helpExplainsOfflineCapabilitiesAndPlatformBoundaries() {
+        val help = com.idraak.quantum.engine.OfflineBrain.understand("what can you do")
+        assertEquals("HELP", help.intent)
+        assertTrue(help.response.contains("مکمل آف لائن"))
+        assertTrue(help.response.contains("یوٹیوب"))
+        assertTrue(help.response.contains("یاددہانیاں"))
+        assertTrue(help.response.contains("Android"))
+    }
+
+    @Test
+    fun recognizesArabicHelpRequest() {
+        assertEquals(
+            "HELP",
+            com.idraak.quantum.engine.OfflineBrain.understand("ماذا تستطيع أن تفعل").intent
+        )
+    }
 }
