@@ -379,4 +379,34 @@ class OfflineCommandRegressionTest {
         )
     }
 
+    @Test
+    fun parsesAlarmWithExplicitAmPm() {
+        val result = AlarmCommandParser.parse("set alarm for 7:30 pm")
+        assertTrue(result is AlarmCommandParser.Result.Ready)
+        result as AlarmCommandParser.Result.Ready
+        assertEquals(19, result.hour)
+        assertEquals(30, result.minute)
+    }
+
+    @Test
+    fun asksMorningOrEveningInsteadOfGuessingAlarmTime() {
+        assertEquals(
+            AlarmCommandParser.Result.NeedsMeridiem,
+            AlarmCommandParser.parse("alarm at 7")
+        )
+    }
+
+    @Test
+    fun parsesUrduMorningAlarm() {
+        val result = AlarmCommandParser.parse("صبح 7 بجے الارم لگا دو")
+        assertTrue(result is AlarmCommandParser.Result.Ready)
+        result as AlarmCommandParser.Result.Ready
+        assertEquals(7, result.hour)
+    }
+
+    @Test
+    fun ignoresOrdinaryAlarmConversation() {
+        assertEquals(AlarmCommandParser.Result.NotAlarm, AlarmCommandParser.parse("I like alarms"))
+    }
+
 }

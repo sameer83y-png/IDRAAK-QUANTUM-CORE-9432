@@ -128,6 +128,20 @@ object OfflineCommandRouter {
             )
         }
 
+        AlarmCommandHandler.tryHandle(appContext, originalMessage, allowForegroundUi)?.let { alarmResult ->
+            OfflineBrain.recordExperience(
+                context = appContext,
+                intent = alarmResult.intent,
+                status = if (alarmResult.intent == "ALARM_SET") "AWAITING_USER_CONFIRMATION" else "INFO",
+                steps = listOf(originalMessage, alarmResult.response)
+            )
+            return Result(
+                response = alarmResult.response,
+                requiresForegroundUi = alarmResult.requiresForegroundUi,
+                intent = alarmResult.intent
+            )
+        }
+
         // Offline reminders are parsed and scheduled locally before general chat handling.
         ReminderCommandHandler.tryHandle(appContext, originalMessage)?.let { reminderResult ->
             OfflineBrain.recordExperience(
