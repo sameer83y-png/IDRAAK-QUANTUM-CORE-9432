@@ -129,7 +129,7 @@ object OfflineCommandRouter {
         }
 
         // Offline reminders are parsed and scheduled locally before general chat handling.
-        ReminderCommandHandler.tryHandle(appContext, message)?.let { reminderResult ->
+        ReminderCommandHandler.tryHandle(appContext, originalMessage)?.let { reminderResult ->
             OfflineBrain.recordExperience(
                 context = appContext,
                 intent = reminderResult.intent,

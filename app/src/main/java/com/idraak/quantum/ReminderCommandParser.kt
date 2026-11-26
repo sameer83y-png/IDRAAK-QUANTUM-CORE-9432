@@ -15,7 +15,7 @@ object ReminderCommandParser {
     }
 
     private val reminderMarkers = listOf(
-        "remind me", "set reminder", "set a reminder", "reminder",
+        "remind me", "set reminder", "set a reminder", "reminder at", "reminder for",
         "yaad dila", "yaad dilana", "yaad dila dena", "mujhe yaad",
         "یاد دلاؤ", "یاد دلانا", "یاد دہانی", "یاد دلا دینا", "یاد کرانا",
         "याद दिला", "याद दिलाना", "याद दिला देना", "रिमाइंडर"
@@ -56,11 +56,11 @@ object ReminderCommandParser {
 
     private fun relativeDuration(text: String): Long? {
         val patterns = listOf(
-            Regex("""(?:in|after)\\s*(\\d+)\\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?)"""),
-            Regex("""(\\d+)\\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?)\\s*(?:later|from now)"""),
-            Regex("""(\\d+)\\s*(?:second|seconds|minute|minutes|min|mins|hour|hours|ghanta|ghante)\\s*(?:baad|bad|mein|me)"""),
-            Regex("""(\\d+)\\s*(?:منٹ|منٹوں|گھنٹہ|گھنٹے|سیکنڈ)\\s*(?:بعد|میں)"""),
-            Regex("""(\\d+)\\s*(?:मिनट|मिनिट|घंटा|घंटे|सेकंड)\\s*(?:बाद|में)""")
+            Regex("""(?:in|after)\s*(\d+)\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?)"""),
+            Regex("""(\d+)\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?)\s*(?:later|from now)"""),
+            Regex("""(\d+)\s*(?:second|seconds|minute|minutes|min|mins|hour|hours|ghanta|ghante)\s*(?:baad|bad|mein|me)"""),
+            Regex("""(\d+)\s*(منٹ|منٹوں|گھنٹہ|گھنٹے|سیکنڈ)\s*(?:بعد|میں)"""),
+            Regex("""(\d+)\s*(मिनट|मिनिट|घंटा|घंटे|सेकंड)\s*(?:बाद|में)""")
         )
         for (pattern in patterns) {
             val match = pattern.find(text) ?: continue
@@ -71,7 +71,7 @@ object ReminderCommandParser {
                 unit.startsWith("sec") || unit == "سیکنڈ" || unit == "सेकंड" -> 1L
                 unit.startsWith("hour") || unit.startsWith("hr") ||
                     unit.startsWith("ghanta") || unit.startsWith("ghante") ||
-                    unit.startsWith("گھنٹ") || unit.startsWith("घंट") -> 3600L
+                    unit.startsWith("گھنٹ") || unit.startsWith("घंट") || unit == "گھنٹہ" || unit == "گھنٹے" -> 3600L
                 else -> 60L
             }
             return (amount * multiplier).coerceAtMost(30L * 24L * 3600L)
@@ -85,7 +85,7 @@ object ReminderCommandParser {
             "بجے", "सुबह", "शाम", "बजे", "am", "pm"
         ).any { text.contains(it) }
         if (!hasClockMarker) return null
-        val match = Regex("""(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm)?""")
+        val match = Regex("""(\d{1,2})(?::(\d{2}))?\s*(am|pm)?""")
             .find(text) ?: return null
         var hour = match.groupValues[1].toIntOrNull() ?: return null
         val minute = match.groupValues[2].toIntOrNull() ?: 0
@@ -107,16 +107,16 @@ object ReminderCommandParser {
         var value = text
         val removals = listOf(
             Regex("""(?:remind me|set a reminder|set reminder|reminder)"""),
-            Regex("""(?:in|after)\\s*\\d+\\s*(?:seconds?|secs?|minutes?|mins?|hours?|hrs?)"""),
-            Regex("""\\d+\\s*(?:seconds?|secs?|minutes?|mins?|hours?|hrs?|minute|minutes|min|mins|hour|hours|ghanta|ghante)\\s*(?:later|from now|baad|bad|mein|me)"""),
-            Regex("""\\d+\\s*(?:منٹ|منٹوں|گھنٹہ|گھنٹے|سیکنڈ)\\s*(?:بعد|میں)"""),
-            Regex("""\\d+\\s*(?:मिनट|मिनिट|घंटा|घंटे|सेकंड)\\s*(?:बाद|में)"""),
-            Regex("""(?:at|around)\\s*\\d{1,2}(?::\\d{2})?\\s*(?:am|pm)?"""),
+            Regex("""(?:in|after)\s*\d+\s*(?:seconds?|secs?|minutes?|mins?|hours?|hrs?)"""),
+            Regex("""\d+\s*(?:seconds?|secs?|minutes?|mins?|hours?|hrs?|minute|minutes|min|mins|hour|hours|ghanta|ghante)\s*(?:later|from now|baad|bad|mein|me)"""),
+            Regex("""\d+\s*(?:منٹ|منٹوں|گھنٹہ|گھنٹے|سیکنڈ)\s*(?:بعد|میں)"""),
+            Regex("""\d+\s*(?:मिनट|मिनिट|घंटा|घंटे|सेकंड)\s*(?:बाद|में)"""),
+            Regex("""(?:at|around)\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)?"""),
             Regex("""(?:tomorrow|kal|کل|صبح|شام|رات|بجے|सुबह|शाम|बजे)"""),
             Regex("""(?:please|kindly|mujhe|mujhay|yaad dila dena|yaad dilana|yaad dila|yaad dila do)"""),
             Regex("""(?:مجھے|براہ کرم|ذرا|یاد دلاؤ|یاد دلانا|یاد دلا دیں|یاد دلا دینا|یاد دہانی)"""),
             Regex("""(?:मुझे|कृपया|जरा|याद दिलाना|याद दिला देना|याद दिला दो|रिमाइंडर)"""),
-            Regex("""^to\\s+""")
+            Regex("""^\s*to\s+""")
         )
         removals.forEach { value = it.replace(value, " ") }
         return value.replace(Regex("[^\\p{L}\\p{M}\\p{N} ]"), " ")
