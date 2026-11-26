@@ -468,4 +468,16 @@ class OfflineCommandRegressionTest {
         assertEquals(7, result.hour)
     }
 
+    @Test
+    fun recognizesArabicTimeQuestionsOffline() {
+        assertEquals("TIME", com.idraak.quantum.engine.OfflineBrain.understand("كم الساعة الآن").intent)
+        assertEquals("TIME", com.idraak.quantum.engine.OfflineBrain.understand("ما الوقت الآن").intent)
+    }
+
+    @Test
+    fun recognizesArabicDateQuestionsOffline() {
+        assertEquals("DATE", com.idraak.quantum.engine.OfflineBrain.understand("ما تاريخ اليوم؟").intent)
+        assertEquals("DATE", com.idraak.quantum.engine.OfflineBrain.understand("تاريخ اليوم").intent)
+    }
+
 }
