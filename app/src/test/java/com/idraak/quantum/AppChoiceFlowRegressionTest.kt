@@ -73,4 +73,13 @@ class AppChoiceFlowRegressionTest {
         assertEquals(2, OfflinePhoneCommandHandler.resolveChoiceIndex("third", 3))
     }
 
+    @Test
+    fun recognizesNewCommandsInMultipleLanguagesWhileWaitingForAppChoice() {
+        assertEquals(true, OfflinePhoneCommandHandler.isClearlyNewCommand("open camera"))
+        assertEquals(true, OfflinePhoneCommandHandler.isClearlyNewCommand("zara kholo camera"))
+        assertEquals(true, OfflinePhoneCommandHandler.isClearlyNewCommand("यूट्यूब पर नعت تلاش کرو"))
+        assertEquals(true, OfflinePhoneCommandHandler.isClearlyNewCommand("افتح الكاميرا"))
+        assertEquals(false, OfflinePhoneCommandHandler.isClearlyNewCommand("second"))
+    }
+
 }
