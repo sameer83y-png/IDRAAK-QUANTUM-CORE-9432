@@ -49,8 +49,8 @@ object ReminderCommandParser {
         val title = extractTitle(normalized)
         if (title.isBlank()) return ParseResult.NeedsTitle
         val repeatInterval = when {
-            listOf("every day", "daily", "rozana", "har roz", "روزانہ", "ہر روز", "روزانہ").any { normalized.contains(it) } -> 24L * 60L * 60L * 1000L
-            listOf("every week", "weekly", "har haftay", "haftawar", "ہر ہفتے", "ہفتہ وار", "हर हफ्ते").any { normalized.contains(it) } -> 7L * 24L * 60L * 60L * 1000L
+            listOf("every day", "daily", "rozana", "har roz", "روزانہ", "ہر روز", "روزانہ", "كل يوم", "يوميا", "يوميًا").any { normalized.contains(it) } -> 24L * 60L * 60L * 1000L
+            listOf("every week", "weekly", "har haftay", "haftawar", "ہر ہفتے", "ہفتہ وار", "हर हफ्ते", "كل أسبوع", "أسبوعيا", "أسبوعيًا").any { normalized.contains(it) } -> 7L * 24L * 60L * 60L * 1000L
             else -> 0L
         }
         return ParseResult.Ready(
@@ -119,9 +119,10 @@ object ReminderCommandParser {
             Regex("""\d+\s*(?:seconds?|secs?|minutes?|mins?|hours?|hrs?|minute|minutes|min|mins|hour|hours|ghanta|ghante)\s*(?:later|from now|baad|bad|mein|me)"""),
             Regex("""\d+\s*(?:منٹ|منٹوں|گھنٹہ|گھنٹے|سیکنڈ)\s*(?:بعد|میں)"""),
             Regex("""\d+\s*(?:मिनट|मिनिट|घंटा|घंटे|सेकंड)\s*(?:बाद|में)"""),
+            Regex("""\d+\s*(?:ثانية|ثواني|دقيقة|دقائق|ساعة|ساعات)\s*(?:بعد|خلال)"""),
             Regex("""(?:at|around)\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)?"""),
             Regex("""(?:tomorrow|kal|کل|صبح|شام|رات|بجے|सुबह|शाम|बजे|الساعة|غدا|غدًا|صباح|مساء|ليلا|ليلاً)"""),
-            Regex("""(?:every day|daily|rozana|har roz|روزانہ|ہر روز|every week|weekly|har haftay|haftawar|ہر ہفتے|ہفتہ وار|हर हफ्ते)"""),
+            Regex("""(?:every day|daily|rozana|har roz|روزانہ|ہر روز|every week|weekly|har haftay|haftawar|ہر ہفتے|ہفتہ وار|हर हफ्ते|كل يوم|يوميا|يوميًا|كل أسبوع|أسبوعيا|أسبوعيًا)"""),
             Regex("""(?:please|kindly|mujhe|mujhay|yaad dila dena|yaad dilana|yaad dila|yaad dila do)"""),
             Regex("""(?:مجھے|براہ کرم|ذرا|یاد دلاؤ|یاد دلانا|یاد دلا دیں|یاد دلا دینا|یاد دہانی|ذكرني|ذكّرني|تذكير)"""),
             Regex("""(?:मुझे|कृपया|जरा|याद दिलाना|याद दिला देना|याद दिला दो|रिमाइंडर)"""),

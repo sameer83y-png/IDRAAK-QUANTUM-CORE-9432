@@ -13,7 +13,7 @@ object ReminderCommandHandler {
         val listRequested = listOf(
             "list reminders", "show reminders", "my reminders",
             "یاد دہانیاں دکھاؤ", "یاد دہانیوں کی فہرست", "میرے ریمائنڈر",
-            "reminder dikhao", "reminders dikhao"
+            "reminder dikhao", "reminders dikhao", "اعرض التذكيرات", "أظهر التذكيرات"
         ).any { normalized.contains(it) }
         if (listRequested) {
             val reminders = ReminderScheduler.list(context)
@@ -29,7 +29,7 @@ object ReminderCommandHandler {
         val cancelRequested = listOf(
             "cancel all reminders", "delete all reminders", "clear reminders",
             "تمام یاد دہانیاں منسوخ", "ساری یاد دہانیاں ختم", "تمام ریمائنڈر ختم",
-            "saare reminders cancel", "sab reminders hata"
+            "saare reminders cancel", "sab reminders hata", "ألغ كل التذكيرات", "احذف كل التذكيرات"
         ).any { normalized.contains(it) }
         if (cancelRequested) {
             val count = ReminderScheduler.cancelAll(context)
