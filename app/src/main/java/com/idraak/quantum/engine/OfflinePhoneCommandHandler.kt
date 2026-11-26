@@ -170,7 +170,7 @@ object OfflinePhoneCommandHandler {
     internal fun resolveChoiceIndex(answer: String, count: Int): Int? {
         if (count <= 0) return null
         val value = normalize(answer)
-        val number = Regex("""^(?:number\\s*)?([1-5])$""").matchEntire(value)
+        val number = Regex("""^(?:number\s*)?([1-5])$""").matchEntire(value)
             ?.groupValues?.get(1)?.toIntOrNull()
         if (number != null && number <= count) return number - 1
 
